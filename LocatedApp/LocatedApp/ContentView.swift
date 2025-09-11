@@ -1980,43 +1980,64 @@ class InvitationService: ObservableObject {
     }
     
     func acceptInvitation(_ invitation: ParentChildInvitation) async throws {
+        print("🔍 ACCEPTING INVITATION: \(invitation.id)")
+        print("🔍 Invitation details: parentId=\(invitation.parentId), childName=\(invitation.childName)")
+        
         guard let childId = Auth.auth().currentUser?.uid else {
+            print("❌ No authenticated user found")
             throw NSError(domain: "InvitationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
+        print("🔍 Child ID: \(childId)")
+        
         // Update invitation status
+        print("🔍 Updating invitation status to accepted...")
         try await db.collection("parent_child_invitations").document(invitation.id).updateData([
             "status": "accepted",
             "acceptedAt": Timestamp(date: Date())
         ])
+        print("✅ Invitation status updated to accepted")
         
         // Add parent to child's parents list
+        print("🔍 Adding parent to child's parents list...")
         try await db.collection("users").document(childId).updateData([
             "parents": FieldValue.arrayUnion([invitation.parentId])
         ])
+        print("✅ Parent added to child's parents list")
         
         // Add child to parent's children list
+        print("🔍 Adding child to parent's children list...")
         try await db.collection("users").document(invitation.parentId).updateData([
             "children": FieldValue.arrayUnion([childId])
         ])
+        print("✅ Child added to parent's children list")
         
         // Remove child from parent's pending children list
-        // First, get the parent's current pending children to find the one to remove
+        print("🔍 Removing child from parent's pending children list...")
         let parentDoc = try await db.collection("users").document(invitation.parentId).getDocument()
         if let parentData = parentDoc.data(),
            let pendingChildrenData = parentData["pendingChildren"] as? [[String: Any]] {
             
+            print("🔍 Current pending children count: \(pendingChildrenData.count)")
+            
             // Find and remove the pending child with matching invitation ID
             let updatedPendingChildren = pendingChildrenData.filter { pendingChildData in
-                return pendingChildData["invitationId"] as? String != invitation.id
+                let invitationId = pendingChildData["invitationId"] as? String
+                let shouldKeep = invitationId != invitation.id
+                print("🔍 Checking pending child: invitationId=\(invitationId ?? "nil"), shouldKeep=\(shouldKeep)")
+                return shouldKeep
             }
+            
+            print("🔍 Updated pending children count: \(updatedPendingChildren.count)")
             
             // Update the parent's pending children list
             try await db.collection("users").document(invitation.parentId).updateData([
                 "pendingChildren": updatedPendingChildren
             ])
             
-            print("🔍 Removed child from parent's pending children list")
+            print("✅ Removed child from parent's pending children list")
+        } else {
+            print("❌ Could not find pending children data in parent document")
         }
         
         // Remove from pending list
