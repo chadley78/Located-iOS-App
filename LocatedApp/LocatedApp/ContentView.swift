@@ -574,7 +574,9 @@ struct ParentHomeView: View {
             .padding()
             .navigationTitle("Located")
             .onAppear {
-                childLocationService.startListeningForChildrenLocations(parentId: authService.currentUser?.id ?? "")
+                if let parentId = authService.currentUser?.id, !parentId.isEmpty {
+                    childLocationService.startListeningForChildrenLocations(parentId: parentId)
+                }
             }
             .sheet(isPresented: $showingGeofenceManagement) {
                 if let selectedChild = selectedChildForGeofences {
@@ -628,6 +630,14 @@ class ChildLocationService: ObservableObject {
     }
     
     private func listenForChildLocation(childId: String) {
+        // Validate childId before making Firestore calls
+        guard !childId.isEmpty else {
+            print("❌ Cannot listen for child location: childId is empty")
+            return
+        }
+        
+        print("🔍 Listening for child location: \(childId)")
+        
         let listener = db.collection("locations").document(childId)
             .addSnapshotListener { [weak self] documentSnapshot, error in
                 guard let self = self else { return }
@@ -667,6 +677,13 @@ class ChildLocationService: ObservableObject {
     }
     
     private func fetchChildName(childId: String, completion: @escaping (String) -> Void) {
+        // Validate childId before making Firestore calls
+        guard !childId.isEmpty else {
+            print("❌ Cannot fetch child name: childId is empty")
+            completion("Unknown Child")
+            return
+        }
+        
         db.collection("users").document(childId).getDocument { document, error in
             if let document = document,
                let data = document.data(),
@@ -1134,7 +1151,9 @@ struct ParentMapView: View {
             .navigationTitle("Children Map")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                mapViewModel.startListeningForChildrenLocations(parentId: authService.currentUser?.id ?? "")
+                if let parentId = authService.currentUser?.id, !parentId.isEmpty {
+                    mapViewModel.startListeningForChildrenLocations(parentId: parentId)
+                }
             }
         }
     }
@@ -1181,6 +1200,14 @@ class ParentMapViewModel: ObservableObject {
     }
     
     private func listenForChildLocation(childId: String) {
+        // Validate childId before making Firestore calls
+        guard !childId.isEmpty else {
+            print("❌ Cannot listen for child location: childId is empty")
+            return
+        }
+        
+        print("🔍 Listening for child location: \(childId)")
+        
         let listener = db.collection("locations").document(childId)
             .addSnapshotListener { [weak self] documentSnapshot, error in
                 guard let self = self else { return }
@@ -1220,6 +1247,13 @@ class ParentMapViewModel: ObservableObject {
     }
     
     private func fetchChildName(childId: String, completion: @escaping (String) -> Void) {
+        // Validate childId before making Firestore calls
+        guard !childId.isEmpty else {
+            print("❌ Cannot fetch child name: childId is empty")
+            completion("Unknown Child")
+            return
+        }
+        
         db.collection("users").document(childId).getDocument { document, error in
             if let document = document,
                let data = document.data(),
