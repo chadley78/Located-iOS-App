@@ -479,6 +479,8 @@ struct ParentHomeView: View {
     
     @State private var selectedChildForGeofences: ChildLocationData?
     @State private var showingGeofenceManagement = false
+    @State private var showingAddChild = false
+    @State private var showingChildSelection = false
     
     var body: some View {
         NavigationView {
@@ -510,7 +512,7 @@ struct ParentHomeView: View {
                     
                     HStack(spacing: 12) {
                         Button(action: {
-                            // Add child action
+                            showingAddChild = true
                         }) {
                             VStack {
                                 Image(systemName: "person.badge.plus")
@@ -540,15 +542,16 @@ struct ParentHomeView: View {
                         }
                         
                         Button(action: {
-                            if childLocationService.childrenLocations.count == 1 {
+                            if childLocationService.childrenLocations.isEmpty {
+                                // If no children, show add child prompt
+                                showingAddChild = true
+                            } else if childLocationService.childrenLocations.count == 1 {
                                 // If only one child, go directly to their geofences
                                 selectedChildForGeofences = childLocationService.childrenLocations.first
                                 showingGeofenceManagement = true
-                            } else if childLocationService.childrenLocations.count > 1 {
+                            } else {
                                 // If multiple children, show selection
-                                // For now, select the first child
-                                selectedChildForGeofences = childLocationService.childrenLocations.first
-                                showingGeofenceManagement = true
+                                showingChildSelection = true
                             }
                         }) {
                             VStack {
@@ -563,7 +566,6 @@ struct ParentHomeView: View {
                             .background(Color.orange.opacity(0.1))
                             .cornerRadius(12)
                         }
-                        .disabled(childLocationService.childrenLocations.isEmpty)
                     }
                 }
                 
@@ -581,6 +583,19 @@ struct ParentHomeView: View {
                         childName: selectedChild.childName
                     )
                 }
+            }
+            .sheet(isPresented: $showingAddChild) {
+                AddChildView()
+            }
+            .sheet(isPresented: $showingChildSelection) {
+                ChildSelectionView(
+                    children: childLocationService.childrenLocations,
+                    onChildSelected: { child in
+                        selectedChildForGeofences = child
+                        showingGeofenceManagement = true
+                        showingChildSelection = false
+                    }
+                )
             }
         }
     }
@@ -1303,6 +1318,213 @@ struct CustomSecureField: View {
                     .foregroundColor(.secondary)
             }
         }
+    }
+}
+
+// MARK: - Add Child View
+struct AddChildView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authService: AuthenticationService
+    
+    @State private var childEmail = ""
+    @State private var childName = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                Spacer()
+                
+                VStack(spacing: 20) {
+                    Text("Add Child")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    Text("Enter your child's information to send them an invitation")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                
+                VStack(spacing: 16) {
+                    // Child Name Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Child's Name")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Enter child's name", text: $childName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                    
+                    // Child Email Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Child's Email")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Enter child's email", text: $childEmail)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    }
+                }
+                .padding(.horizontal, 30)
+                
+                // Success/Error Messages
+                if let successMessage = successMessage {
+                    Text(successMessage)
+                        .foregroundColor(.green)
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                }
+                
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                }
+                
+                Spacer()
+                
+                // Send Invitation Button
+                Button(action: sendInvitation) {
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Text("Send Invitation")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(Color.blue)
+                .cornerRadius(25)
+                .disabled(isLoading || childName.isEmpty || childEmail.isEmpty)
+                .padding(.horizontal, 30)
+                
+                Spacer()
+            }
+            .navigationTitle("Add Child")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func sendInvitation() {
+        guard !childName.isEmpty && !childEmail.isEmpty else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        successMessage = nil
+        
+        // For now, simulate sending an invitation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            isLoading = false
+            successMessage = "Invitation sent to \(childEmail)!"
+            
+            // Clear form
+            childName = ""
+            childEmail = ""
+            
+            // Auto-dismiss after showing success
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                dismiss()
+            }
+        }
+    }
+}
+
+// MARK: - Child Selection View
+struct ChildSelectionView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    let children: [ChildLocationData]
+    let onChildSelected: (ChildLocationData) -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Select Child")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .padding(.top)
+                
+                Text("Choose which child's geofences you want to manage")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                List(children, id: \.childId) { child in
+                    Button(action: {
+                        onChildSelected(child)
+                    }) {
+                        HStack {
+                            Circle()
+                                .fill(isLocationRecent(child.lastSeen) ? .green : .red)
+                                .frame(width: 12, height: 12)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(child.childName)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                Text("Last seen: \(formatTimeAgo(child.lastSeen))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                .listStyle(PlainListStyle())
+            }
+            .navigationTitle("Select Child")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var isLocationRecent: Bool {
+        children.first?.lastSeen.timeIntervalSinceNow ?? 0 > -300 // 5 minutes
+    }
+    
+    private func isLocationRecent(_ date: Date) -> Bool {
+        date.timeIntervalSinceNow > -300 // 5 minutes
+    }
+    
+    private func formatTimeAgo(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
