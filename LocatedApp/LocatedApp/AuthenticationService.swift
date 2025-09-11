@@ -171,9 +171,37 @@ class AuthenticationService: ObservableObject {
                 currentUser = user
             } else {
                 print("❌ No user document found for userId: \(userId)")
+                // Create a default user document if none exists
+                await createDefaultUserDocument(userId: userId)
             }
         } catch {
             print("❌ Error fetching user profile: \(error)")
+            // Try to create a default user document on error
+            await createDefaultUserDocument(userId: userId)
+        }
+    }
+    
+    private func createDefaultUserDocument(userId: String) async {
+        print("🔍 Creating default user document for userId: \(userId)")
+        guard let firebaseUser = auth.currentUser else {
+            print("❌ No Firebase user found")
+            return
+        }
+        
+        // Create a default user with parent type (most common case)
+        let defaultUser = User(
+            id: userId,
+            name: firebaseUser.displayName ?? "User",
+            email: firebaseUser.email ?? "",
+            userType: .parent  // Default to parent
+        )
+        
+        do {
+            try await saveUserProfile(defaultUser)
+            currentUser = defaultUser
+            print("🔍 Created default user document with userType: parent")
+        } catch {
+            print("❌ Error creating default user document: \(error)")
         }
     }
     
@@ -189,6 +217,13 @@ class AuthenticationService: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+    
+    func updateUserType(_ userType: User.UserType) async {
+        guard var user = currentUser else { return }
+        user.userType = userType
+        await updateUserProfile(user)
+        print("🔍 Updated user type to: \(userType.rawValue)")
     }
     
     func updateLastActive() async {

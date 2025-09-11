@@ -1142,6 +1142,42 @@ struct SettingsView: View {
                 }
                 .foregroundColor(.secondary)
                 
+                // Debug buttons for user type switching
+                VStack(spacing: 12) {
+                    Text("Debug: Switch User Type")
+                        .font(.headline)
+                        .foregroundColor(.orange)
+                    
+                    HStack(spacing: 12) {
+                        Button("Set as Parent") {
+                            Task {
+                                await authService.updateUserType(.parent)
+                            }
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                        
+                        Button("Set as Child") {
+                            Task {
+                                await authService.updateUserType(.child)
+                            }
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(Color.green)
+                        .cornerRadius(8)
+                    }
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(12)
+                
                 Button("Sign Out") {
                     Task {
                         print("🔐 Sign out button tapped")
