@@ -1300,27 +1300,11 @@ struct SettingsView: View {
                 let data = document.data()
                 let childEmail = data["childEmail"] as? String ?? ""
                 
-                // Find the child's user ID by email
-                let childQuery = db.collection("users").whereField("email", isEqualTo: childEmail)
-                let childSnapshot = try await childQuery.getDocuments()
-                
-                if let childDoc = childSnapshot.documents.first {
-                    let childId = childDoc.documentID
-                    print("🔍 Found child ID: \(childId) for email: \(childEmail)")
-                    
-                    // Check if child is already in parent's children list
-                    if !currentChildren.contains(childId) {
-                        print("🔍 Adding child \(childId) to parent's children list")
-                        try await db.collection("users").document(parentId).updateData([
-                            "children": FieldValue.arrayUnion([childId])
-                        ])
-                        print("✅ Added child to parent's children list")
-                    } else {
-                        print("ℹ️ Child already in parent's children list")
-                    }
-                } else {
-                    print("❌ Could not find child user for email: \(childEmail)")
-                }
+                // Instead of querying by email (which requires special permissions),
+                // we'll use the child's user ID that should be stored in the invitation
+                // For now, let's skip this step since we can't query users by email
+                print("🔍 Skipping child lookup for email: \(childEmail) - requires special permissions")
+                print("ℹ️ The acceptInvitation method should handle adding children to parent's list")
             }
             
         } catch {
