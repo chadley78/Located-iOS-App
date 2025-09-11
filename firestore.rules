@@ -5,6 +5,13 @@ service cloud.firestore {
     // Users collection - users can only read/write their own profile
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow children to update parent documents when accepting invitations
+      // This is needed for the acceptInvitation flow
+      allow update: if request.auth != null && 
+        request.auth.uid != userId && // Not updating own document
+        request.resource.data.keys().hasAll(['children']) && // Only updating children array
+        request.resource.data.children.hasAll(request.auth.uid); // Adding self to children array
     }
     
     // Locations collection - children can write their own location, parents can read their children's locations
