@@ -290,7 +290,7 @@ struct SignUpView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     
-                    CustomSecureField("Enter your password", text: $password)
+                    CustomSecureField(placeholder: "Enter your password", text: $password)
                 }
                 
                 // Confirm Password Field
@@ -299,7 +299,7 @@ struct SignUpView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     
-                    CustomSecureField("Confirm your password", text: $confirmPassword)
+                    CustomSecureField(placeholder: "Confirm your password", text: $confirmPassword)
                 }
             }
             .padding(.horizontal, 30)
@@ -475,6 +475,10 @@ struct MainTabView: View {
 struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @StateObject private var childLocationService = ChildLocationService()
+    @StateObject private var geofenceService = GeofenceService()
+    
+    @State private var selectedChildForGeofences: ChildLocationData?
+    @State private var showingGeofenceManagement = false
     
     var body: some View {
         NavigationView {
@@ -536,10 +540,19 @@ struct ParentHomeView: View {
                         }
                         
                         Button(action: {
-                            // Settings action
+                            if childLocationService.childrenLocations.count == 1 {
+                                // If only one child, go directly to their geofences
+                                selectedChildForGeofences = childLocationService.childrenLocations.first
+                                showingGeofenceManagement = true
+                            } else if childLocationService.childrenLocations.count > 1 {
+                                // If multiple children, show selection
+                                // For now, select the first child
+                                selectedChildForGeofences = childLocationService.childrenLocations.first
+                                showingGeofenceManagement = true
+                            }
                         }) {
                             VStack {
-                                Image(systemName: "geofence")
+                                Image(systemName: "location.circle")
                                     .font(.title2)
                                 Text("Geofences")
                                     .font(.caption)
@@ -550,6 +563,7 @@ struct ParentHomeView: View {
                             .background(Color.orange.opacity(0.1))
                             .cornerRadius(12)
                         }
+                        .disabled(childLocationService.childrenLocations.isEmpty)
                     }
                 }
                 
@@ -559,6 +573,14 @@ struct ParentHomeView: View {
             .navigationTitle("Located")
             .onAppear {
                 childLocationService.startListeningForChildrenLocations(parentId: authService.currentUser?.id ?? "")
+            }
+            .sheet(isPresented: $showingGeofenceManagement) {
+                if let selectedChild = selectedChildForGeofences {
+                    GeofenceManagementView(
+                        childId: selectedChild.childId,
+                        childName: selectedChild.childName
+                    )
+                }
             }
         }
     }
@@ -706,6 +728,7 @@ struct ChildLocationCard: View {
 struct ChildHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var locationService: LocationService
+    @StateObject private var geofenceService = GeofenceService()
     @State private var showingLocationPermissionAlert = false
     
     var body: some View {
@@ -827,6 +850,20 @@ struct ChildHomeView: View {
             .onAppear {
                 // Request location permission when view appears
                 locationService.requestLocationPermission()
+                
+                // Start geofence monitoring for this child
+                if let currentUser = authService.currentUser {
+                    Task {
+                        await geofenceService.fetchGeofences(for: currentUser.id)
+                        geofenceService.startMonitoringGeofences(for: currentUser.id)
+                    }
+                }
+            }
+            .onDisappear {
+                // Stop geofence monitoring when view disappears
+                if let currentUser = authService.currentUser {
+                    geofenceService.stopMonitoringAllGeofences()
+                }
             }
         }
     }
