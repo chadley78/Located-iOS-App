@@ -62,7 +62,8 @@ class GeofenceService: NSObject, ObservableObject {
     // Monitored regions for Core Location
     private var monitoredRegions: [String: CLCircularRegion] = [:]
     
-    init() {
+    override init() {
+        super.init()
         setupLocationManager()
     }
     
@@ -234,8 +235,7 @@ class GeofenceService: NSObject, ObservableObject {
                     timestamp: Date(),
                     address: nil,
                     batteryLevel: nil,
-                    isMoving: false,
-                    lastUpdated: Date()
+                    isMoving: false
                 )
             )
             
@@ -290,8 +290,8 @@ class GeofenceService: NSObject, ObservableObject {
 }
 
 // MARK: - CLLocationManagerDelegate
-extension GeofenceService: CLLocationManagerDelegate {
-    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
+    nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard let circularRegion = region as? CLCircularRegion,
               let geofence = geofences.first(where: { $0.id == circularRegion.identifier }) else {
             return
@@ -309,7 +309,7 @@ extension GeofenceService: CLLocationManagerDelegate {
         }
     }
     
-    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+    nonisolated func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         guard let circularRegion = region as? CLCircularRegion,
               let geofence = geofences.first(where: { $0.id == circularRegion.identifier }) else {
             return
@@ -327,7 +327,7 @@ extension GeofenceService: CLLocationManagerDelegate {
         }
     }
     
-    func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
+    nonisolated func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         print("❌ Geofence monitoring failed: \(error.localizedDescription)")
     }
 }
