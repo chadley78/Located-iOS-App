@@ -39,6 +39,10 @@ service cloud.firestore {
       // Parents can create invitations
       allow create: if request.auth != null && request.auth.uid == request.resource.data.parentId;
       
+      // Parents can read invitations they created
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.parentId;
+      
       // Children can read invitations sent to their email
       allow read: if request.auth != null && 
         request.auth.token.email == resource.data.childEmail;
