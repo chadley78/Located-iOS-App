@@ -227,10 +227,14 @@ class GeofenceService: ObservableObject {
                 eventType: eventType,
                 timestamp: Date(),
                 location: LocationData(
-                    latitude: location.coordinate.latitude,
-                    longitude: location.coordinate.longitude,
+                    lat: location.coordinate.latitude,
+                    lng: location.coordinate.longitude,
+                    accuracy: location.horizontalAccuracy,
                     timestamp: Date(),
-                    accuracy: location.horizontalAccuracy
+                    address: nil,
+                    batteryLevel: nil,
+                    isMoving: false,
+                    lastUpdated: Date()
                 )
             )
             
@@ -243,10 +247,14 @@ class GeofenceService: ObservableObject {
                 "eventType": event.eventType.rawValue,
                 "timestamp": event.timestamp,
                 "location": [
-                    "latitude": event.location.latitude,
-                    "longitude": event.location.longitude,
+                    "lat": event.location.lat,
+                    "lng": event.location.lng,
                     "timestamp": event.location.timestamp,
-                    "accuracy": event.location.accuracy
+                    "accuracy": event.location.accuracy,
+                    "address": event.location.address as Any,
+                    "batteryLevel": event.location.batteryLevel as Any,
+                    "isMoving": event.location.isMoving,
+                    "lastUpdated": event.location.lastUpdated
                 ]
             ])
             
@@ -263,7 +271,7 @@ class GeofenceService: ObservableObject {
             let snapshot = try await db.collection("geofence_events")
                 .whereField("childId", isEqualTo: childId)
                 .order(by: "timestamp", descending: true)
-                .limit(50)
+                .limit(to: 50)
                 .getDocuments()
             
             let events = snapshot.documents.compactMap { doc in
