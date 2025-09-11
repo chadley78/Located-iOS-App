@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="375" height="812" viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+  <!-- Child Home Screen (Status View) -->
+  <rect width="375" height="812" fill="#F2F2F7"/>
+  
+  <!-- Status Bar -->
+  <rect x="0" y="0" width="375" height="44" fill="#F2F2F7"/>
+  <text x="20" y="30" font-family="SF Pro Text" font-size="14" fill="#000">9:41</text>
+  <text x="350" y="30" font-family="SF Pro Text" font-size="14" fill="#000">100%</text>
+  
+  <!-- Header -->
+  <text x="20" y="80" font-family="SF Pro Display" font-size="24" font-weight="bold" fill="#000">Located</text>
+  <circle cx="320" cy="70" r="12" fill="#FF3B30"/>
+  <text x="320" y="75" font-family="SF Pro Text" font-size="12" font-weight="bold" fill="white" text-anchor="middle">2</text>
+  <text x="350" y="80" font-family="SF Pro Text" font-size="17" fill="#007AFF">Profile</text>
+  
+  <!-- Status Card -->
+  <rect x="20" y="100" width="335" height="200" rx="12" fill="white"/>
+  <text x="30" y="130" font-family="SF Pro Text" font-size="20" font-weight="semibold" fill="#000">Your Status</text>
+  
+  <!-- Status Items -->
+  <circle cx="40" cy="160" r="8" fill="#34C759"/>
+  <text x="60" y="165" font-family="SF Pro Text" font-size="16" fill="#000">Location Sharing: ON</text>
+  
+  <circle cx="40" cy="185" r="8" fill="#34C759"/>
+  <text x="60" y="190" font-family="SF Pro Text" font-size="16" fill="#000">Battery: 85%</text>
+  
+  <circle cx="40" cy="210" r="8" fill="#34C759"/>
+  <text x="60" y="215" font-family="SF Pro Text" font-size="16" fill="#000">Last Update: 2 min ago</text>
+  
+  <text x="30" y="245" font-family="SF Pro Text" font-size="16" fill="#000">📍 Current Location:</text>
+  <text x="30" y="270" font-family="SF Pro Text" font-size="16" fill="#8E8E93">School Campus</text>
+  
+  <text x="30" y="295" font-family="SF Pro Text" font-size="16" fill="#000">👨‍👩‍👧‍👦 Parents Monitoring: 2</text>
+  
+  <!-- Recent Activity -->
+  <rect x="20" y="320" width="335" height="140" rx="12" fill="white"/>
+  <text x="30" y="345" font-family="SF Pro Text" font-size="18" font-weight="semibold" fill="#000">Recent Activity</text>
+  
+  <text x="30" y="375" font-family="SF Pro Text" font-size="16" fill="#000">🏫 Entered School - 2h ago</text>
+  <text x="30" y="400" font-family="SF Pro Text" font-size="16" fill="#000">🚶 Left Home - 3h ago</text>
+  <text x="30" y="425" font-family="SF Pro Text" font-size="16" fill="#000">🏠 Arrived Home - 5h ago</text>
+  
+  <!-- Quick Actions -->
+  <rect x="20" y="480" width="335" height="80" rx="12" fill="white"/>
+  <text x="30" y="505" font-family="SF Pro Text" font-size="18" font-weight="semibold" fill="#000">Quick Actions</text>
+  
+  <!-- Action Buttons -->
+  <rect x="30" y="520" width="75" height="30" rx="15" fill="#007AFF"/>
+  <text x="67.5" y="540" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">📍 Share</text>
+  
+  <rect x="115" y="520" width="75" height="30" rx="15" fill="#8E8E93"/>
+  <text x="152.5" y="540" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">⚙️ Settings</text>
+  
+  <rect x="200" y="520" width="75" height="30" rx="15" fill="#34C759"/>
+  <text x="237.5" y="540" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">📊 History</text>
+  
+  <rect x="285" y="520" width="60" height="30" rx="15" fill="#FF3B30"/>
+  <text x="315" y="540" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">🆘 Emergency</text>
+</svg>

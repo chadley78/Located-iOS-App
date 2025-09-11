@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="375" height="812" viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+  <!-- Parent Home Screen (Map View) -->
+  <rect width="375" height="812" fill="#F2F2F7"/>
+  
+  <!-- Status Bar -->
+  <rect x="0" y="0" width="375" height="44" fill="#F2F2F7"/>
+  <text x="20" y="30" font-family="SF Pro Text" font-size="14" fill="#000">9:41</text>
+  <text x="350" y="30" font-family="SF Pro Text" font-size="14" fill="#000">100%</text>
+  
+  <!-- Header -->
+  <text x="20" y="80" font-family="SF Pro Display" font-size="24" font-weight="bold" fill="#000">Located</text>
+  <circle cx="320" cy="70" r="12" fill="#FF3B30"/>
+  <text x="320" y="75" font-family="SF Pro Text" font-size="12" font-weight="bold" fill="white" text-anchor="middle">3</text>
+  <text x="350" y="80" font-family="SF Pro Text" font-size="17" fill="#007AFF">Profile</text>
+  
+  <!-- Map Area -->
+  <rect x="20" y="100" width="335" height="300" rx="12" fill="#E5E5EA"/>
+  <text x="187.5" y="250" font-family="SF Pro Text" font-size="16" fill="#8E8E93" text-anchor="middle">🗺️ Map View</text>
+  
+  <!-- Child Location Pin -->
+  <circle cx="150" cy="200" r="8" fill="#FF3B30"/>
+  <text x="150" y="220" font-family="SF Pro Text" font-size="12" fill="#000" text-anchor="middle">📍 Alex (School)</text>
+  
+  <!-- Children List -->
+  <rect x="20" y="420" width="335" height="120" rx="12" fill="white"/>
+  <text x="30" y="445" font-family="SF Pro Text" font-size="18" font-weight="semibold" fill="#000">Children</text>
+  
+  <!-- Alex -->
+  <circle cx="40" cy="470" r="12" fill="#34C759"/>
+  <text x="40" y="475" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">👦</text>
+  <text x="60" y="475" font-family="SF Pro Text" font-size="16" fill="#000">Alex - Active</text>
+  <text x="60" y="495" font-family="SF Pro Text" font-size="14" fill="#8E8E93">Last seen 2 min ago</text>
+  
+  <!-- Emma -->
+  <circle cx="40" cy="520" r="12" fill="#34C759"/>
+  <text x="40" y="525" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">👧</text>
+  <text x="60" y="525" font-family="SF Pro Text" font-size="16" fill="#000">Emma - Active</text>
+  <text x="60" y="545" font-family="SF Pro Text" font-size="14" fill="#8E8E93">Last seen 5 min ago</text>
+  
+  <!-- Quick Actions -->
+  <rect x="20" y="560" width="335" height="80" rx="12" fill="white"/>
+  <text x="30" y="585" font-family="SF Pro Text" font-size="18" font-weight="semibold" fill="#000">Quick Actions</text>
+  
+  <!-- Action Buttons -->
+  <rect x="30" y="600" width="75" height="30" rx="15" fill="#007AFF"/>
+  <text x="67.5" y="620" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">📍 Live</text>
+  
+  <rect x="115" y="600" width="75" height="30" rx="15" fill="#FF9500"/>
+  <text x="152.5" y="620" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">🚧 Geofence</text>
+  
+  <rect x="200" y="600" width="75" height="30" rx="15" fill="#34C759"/>
+  <text x="237.5" y="620" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">📊 History</text>
+  
+  <rect x="285" y="600" width="60" height="30" rx="15" fill="#8E8E93"/>
+  <text x="315" y="620" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">⚙️</text>
+</svg>

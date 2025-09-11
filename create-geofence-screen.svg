@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="375" height="812" viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg">
+  <!-- Create Geofence Screen -->
+  <rect width="375" height="812" fill="#F2F2F7"/>
+  
+  <!-- Status Bar -->
+  <rect x="0" y="0" width="375" height="44" fill="#F2F2F7"/>
+  <text x="20" y="30" font-family="SF Pro Text" font-size="14" fill="#000">9:41</text>
+  <text x="350" y="30" font-family="SF Pro Text" font-size="14" fill="#000">100%</text>
+  
+  <!-- Back Button -->
+  <text x="20" y="80" font-family="SF Pro Text" font-size="17" fill="#007AFF">← Back</text>
+  
+  <!-- Header -->
+  <text x="187.5" y="120" font-family="SF Pro Display" font-size="24" font-weight="bold" fill="#000" text-anchor="middle">Create Geofence</text>
+  
+  <!-- Map Area -->
+  <rect x="20" y="140" width="335" height="200" rx="12" fill="#E5E5EA"/>
+  <text x="187.5" y="240" font-family="SF Pro Text" font-size="16" fill="#8E8E93" text-anchor="middle">🗺️ Map View</text>
+  
+  <!-- Center Pin -->
+  <circle cx="150" cy="200" r="6" fill="#FF3B30"/>
+  <text x="150" y="220" font-family="SF Pro Text" font-size="12" fill="#000" text-anchor="middle">📍 Tap to set center</text>
+  
+  <!-- Geofence Circle -->
+  <circle cx="150" cy="200" r="40" fill="none" stroke="#007AFF" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Name Field -->
+  <rect x="20" y="360" width="335" height="50" rx="8" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <text x="30" y="380" font-family="SF Pro Text" font-size="13" fill="#8E8E93">Geofence Name</text>
+  <text x="30" y="400" font-family="SF Pro Text" font-size="17" fill="#000">School</text>
+  
+  <!-- Radius Slider -->
+  <rect x="20" y="430" width="335" height="50" rx="8" fill="white"/>
+  <text x="30" y="450" font-family="SF Pro Text" font-size="13" fill="#8E8E93">Radius: 100 meters</text>
+  <rect x="30" y="465" width="275" height="4" rx="2" fill="#E5E5EA"/>
+  <rect x="30" y="465" width="100" height="4" rx="2" fill="#007AFF"/>
+  <circle cx="130" cy="467" r="8" fill="#007AFF"/>
+  
+  <!-- Notifications -->
+  <rect x="20" y="500" width="335" height="80" rx="8" fill="white"/>
+  <text x="30" y="525" font-family="SF Pro Text" font-size="16" font-weight="semibold" fill="#000">Notifications</text>
+  
+  <circle cx="40" cy="550" r="8" fill="#34C759"/>
+  <text x="40" y="555" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">✓</text>
+  <text x="60" y="555" font-family="SF Pro Text" font-size="16" fill="#000">Enter notifications</text>
+  
+  <circle cx="40" cy="575" r="8" fill="#34C759"/>
+  <text x="40" y="580" font-family="SF Pro Text" font-size="12" fill="white" text-anchor="middle">✓</text>
+  <text x="60" y="580" font-family="SF Pro Text" font-size="16" fill="#000">Exit notifications</text>
+  
+  <!-- Save Button -->
+  <rect x="20" y="600" width="335" height="50" rx="25" fill="#007AFF"/>
+  <text x="187.5" y="630" font-family="SF Pro Text" font-size="18" font-weight="semibold" fill="white" text-anchor="middle">Save Geofence</text>
+</svg>

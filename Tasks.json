@@ -1,0 +1,161 @@
+{
+  "projectName": "Native Mobile Locator App (Sequential iOS-First Build)",
+  "projectGoal": "To build a secure, native iOS application that provides 'always on' location tracking and geofencing notifications for child safety. The Android version will be considered in a future phase.",
+  "humanProjectManager": {
+    "role": "Initiate each task in sequence and review the deliverables from each completed task before authorizing the start of the next one."
+  },
+  "phases": [
+    {
+      "phaseId": 1,
+      "phaseName": "Project Setup & Core Backend (Sequential)",
+      "description": "This phase is foundational and must be completed before app development begins.",
+      "tasks": [
+        {
+          "taskId": "BE-01",
+          "title": "Setup Firebase Project & Services",
+          "description": "Initialize a new Firebase project. Enable Firestore Database, Firebase Authentication (with Email/Password), and Firebase Functions.",
+          "dependencies": [],
+          "deliverables": [
+            "Firebase Project ID.",
+            "The configuration file (`GoogleService-Info.plist`) for iOS.",
+            "A brief confirmation report stating that all services are enabled."
+          ]
+        },
+        {
+          "taskId": "BE-02",
+          "title": "Implement Firestore Database Structure and Security Rules",
+          "description": "Create the initial Firestore structure and deploy security rules. The rules must enforce that only authenticated users can write their own data and that parents can only read the data of their designated children.",
+          "dependencies": [
+            "BE-01"
+          ],
+          "deliverables": [
+            "A text file (`firestore.rules`) containing the complete, deployable Firestore security rules.",
+            "A document outlining the initial `users` and `locations` collections and a sample data structure for a parent-child relationship."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": 2,
+      "phaseName": "UI/UX Design & App Scaffolding (Sequential)",
+      "description": "With the backend ready, we'll design the user experience and set up the initial iOS project.",
+      "tasks": [
+        {
+          "taskId": "DS-01",
+          "title": "Design Onboarding, Authentication, and Home Screen UI/UX",
+          "description": "Create wireframes and high-fidelity mockups for both Parent and Child user flows. This includes: Sign Up / Login screens, a screen for a parent to invite/add a child (e.g., via a unique code), a screen for a child to accept a parent's invitation, the main Parent home screen (map view), and the main Child home screen (status view).",
+          "dependencies": [
+            "BE-02"
+          ],
+          "deliverables": [
+            "A set of PNG or SVG images for all screens.",
+            "A user flow diagram."
+          ]
+        },
+        {
+          "taskId": "IOS-01",
+          "title": "Setup iOS Project and Implement User Authentication",
+          "description": "Create a new iOS project in Swift with SwiftUI. Integrate the Firebase SDK using the `GoogleService-Info.plist` file. Implement the full authentication flow (Sign Up, Login, Logout) based on the `DS-01` designs.",
+          "dependencies": [
+            "DS-01"
+          ],
+          "deliverables": [
+            "The complete source code for the Xcode project.",
+            "A running app build that can be installed on a simulator or test device.",
+            "Instructions on how to run the project."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": 3,
+      "phaseName": "'Always On' Location Tracking (Sequential)",
+      "description": "This phase focuses on implementing the core location sharing and viewing features.",
+      "tasks": [
+        {
+          "taskId": "IOS-02",
+          "title": "Implement Child Location Sharing via Core Location Background Updates",
+          "description": "In the child's app, request 'Always Allow' location permission with clear justifications. Configure the `Core Location` framework to provide background location updates. On receiving an update, write the location data to the child's document in the `/locations/{childId}` collection in Firestore.",
+          "dependencies": [
+            "IOS-01"
+          ],
+          "deliverables": [
+            "Updated iOS source code.",
+            "A confirmation (e.g., a short video or log output) that the app writes location data to Firestore when the app is in the background."
+          ]
+        },
+        {
+          "taskId": "IOS-03",
+          "title": "Implement Parent Map View for Live Tracking",
+          "description": "In the parent's app, create a map view (using MapKit). The app must read the child's location data in real-time from Firestore and display the child's position as an annotation on the map. The map should update automatically when new data is available.",
+          "dependencies": [
+            "IOS-02"
+          ],
+          "deliverables": [
+            "Updated iOS source code featuring a functional map view."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": 4,
+      "phaseName": "Geofencing & Notifications (Sequential)",
+      "description": "Now we'll add the advanced geofencing and push notification features.",
+      "tasks": [
+        {
+          "taskId": "BE-03",
+          "title": "Create Firebase Cloud Function for Push Notifications",
+          "description": "Write and deploy a Firebase Cloud Function. This function should be triggered whenever a child's app writes a geofence event log to Firestore. Upon trigger, it should send a push notification to the authorized parent(s) via Firebase Cloud Messaging (FCM).",
+          "dependencies": [
+            "BE-02"
+          ],
+          "deliverables": [
+            "The source code for the Cloud Function (`index.js` or similar)."
+          ]
+        },
+        {
+          "taskId": "IOS-04",
+          "title": "Implement Geofence Creation and Monitoring",
+          "description": "1. (Parent App): Add a UI for parents to define a geofence on the map (select a point and a radius). Save this geofence data to Firestore. 2. (Child App): The app must listen for geofence data from Firestore. Use `CLLocationManager` to monitor these regions. When an enter/exit event occurs, write a log to a new `/geofence_events` collection in Firestore.",
+          "dependencies": [
+            "IOS-03"
+          ],
+          "deliverables": [
+            "Updated source code for the iOS app."
+          ]
+        },
+        {
+          "taskId": "IOS-05",
+          "title": "Implement Receiving Push Notifications",
+          "description": "Configure the parent app to receive push notifications from Firebase Cloud Messaging. When a notification is received about a geofence event, display it to the user.",
+          "dependencies": [
+            "BE-03",
+            "IOS-04"
+          ],
+          "deliverables": [
+            "Updated source code for the iOS app.",
+            "A video or GIF demonstrating a geofence breach triggering a notification on the parent's device."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": 5,
+      "phaseName": "Testing and Finalization",
+      "description": "",
+      "tasks": [
+        {
+          "taskId": "QA-01",
+          "title": "Develop a Comprehensive Test Plan",
+          "description": "Create a detailed test plan covering all iOS application features: Onboarding and Authentication tests, Location tracking accuracy and reliability tests (including background), Geofence creation and trigger tests, Notification delivery tests, and tests for revoking permissions and handling errors.",
+          "dependencies": [
+            "IOS-05"
+          ],
+          "deliverables": [
+            "A markdown document containing the full test plan with manual test cases."
+          ]
+        }
+      ]
+    }
+  ]
+}

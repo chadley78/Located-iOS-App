@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - users can only read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Locations collection - children can write their own location, parents can read their children's locations
+    match /locations/{childId} {
+      // A child can only update their own location
+      allow write: if request.auth != null && request.auth.uid == childId;
+      
+      // A parent can read the location if their ID is in the child's 'parents' list
+      allow read: if request.auth != null && 
+        request.auth.uid in get(/databases/$(database)/documents/users/$(childId)).data.parents;
+    }
+    
+    // Geofences collection - parents can create/manage geofences for their children
+    match /geofences/{geofenceId} {
+      // Allow read/write if the user is authenticated and is a parent of the child
+      allow read, write: if request.auth != null && 
+        request.auth.uid in get(/databases/$(database)/documents/users/$(resource.data.childId)).data.parents;
+    }
+    
+    // Geofence events collection - children can write events, parents can read events for their children
+    match /geofence_events/{eventId} {
+      // A child can write geofence events for themselves
+      allow write: if request.auth != null && request.auth.uid == resource.data.childId;
+      
+      // A parent can read geofence events if they are a parent of the child
+      allow read: if request.auth != null && 
+        request.auth.uid in get(/databases/$(database)/documents/users/$(resource.data.childId)).data.parents;
+    }
+    
+    // Parent-child relationships collection - for managing invitations
+    match /parent_child_invitations/{invitationId} {
+      // Parents can create invitations
+      allow write: if request.auth != null && request.auth.uid == resource.data.parentId;
+      
+      // Children can read invitations sent to them
+      allow read: if request.auth != null && request.auth.uid == resource.data.childId;
+      
+      // Children can update invitations (accept/decline)
+      allow update: if request.auth != null && request.auth.uid == resource.data.childId;
+    }
+  }
+}
