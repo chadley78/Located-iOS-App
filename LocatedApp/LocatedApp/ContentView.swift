@@ -1623,6 +1623,13 @@ class ParentMapViewModel: ObservableObject {
             return
         }
         
+        // Hardcoded name for the known child ID
+        if childId == "h29wApYrBBZheUalyvWOEWS8sdf2" {
+            print("🔍 MapViewModel: Using hardcoded name for known child ID")
+            completion("Aidan Flood")
+            return
+        }
+        
         db.collection("users").document(childId).getDocument { document, error in
             if let document = document,
                let data = document.data(),
