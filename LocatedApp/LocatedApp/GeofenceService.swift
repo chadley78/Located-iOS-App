@@ -292,12 +292,13 @@ class GeofenceService: NSObject, ObservableObject {
 // MARK: - CLLocationManagerDelegate
 extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        guard let circularRegion = region as? CLCircularRegion,
-              let geofence = geofences.first(where: { $0.id == circularRegion.identifier }) else {
-            return
-        }
+        guard let circularRegion = region as? CLCircularRegion else { return }
         
-        Task {
+        Task { @MainActor in
+            guard let geofence = geofences.first(where: { $0.id == circularRegion.identifier }) else {
+                return
+            }
+            
             await logGeofenceEvent(
                 geofence: geofence,
                 eventType: .enter,
@@ -310,12 +311,13 @@ extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
     }
     
     nonisolated func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        guard let circularRegion = region as? CLCircularRegion,
-              let geofence = geofences.first(where: { $0.id == circularRegion.identifier }) else {
-            return
-        }
+        guard let circularRegion = region as? CLCircularRegion else { return }
         
-        Task {
+        Task { @MainActor in
+            guard let geofence = geofences.first(where: { $0.id == circularRegion.identifier }) else {
+                return
+            }
+            
             await logGeofenceEvent(
                 geofence: geofence,
                 eventType: .exit,
