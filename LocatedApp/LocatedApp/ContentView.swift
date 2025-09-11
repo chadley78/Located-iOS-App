@@ -835,6 +835,32 @@ struct ChildHomeView: View {
                     .padding()
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(12)
+                    .onAppear {
+                        print("🔍 Invitation notification card is now visible")
+                    }
+                } else {
+                    // Debug: Show why notification card is not appearing
+                    VStack {
+                        Text("Debug: hasPendingInvitations = \(invitationService.hasPendingInvitations)")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        Text("Pending count = \(invitationService.pendingInvitations.count)")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        
+                        Button("Test Check Invitations") {
+                            let childEmail = authService.currentUser?.email ?? ""
+                            print("🔍 Manual test - checking invitations for: \(childEmail)")
+                            invitationService.checkForInvitations(childEmail: childEmail)
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                    .onAppear {
+                        print("🔍 Invitation notification card is NOT visible")
+                        print("🔍 hasPendingInvitations: \(invitationService.hasPendingInvitations)")
+                        print("🔍 pendingInvitations.count: \(invitationService.pendingInvitations.count)")
+                    }
                 }
                 
                 // Location Controls
@@ -907,7 +933,9 @@ struct ChildHomeView: View {
                 }
                 
                 // Check for pending invitations
-                invitationService.checkForInvitations(childEmail: authService.currentUser?.email ?? "")
+                let childEmail = authService.currentUser?.email ?? ""
+                print("🔍 ChildHomeView onAppear - checking invitations for: \(childEmail)")
+                invitationService.checkForInvitations(childEmail: childEmail)
             }
             .onDisappear {
                 // Stop geofence monitoring when view disappears
@@ -1631,6 +1659,8 @@ class InvitationService: ObservableObject {
     private var listener: ListenerRegistration?
     
     func checkForInvitations(childEmail: String) {
+        print("🔍 Checking for invitations for email: \(childEmail)")
+        
         // Listen for invitations sent to this child's email
         listener = db.collection("parent_child_invitations")
             .whereField("childEmail", isEqualTo: childEmail)
@@ -1639,17 +1669,34 @@ class InvitationService: ObservableObject {
                 guard let self = self else { return }
                 
                 if let error = error {
-                    print("Error listening for invitations: \(error)")
+                    print("❌ Error listening for invitations: \(error)")
                     return
                 }
                 
-                guard let documents = querySnapshot?.documents else { return }
-                
-                self.pendingInvitations = documents.compactMap { document in
-                    try? Firestore.Decoder().decode(ParentChildInvitation.self, from: document.data())
+                guard let documents = querySnapshot?.documents else { 
+                    print("🔍 No documents found in query snapshot")
+                    return 
                 }
                 
+                print("🔍 Found \(documents.count) invitation documents")
+                
+                self.pendingInvitations = documents.compactMap { document in
+                    print("🔍 Processing document: \(document.documentID)")
+                    print("🔍 Document data: \(document.data())")
+                    
+                    do {
+                        let invitation = try Firestore.Decoder().decode(ParentChildInvitation.self, from: document.data())
+                        print("🔍 Successfully decoded invitation: \(invitation.parentName)")
+                        return invitation
+                    } catch {
+                        print("❌ Error decoding invitation: \(error)")
+                        return nil
+                    }
+                }
+                
+                print("🔍 Final pending invitations count: \(self.pendingInvitations.count)")
                 self.hasPendingInvitations = !self.pendingInvitations.isEmpty
+                print("🔍 hasPendingInvitations: \(self.hasPendingInvitations)")
             }
     }
     
