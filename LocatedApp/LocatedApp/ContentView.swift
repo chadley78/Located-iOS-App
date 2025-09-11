@@ -1249,6 +1249,16 @@ struct SettingsView: View {
             let snapshot = try await query.getDocuments()
             print("🔍 Found \(snapshot.documents.count) accepted invitations for parent")
             
+            // Debug: Print details of accepted invitations
+            for document in snapshot.documents {
+                let data = document.data()
+                print("🔍 Accepted invitation: \(document.documentID)")
+                print("🔍   - childEmail: \(data["childEmail"] ?? "nil")")
+                print("🔍   - childName: \(data["childName"] ?? "nil")")
+                print("🔍   - parentId: \(data["parentId"] ?? "nil")")
+                print("🔍   - status: \(data["status"] ?? "nil")")
+            }
+            
             // Get current pending children
             let parentDoc = try await db.collection("users").document(parentId).getDocument()
             guard let parentData = parentDoc.data(),
@@ -1258,6 +1268,10 @@ struct SettingsView: View {
             }
             
             print("🔍 Current pending children count: \(pendingChildrenData.count)")
+            
+            // Also check what children are currently in the parent's children list
+            let currentChildren = parentData["children"] as? [String] ?? []
+            print("🔍 Current children list: \(currentChildren)")
             
             // Remove accepted invitations from pending list
             let acceptedInvitationIds = Set(snapshot.documents.map { $0.documentID })
@@ -1277,6 +1291,36 @@ struct SettingsView: View {
                 print("✅ Cleaned up \(pendingChildrenData.count - updatedPendingChildren.count) pending children")
             } else {
                 print("ℹ️ No cleanup needed - all pending children are still pending")
+            }
+            
+            // Additional step: Check if accepted children are missing from parent's children list
+            print("🔍 Checking if accepted children need to be added to parent's children list...")
+            
+            for document in snapshot.documents {
+                let data = document.data()
+                let childEmail = data["childEmail"] as? String ?? ""
+                
+                // Find the child's user ID by email
+                let childQuery = db.collection("users").whereField("email", isEqualTo: childEmail)
+                let childSnapshot = try await childQuery.getDocuments()
+                
+                if let childDoc = childSnapshot.documents.first {
+                    let childId = childDoc.documentID
+                    print("🔍 Found child ID: \(childId) for email: \(childEmail)")
+                    
+                    // Check if child is already in parent's children list
+                    if !currentChildren.contains(childId) {
+                        print("🔍 Adding child \(childId) to parent's children list")
+                        try await db.collection("users").document(parentId).updateData([
+                            "children": FieldValue.arrayUnion([childId])
+                        ])
+                        print("✅ Added child to parent's children list")
+                    } else {
+                        print("ℹ️ Child already in parent's children list")
+                    }
+                } else {
+                    print("❌ Could not find child user for email: \(childEmail)")
+                }
             }
             
         } catch {
