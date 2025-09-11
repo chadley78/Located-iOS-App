@@ -678,6 +678,13 @@ class ChildLocationService: ObservableObject {
         }
     }
     
+    func stopListening() {
+        print("🔍 Stopping all child location listeners")
+        listeners.forEach { $0.remove() }
+        listeners.removeAll()
+        childrenLocations.removeAll()
+    }
+    
     deinit {
         listeners.forEach { $0.remove() }
     }
@@ -997,7 +1004,18 @@ struct SettingsView: View {
                 
                 Button("Sign Out") {
                     Task {
+                        print("🔐 Sign out button tapped")
+                        
+                        // Stop all services before signing out
+                        childLocationService.stopListening()
+                        geofenceService.stopMonitoringAllGeofences()
+                        locationService.stopLocationUpdates()
+                        invitationService.stopListening()
+                        
+                        // Sign out
                         await authService.signOut()
+                        
+                        print("🔐 Sign out process completed")
                     }
                 }
                 .font(.system(size: 18, weight: .semibold))
@@ -1747,6 +1765,14 @@ class InvitationService: ObservableObject {
             pendingInvitations.removeAll { $0.id == invitation.id }
             hasPendingInvitations = !pendingInvitations.isEmpty
         }
+    }
+    
+    func stopListening() {
+        print("🔍 Stopping invitation listener")
+        listener?.remove()
+        listener = nil
+        pendingInvitations.removeAll()
+        hasPendingInvitations = false
     }
     
     deinit {

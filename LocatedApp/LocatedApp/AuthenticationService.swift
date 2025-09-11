@@ -95,11 +95,24 @@ class AuthenticationService: ObservableObject {
     }
     
     func signOut() async {
+        print("🔐 Starting sign out process...")
+        
         do {
+            // Clear any pending operations
+            isLoading = false
+            errorMessage = nil
+            
+            // Sign out from Firebase Auth
             try auth.signOut()
+            
+            // Clear user data
             currentUser = nil
             isAuthenticated = false
+            
+            print("🔐 Sign out completed successfully")
+            
         } catch {
+            print("❌ Error during sign out: \(error)")
             errorMessage = error.localizedDescription
         }
     }
