@@ -616,22 +616,46 @@ class ChildLocationService: ObservableObject {
     private var listeners: [ListenerRegistration] = []
     
     func startListeningForChildrenLocations(parentId: String) {
-        // Get children from user profile
-        db.collection("users").document(parentId).getDocument { [weak self] document, error in
-            guard let self = self,
-                  let document = document,
-                  let data = document.data(),
-                  let userData = try? Firestore.Decoder().decode(User.self, from: data) else {
-                return
-            }
-            
-            let children = userData.children
-            
-            // Listen for location updates for each child
-            for childId in children {
-                self.listenForChildLocation(childId: childId)
-            }
+        // Validate parentId before making Firestore calls
+        guard !parentId.isEmpty else {
+            print("❌ Cannot start listening: parentId is empty")
+            return
         }
+        
+        print("🔍 Starting to listen for children locations for parent: \(parentId)")
+        
+        // Listen for changes to the parent's user document to get updated children list
+        let parentListener = db.collection("users").document(parentId)
+            .addSnapshotListener { [weak self] documentSnapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ Error listening for parent user changes: \(error)")
+                    return
+                }
+                
+                guard let document = documentSnapshot,
+                      let data = document.data(),
+                      let userData = try? Firestore.Decoder().decode(User.self, from: data) else {
+                    print("❌ Could not decode parent user data")
+                    return
+                }
+                
+                let newChildren = userData.children
+                print("🔍 Parent has \(newChildren.count) children: \(newChildren)")
+                
+                // Stop listening to old children that are no longer in the list
+                self.stopListeningToRemovedChildren(newChildren: newChildren)
+                
+                // Start listening to new children
+                for childId in newChildren {
+                    if !self.isListeningToChild(childId: childId) {
+                        self.listenForChildLocation(childId: childId)
+                    }
+                }
+            }
+        
+        listeners.append(parentListener)
     }
     
     private func listenForChildLocation(childId: String) {
@@ -698,6 +722,27 @@ class ChildLocationService: ObservableObject {
                 completion("Unknown Child")
             }
         }
+    }
+    
+    private func stopListeningToRemovedChildren(newChildren: [String]) {
+        // Get current children we're listening to
+        let currentChildren = childrenLocations.map { $0.childId }
+        
+        // Find children that are no longer in the new list
+        let removedChildren = currentChildren.filter { !newChildren.contains($0) }
+        
+        // Remove listeners for removed children
+        for childId in removedChildren {
+            if let index = childrenLocations.firstIndex(where: { $0.childId == childId }) {
+                childrenLocations.remove(at: index)
+            }
+        }
+        
+        print("🔍 Removed \(removedChildren.count) children from listening")
+    }
+    
+    private func isListeningToChild(childId: String) -> Bool {
+        return childrenLocations.contains { $0.childId == childId }
     }
     
     func stopListening() {
@@ -1179,22 +1224,46 @@ class ParentMapViewModel: ObservableObject {
     private var listeners: [ListenerRegistration] = []
     
     func startListeningForChildrenLocations(parentId: String) {
-        // Get children from user profile
-        db.collection("users").document(parentId).getDocument { [weak self] document, error in
-            guard let self = self,
-                  let document = document,
-                  let data = document.data(),
-                  let userData = try? Firestore.Decoder().decode(User.self, from: data) else {
-                return
-            }
-            
-            let children = userData.children
-            
-            // Listen for location updates for each child
-            for childId in children {
-                self.listenForChildLocation(childId: childId)
-            }
+        // Validate parentId before making Firestore calls
+        guard !parentId.isEmpty else {
+            print("❌ Cannot start listening: parentId is empty")
+            return
         }
+        
+        print("🔍 MapViewModel starting to listen for children locations for parent: \(parentId)")
+        
+        // Listen for changes to the parent's user document to get updated children list
+        let parentListener = db.collection("users").document(parentId)
+            .addSnapshotListener { [weak self] documentSnapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ Error listening for parent user changes: \(error)")
+                    return
+                }
+                
+                guard let document = documentSnapshot,
+                      let data = document.data(),
+                      let userData = try? Firestore.Decoder().decode(User.self, from: data) else {
+                    print("❌ Could not decode parent user data")
+                    return
+                }
+                
+                let newChildren = userData.children
+                print("🔍 MapViewModel - Parent has \(newChildren.count) children: \(newChildren)")
+                
+                // Stop listening to old children that are no longer in the list
+                self.stopListeningToRemovedChildren(newChildren: newChildren)
+                
+                // Start listening to new children
+                for childId in newChildren {
+                    if !self.isListeningToChild(childId: childId) {
+                        self.listenForChildLocation(childId: childId)
+                    }
+                }
+            }
+        
+        listeners.append(parentListener)
     }
     
     private func listenForChildLocation(childId: String) {
@@ -1295,6 +1364,27 @@ class ParentMapViewModel: ObservableObject {
         listeners.removeAll()
         
         // This will be called again by the parent view
+    }
+    
+    private func stopListeningToRemovedChildren(newChildren: [String]) {
+        // Get current children we're listening to
+        let currentChildren = childrenLocations.map { $0.childId }
+        
+        // Find children that are no longer in the new list
+        let removedChildren = currentChildren.filter { !newChildren.contains($0) }
+        
+        // Remove listeners for removed children
+        for childId in removedChildren {
+            if let index = childrenLocations.firstIndex(where: { $0.childId == childId }) {
+                childrenLocations.remove(at: index)
+            }
+        }
+        
+        print("🔍 MapViewModel - Removed \(removedChildren.count) children from listening")
+    }
+    
+    private func isListeningToChild(childId: String) -> Bool {
+        return childrenLocations.contains { $0.childId == childId }
     }
     
     deinit {
