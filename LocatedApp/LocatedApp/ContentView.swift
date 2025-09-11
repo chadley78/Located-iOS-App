@@ -1642,8 +1642,12 @@ class InvitationService: ObservableObject {
             throw NSError(domain: "InvitationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
+        guard let invitationId = invitation.id else {
+            throw NSError(domain: "InvitationService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid invitation ID"])
+        }
+        
         // Update invitation status
-        try await db.collection("parent_child_invitations").document(invitation.id).updateData([
+        try await db.collection("parent_child_invitations").document(invitationId).updateData([
             "status": "accepted",
             "acceptedAt": Timestamp(date: Date())
         ])
@@ -1666,7 +1670,11 @@ class InvitationService: ObservableObject {
     }
     
     func declineInvitation(_ invitation: ParentChildInvitation) async throws {
-        try await db.collection("parent_child_invitations").document(invitation.id).updateData([
+        guard let invitationId = invitation.id else {
+            throw NSError(domain: "InvitationService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid invitation ID"])
+        }
+        
+        try await db.collection("parent_child_invitations").document(invitationId).updateData([
             "status": "declined",
             "declinedAt": Timestamp(date: Date())
         ])
