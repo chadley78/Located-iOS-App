@@ -4,7 +4,6 @@ import MapKit
 // MARK: - Geofence Management View
 struct GeofenceManagementView: View {
     @StateObject private var geofenceService = GeofenceService()
-    @StateObject private var childLocationService = ChildLocationService()
     
     let childId: String
     let childName: String
@@ -27,6 +26,12 @@ struct GeofenceManagementView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
+                
+                // Debug info
+                Text("Debug: ChildId = \(childId)")
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding()
                 
                 if geofenceService.isLoading {
                     Spacer()
