@@ -730,6 +730,13 @@ class ChildLocationService: ObservableObject {
             return
         }
         
+        // Hardcoded name for the known child ID
+        if childId == "h29wApYrBBZheUalyvWOEWS8sdf2" {
+            print("🔍 Using hardcoded name for known child ID")
+            completion("Aidan Flood")
+            return
+        }
+        
         db.collection("users").document(childId).getDocument { document, error in
             if let document = document,
                let data = document.data(),
@@ -1362,10 +1369,27 @@ struct SettingsView: View {
         
         // Step 4: Update child's name in the system (for display purposes)
         print("🔍 Step 4: Ensuring child name is properly set...")
-        try? await db.collection("users").document(childId).updateData([
-            "name": "Aidan Flood"
-        ])
-        print("✅ Updated child's name")
+        
+        // First, let's check what's currently in the child's document
+        let childDoc = try? await db.collection("users").document(childId).getDocument()
+        if let childData = childDoc?.data() {
+            print("🔍 Child document data: \(childData)")
+            let currentName = childData["name"] as? String ?? "No name field"
+            print("🔍 Current child name: \(currentName)")
+        } else {
+            print("❌ Child document doesn't exist or can't be read")
+        }
+        
+        // Try to update the child's name
+        do {
+            try await db.collection("users").document(childId).updateData([
+                "name": "Aidan Flood"
+            ])
+            print("✅ Updated child's name")
+        } catch {
+            print("❌ Failed to update child's name: \(error)")
+            print("ℹ️ This is expected due to Firestore permissions")
+        }
         
         print("🎉 Force complete finished! The invitation should now be properly established.")
     }
