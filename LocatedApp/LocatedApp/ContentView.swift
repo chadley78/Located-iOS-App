@@ -1194,6 +1194,21 @@ struct SettingsView: View {
                     .cornerRadius(8)
                 }
                 
+                // Debug cleanup button for parent users
+                if authService.currentUser?.userType == .parent {
+                    Button("Cleanup My Pending Children") {
+                        Task {
+                            await cleanupParentPendingChildren()
+                        }
+                    }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(Color.purple)
+                    .cornerRadius(8)
+                }
+                
                 Button("Sign Out") {
                     Task {
                         print("🔐 Sign out button tapped")
@@ -1212,6 +1227,60 @@ struct SettingsView: View {
                 Spacer()
             }
             .navigationTitle("Settings")
+        }
+    }
+    
+    private func cleanupParentPendingChildren() async {
+        print("🔍 PARENT CLEANUP: Checking for accepted invitations...")
+        
+        guard let parentId = authService.currentUser?.id else {
+            print("❌ No parent ID found")
+            return
+        }
+        
+        let db = Firestore.firestore()
+        
+        // Get all accepted invitations for this parent
+        let query = db.collection("parent_child_invitations")
+            .whereField("parentId", isEqualTo: parentId)
+            .whereField("status", isEqualTo: "accepted")
+        
+        do {
+            let snapshot = try await query.getDocuments()
+            print("🔍 Found \(snapshot.documents.count) accepted invitations for parent")
+            
+            // Get current pending children
+            let parentDoc = try await db.collection("users").document(parentId).getDocument()
+            guard let parentData = parentDoc.data(),
+                  let pendingChildrenData = parentData["pendingChildren"] as? [[String: Any]] else {
+                print("❌ Could not get parent's pending children data")
+                return
+            }
+            
+            print("🔍 Current pending children count: \(pendingChildrenData.count)")
+            
+            // Remove accepted invitations from pending list
+            let acceptedInvitationIds = Set(snapshot.documents.map { $0.documentID })
+            let updatedPendingChildren = pendingChildrenData.filter { pendingChildData in
+                let invitationId = pendingChildData["invitationId"] as? String ?? ""
+                let shouldKeep = !acceptedInvitationIds.contains(invitationId)
+                print("🔍 Checking pending child: invitationId=\(invitationId), shouldKeep=\(shouldKeep)")
+                return shouldKeep
+            }
+            
+            print("🔍 Updated pending children count: \(updatedPendingChildren.count)")
+            
+            if updatedPendingChildren.count != pendingChildrenData.count {
+                try await db.collection("users").document(parentId).updateData([
+                    "pendingChildren": updatedPendingChildren
+                ])
+                print("✅ Cleaned up \(pendingChildrenData.count - updatedPendingChildren.count) pending children")
+            } else {
+                print("ℹ️ No cleanup needed - all pending children are still pending")
+            }
+            
+        } catch {
+            print("❌ Error during parent cleanup: \(error)")
         }
     }
 }
