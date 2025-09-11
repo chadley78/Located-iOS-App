@@ -745,6 +745,8 @@ struct ChildHomeView: View {
     @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
     @State private var showingLocationPermissionAlert = false
+    @State private var showingInvitations = false
+    @StateObject private var invitationService = InvitationService()
     
     var body: some View {
         NavigationView {
@@ -804,6 +806,36 @@ struct ChildHomeView: View {
                 .padding()
                 .background(Color(UIColor.systemGray6))
                 .cornerRadius(12)
+                
+                // Invitation Notification
+                if invitationService.hasPendingInvitations {
+                    VStack(spacing: 12) {
+                        HStack {
+                            Image(systemName: "envelope.badge")
+                                .foregroundColor(.blue)
+                                .font(.title2)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("New Parent Invitation")
+                                    .font(.headline)
+                                Text("You have \(invitationService.pendingInvitations.count) pending invitation(s)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button("View") {
+                                showingInvitations = true
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(12)
+                }
                 
                 // Location Controls
                 VStack(spacing: 12) {
@@ -873,12 +905,18 @@ struct ChildHomeView: View {
                         geofenceService.startMonitoringGeofences(for: userId)
                     }
                 }
+                
+                // Check for pending invitations
+                invitationService.checkForInvitations(childEmail: authService.currentUser?.email ?? "")
             }
             .onDisappear {
                 // Stop geofence monitoring when view disappears
                 if let currentUser = authService.currentUser {
                     geofenceService.stopMonitoringAllGeofences()
                 }
+            }
+            .sheet(isPresented: $showingInvitations) {
+                InvitationListView(invitationService: invitationService)
             }
         }
     }
@@ -1427,25 +1465,65 @@ struct AddChildView: View {
     
     private func sendInvitation() {
         guard !childName.isEmpty && !childEmail.isEmpty else { return }
+        guard let parentId = authService.currentUser?.id else {
+            errorMessage = "Please sign in to send invitations"
+            return
+        }
         
         isLoading = true
         errorMessage = nil
         successMessage = nil
         
-        // For now, simulate sending an invitation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isLoading = false
-            successMessage = "Invitation sent to \(childEmail)!"
-            
-            // Clear form
-            childName = ""
-            childEmail = ""
-            
-            // Auto-dismiss after showing success
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                dismiss()
+        Task {
+            do {
+                try await createParentChildInvitation(
+                    parentId: parentId,
+                    childName: childName,
+                    childEmail: childEmail
+                )
+                
+                await MainActor.run {
+                    isLoading = false
+                    successMessage = "Invitation sent to \(childEmail)!"
+                    
+                    // Clear form
+                    childName = ""
+                    childEmail = ""
+                    
+                    // Auto-dismiss after showing success
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        dismiss()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "Failed to send invitation: \(error.localizedDescription)"
+                }
             }
         }
+    }
+    
+    private func createParentChildInvitation(parentId: String, childName: String, childEmail: String) async throws {
+        let db = Firestore.firestore()
+        
+        // Create invitation document
+        let invitationData: [String: Any] = [
+            "parentId": parentId,
+            "parentName": authService.currentUser?.name ?? "Unknown Parent",
+            "childName": childName,
+            "childEmail": childEmail,
+            "status": "pending", // pending, accepted, declined
+            "createdAt": Timestamp(date: Date()),
+            "invitationCode": generateInvitationCode()
+        ]
+        
+        try await db.collection("parent_child_invitations").addDocument(data: invitationData)
+    }
+    
+    private func generateInvitationCode() -> String {
+        let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<6).map { _ in characters.randomElement()! })
     }
 }
 
@@ -1525,6 +1603,205 @@ struct ChildSelectionView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+// MARK: - Invitation Service
+class InvitationService: ObservableObject {
+    @Published var pendingInvitations: [ParentChildInvitation] = []
+    @Published var hasPendingInvitations: Bool = false
+    
+    private let db = Firestore.firestore()
+    private var listener: ListenerRegistration?
+    
+    func checkForInvitations(childEmail: String) {
+        // Listen for invitations sent to this child's email
+        listener = db.collection("parent_child_invitations")
+            .whereField("childEmail", isEqualTo: childEmail)
+            .whereField("status", isEqualTo: "pending")
+            .addSnapshotListener { [weak self] querySnapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("Error listening for invitations: \(error)")
+                    return
+                }
+                
+                guard let documents = querySnapshot?.documents else { return }
+                
+                self.pendingInvitations = documents.compactMap { document in
+                    try? Firestore.Decoder().decode(ParentChildInvitation.self, from: document.data())
+                }
+                
+                self.hasPendingInvitations = !self.pendingInvitations.isEmpty
+            }
+    }
+    
+    func acceptInvitation(_ invitation: ParentChildInvitation) async throws {
+        guard let childId = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "InvitationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+        }
+        
+        // Update invitation status
+        try await db.collection("parent_child_invitations").document(invitation.id).updateData([
+            "status": "accepted",
+            "acceptedAt": Timestamp(date: Date())
+        ])
+        
+        // Add parent to child's parents list
+        try await db.collection("users").document(childId).updateData([
+            "parents": FieldValue.arrayUnion([invitation.parentId])
+        ])
+        
+        // Add child to parent's children list
+        try await db.collection("users").document(invitation.parentId).updateData([
+            "children": FieldValue.arrayUnion([childId])
+        ])
+        
+        // Remove from pending list
+        await MainActor.run {
+            pendingInvitations.removeAll { $0.id == invitation.id }
+            hasPendingInvitations = !pendingInvitations.isEmpty
+        }
+    }
+    
+    func declineInvitation(_ invitation: ParentChildInvitation) async throws {
+        try await db.collection("parent_child_invitations").document(invitation.id).updateData([
+            "status": "declined",
+            "declinedAt": Timestamp(date: Date())
+        ])
+        
+        // Remove from pending list
+        await MainActor.run {
+            pendingInvitations.removeAll { $0.id == invitation.id }
+            hasPendingInvitations = !pendingInvitations.isEmpty
+        }
+    }
+    
+    deinit {
+        listener?.remove()
+    }
+}
+
+// MARK: - Parent Child Invitation Model
+struct ParentChildInvitation: Codable, Identifiable {
+    @DocumentID var id: String?
+    let parentId: String
+    let parentName: String
+    let childName: String
+    let childEmail: String
+    let status: String // pending, accepted, declined
+    let createdAt: Timestamp
+    let invitationCode: String
+    let acceptedAt: Timestamp?
+    let declinedAt: Timestamp?
+}
+
+// MARK: - Invitation List View
+struct InvitationListView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var invitationService: InvitationService
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                if invitationService.pendingInvitations.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "envelope.open")
+                            .font(.system(size: 50))
+                            .foregroundColor(.secondary)
+                        
+                        Text("No Pending Invitations")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("You don't have any pending parent invitations at the moment.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                } else {
+                    List(invitationService.pendingInvitations, id: \.id) { invitation in
+                        InvitationCard(invitation: invitation, invitationService: invitationService)
+                    }
+                    .listStyle(PlainListStyle())
+                }
+            }
+            .navigationTitle("Parent Invitations")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Invitation Card
+struct InvitationCard: View {
+    let invitation: ParentChildInvitation
+    @ObservedObject var invitationService: InvitationService
+    @State private var isProcessing = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(invitation.parentName)
+                        .font(.headline)
+                    
+                    Text("wants to monitor your location")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text("Invitation Code: \(invitation.invitationCode)")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 12) {
+                Button("Decline") {
+                    Task {
+                        isProcessing = true
+                        try? await invitationService.declineInvitation(invitation)
+                        isProcessing = false
+                    }
+                }
+                .foregroundColor(.red)
+                .disabled(isProcessing)
+                
+                Spacer()
+                
+                Button("Accept") {
+                    Task {
+                        isProcessing = true
+                        try? await invitationService.acceptInvitation(invitation)
+                        isProcessing = false
+                    }
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.blue)
+                .cornerRadius(8)
+                .disabled(isProcessing)
+            }
+        }
+        .padding()
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(12)
+        .shadow(radius: 2)
     }
 }
 
