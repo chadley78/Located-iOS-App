@@ -1737,7 +1737,7 @@ class InvitationService: ObservableObject {
                     do {
                         // Create decoder with document ID in userInfo
                         let decoder = Firestore.Decoder()
-                        decoder.userInfo[DocumentIDCodingKey.self] = document.documentID
+                        decoder.userInfo[CodingUserInfoKey(rawValue: "DocumentID")!] = document.documentID
                         
                         let invitation = try decoder.decode(ParentChildInvitation.self, from: document.data())
                         print("🔍 Successfully decoded invitation: \(invitation.parentName)")
@@ -1840,7 +1840,7 @@ struct ParentChildInvitation: Codable, Identifiable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         // Get document ID from userInfo if available
-        if let documentId = decoder.userInfo[DocumentIDCodingKey.self] as? String {
+        if let documentId = decoder.userInfo[CodingUserInfoKey(rawValue: "DocumentID")!] as? String {
             self.id = documentId
         } else {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Document ID not found"))
@@ -1860,11 +1860,6 @@ struct ParentChildInvitation: Codable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case parentId, parentName, childName, childEmail, status, createdAt, invitationCode, acceptedAt, declinedAt
     }
-}
-
-// Document ID coding key for Firestore
-struct DocumentIDCodingKey: CodingUserInfoKey {
-    static let key = DocumentIDCodingKey(rawValue: "DocumentID")!
 }
 
 // MARK: - Invitation List View
