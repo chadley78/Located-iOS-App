@@ -491,13 +491,19 @@ struct ParentHomeView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    if childLocationService.childrenLocations.isEmpty {
+                    if childLocationService.childrenLocations.isEmpty && childLocationService.pendingChildren.isEmpty {
                         Text("No children added yet")
                             .foregroundColor(.secondary)
                             .padding()
                     } else {
+                        // Show active children
                         ForEach(childLocationService.childrenLocations, id: \.childId) { childLocation in
                             ChildLocationCard(childLocation: childLocation)
+                        }
+                        
+                        // Show pending children
+                        ForEach(childLocationService.pendingChildren, id: \.id) { pendingChild in
+                            PendingChildCard(pendingChild: pendingChild)
                         }
                     }
                 }
@@ -611,6 +617,7 @@ struct ParentHomeView: View {
 // MARK: - Child Location Service
 class ChildLocationService: ObservableObject {
     @Published var childrenLocations: [ChildLocationData] = []
+    @Published var pendingChildren: [PendingChild] = []
     
     private let db = Firestore.firestore()
     private var listeners: [ListenerRegistration] = []
@@ -642,7 +649,13 @@ class ChildLocationService: ObservableObject {
                 }
                 
                 let newChildren = userData.children
+                let newPendingChildren = userData.pendingChildren
+                
                 print("🔍 Parent has \(newChildren.count) children: \(newChildren)")
+                print("🔍 Parent has \(newPendingChildren.count) pending children: \(newPendingChildren.map { $0.name })")
+                
+                // Update pending children
+                self.pendingChildren = newPendingChildren
                 
                 // Stop listening to old children that are no longer in the list
                 self.stopListeningToRemovedChildren(newChildren: newChildren)
@@ -804,6 +817,60 @@ struct ChildLocationCard: View {
     
     private var isLocationRecent: Bool {
         childLocation.lastSeen.timeIntervalSinceNow > -300 // 5 minutes
+    }
+    
+    private func formatTimeAgo(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+// MARK: - Pending Child Card
+struct PendingChildCard: View {
+    let pendingChild: PendingChild
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Circle()
+                    .fill(.orange)
+                    .frame(width: 12, height: 12)
+                
+                Text(pendingChild.name)
+                    .font(.headline)
+                
+                Spacer()
+                
+                Text("PENDING")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.orange)
+            }
+            
+            Text("Email: \(pendingChild.email)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Text("Invitation Code: \(pendingChild.invitationCode)")
+                .font(.caption)
+                .foregroundColor(.blue)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(4)
+            
+            Text("Sent: \(formatTimeAgo(pendingChild.createdAt))")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
     }
     
     private func formatTimeAgo(_ date: Date) -> String {
@@ -1699,6 +1766,22 @@ struct AddChildView: View {
         do {
             let docRef = try await db.collection("parent_child_invitations").addDocument(data: invitationData)
             print("Invitation created successfully with ID: \(docRef.documentID)")
+            
+            // Add child to parent's pending children list
+            let pendingChild = PendingChild(
+                id: UUID().uuidString,
+                name: childName,
+                email: childEmail,
+                invitationCode: invitationData["invitationCode"] as! String,
+                invitationId: docRef.documentID
+            )
+            
+            try await db.collection("users").document(parentId).updateData([
+                "pendingChildren": FieldValue.arrayUnion([try Firestore.Encoder().encode(pendingChild)])
+            ])
+            
+            print("Added child to parent's pending children list")
+            
         } catch {
             print("Error creating invitation: \(error)")
             throw error
@@ -1864,6 +1947,25 @@ class InvitationService: ObservableObject {
         try await db.collection("users").document(invitation.parentId).updateData([
             "children": FieldValue.arrayUnion([childId])
         ])
+        
+        // Remove child from parent's pending children list
+        // First, get the parent's current pending children to find the one to remove
+        let parentDoc = try await db.collection("users").document(invitation.parentId).getDocument()
+        if let parentData = parentDoc.data(),
+           let pendingChildrenData = parentData["pendingChildren"] as? [[String: Any]] {
+            
+            // Find and remove the pending child with matching invitation ID
+            let updatedPendingChildren = pendingChildrenData.filter { pendingChildData in
+                return pendingChildData["invitationId"] as? String != invitation.id
+            }
+            
+            // Update the parent's pending children list
+            try await db.collection("users").document(invitation.parentId).updateData([
+                "pendingChildren": updatedPendingChildren
+            ])
+            
+            print("🔍 Removed child from parent's pending children list")
+        }
         
         // Remove from pending list
         await MainActor.run {
