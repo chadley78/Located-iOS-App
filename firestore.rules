@@ -37,7 +37,7 @@ service cloud.firestore {
     // Parent-child relationships collection - for managing invitations
     match /parent_child_invitations/{invitationId} {
       // Parents can create invitations
-      allow create: if request.auth != null && request.auth.uid == resource.data.parentId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.parentId;
       
       // Children can read invitations sent to their email
       allow read: if request.auth != null && 

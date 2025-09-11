@@ -1470,6 +1470,9 @@ struct AddChildView: View {
             return
         }
         
+        print("Sending invitation - Parent ID: \(parentId), Child Name: \(childName), Child Email: \(childEmail)")
+        print("Current user: \(authService.currentUser?.name ?? "Unknown")")
+        
         isLoading = true
         errorMessage = nil
         successMessage = nil
@@ -1507,6 +1510,11 @@ struct AddChildView: View {
     private func createParentChildInvitation(parentId: String, childName: String, childEmail: String) async throws {
         let db = Firestore.firestore()
         
+        // Validate inputs
+        guard !parentId.isEmpty, !childName.isEmpty, !childEmail.isEmpty else {
+            throw NSError(domain: "InvitationService", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing required fields: parentId, childName, or childEmail"])
+        }
+        
         // Create invitation document
         let invitationData: [String: Any] = [
             "parentId": parentId,
@@ -1518,7 +1526,15 @@ struct AddChildView: View {
             "invitationCode": generateInvitationCode()
         ]
         
-        try await db.collection("parent_child_invitations").addDocument(data: invitationData)
+        print("Creating invitation with data: \(invitationData)")
+        
+        do {
+            let docRef = try await db.collection("parent_child_invitations").addDocument(data: invitationData)
+            print("Invitation created successfully with ID: \(docRef.documentID)")
+        } catch {
+            print("Error creating invitation: \(error)")
+            throw error
+        }
     }
     
     private func generateInvitationCode() -> String {
