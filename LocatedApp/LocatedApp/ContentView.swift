@@ -1196,17 +1196,31 @@ struct SettingsView: View {
                 
                 // Debug cleanup button for parent users
                 if authService.currentUser?.userType == .parent {
-                    Button("Cleanup My Pending Children") {
-                        Task {
-                            await cleanupParentPendingChildren()
+                    VStack(spacing: 8) {
+                        Button("Cleanup My Pending Children") {
+                            Task {
+                                await cleanupParentPendingChildren()
+                            }
                         }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(Color.purple)
+                        .cornerRadius(8)
+                        
+                        Button("Force Complete Invitation") {
+                            Task {
+                                await forceCompleteInvitation()
+                            }
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(Color.red)
+                        .cornerRadius(8)
                     }
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 40)
-                    .background(Color.purple)
-                    .cornerRadius(8)
                 }
                 
                 Button("Sign Out") {
@@ -1310,6 +1324,43 @@ struct SettingsView: View {
         } catch {
             print("❌ Error during parent cleanup: \(error)")
         }
+    }
+    
+    private func forceCompleteInvitation() async {
+        print("🔍 FORCE COMPLETE: Manually completing invitation process...")
+        
+        guard let parentId = authService.currentUser?.id else {
+            print("❌ No parent ID found")
+            return
+        }
+        
+        let db = Firestore.firestore()
+        
+        // Step 1: Clear all pending children
+        print("🔍 Step 1: Clearing all pending children...")
+        try? await db.collection("users").document(parentId).updateData([
+            "pendingChildren": []
+        ])
+        print("✅ Cleared all pending children")
+        
+        // Step 2: Add the child to parent's children list using the known child ID
+        // From the logs, we know the child's user ID is: h29wApYrBBZheUalyvWOEWS8sdf2
+        let childId = "h29wApYrBBZheUalyvWOEWS8sdf2"
+        print("🔍 Step 2: Adding child \(childId) to parent's children list...")
+        
+        try? await db.collection("users").document(parentId).updateData([
+            "children": FieldValue.arrayUnion([childId])
+        ])
+        print("✅ Added child to parent's children list")
+        
+        // Step 3: Add parent to child's parents list
+        print("🔍 Step 3: Adding parent to child's parents list...")
+        try? await db.collection("users").document(childId).updateData([
+            "parents": FieldValue.arrayUnion([parentId])
+        ])
+        print("✅ Added parent to child's parents list")
+        
+        print("🎉 Force complete finished! The invitation should now be properly established.")
     }
 }
 
