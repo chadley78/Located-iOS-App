@@ -458,7 +458,7 @@ struct MainTabView: View {
                     }
             } else {
                 // Debug logging
-                let _ = print("🔍 MainTabView: Showing CHILD UI for user: \(authService.currentUser?.name ?? "Unknown"), userType: \(authService.currentUser?.userType?.rawValue ?? "nil")")
+                let _ = print("🔍 MainTabView: Showing CHILD UI for user: \(authService.currentUser?.name ?? "Unknown"), userType: \(authService.currentUser?.userType.rawValue ?? "nil")")
                 ChildHomeView()
                     .tabItem {
                         Image(systemName: "location")
