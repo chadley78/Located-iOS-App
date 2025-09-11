@@ -10,7 +10,7 @@ struct User: Codable, Identifiable {
     var userType: UserType
     var parents: [String] = []
     var children: [String] = []
-    var pendingChildren: [PendingChild] = []
+    var pendingChildren: [PendingChild]? = []
     var createdAt: Date = Date()
     var lastActive: Date = Date()
     var isActive: Bool = true

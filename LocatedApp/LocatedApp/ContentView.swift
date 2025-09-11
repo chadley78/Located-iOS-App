@@ -653,7 +653,7 @@ class ChildLocationService: ObservableObject {
                 }
                 
                 let newChildren = userData.children
-                let newPendingChildren = userData.pendingChildren
+                let newPendingChildren = userData.pendingChildren ?? []
                 
                 print("🔍 Parent has \(newChildren.count) children: \(newChildren)")
                 print("🔍 Parent has \(newPendingChildren.count) pending children: \(newPendingChildren.map { $0.name })")
@@ -1816,8 +1816,20 @@ struct AddChildView: View {
                 invitationId: docRef.documentID
             )
             
+            // Get current pending children and add the new one
+            let parentDoc = try await db.collection("users").document(parentId).getDocument()
+            var currentPendingChildren: [[String: Any]] = []
+            
+            if let parentData = parentDoc.data(),
+               let existingPendingChildren = parentData["pendingChildren"] as? [[String: Any]] {
+                currentPendingChildren = existingPendingChildren
+            }
+            
+            // Add the new pending child
+            currentPendingChildren.append(try Firestore.Encoder().encode(pendingChild) as! [String: Any])
+            
             try await db.collection("users").document(parentId).updateData([
-                "pendingChildren": FieldValue.arrayUnion([try Firestore.Encoder().encode(pendingChild)])
+                "pendingChildren": currentPendingChildren
             ])
             
             print("Added child to parent's pending children list")
