@@ -52,6 +52,10 @@ class LocationService: NSObject, ObservableObject {
         setupLocationManager()
         setupBatteryMonitoring()
         setupBackgroundLocationHandling()
+        
+        // Check initial permission status
+        locationPermissionStatus = CLLocationManager.authorizationStatus()
+        print("📍 Initial location permission status: \(locationPermissionStatus.rawValue)")
     }
     
     // MARK: - Setup
@@ -109,11 +113,23 @@ class LocationService: NSObject, ObservableObject {
     
     // MARK: - Location Updates
     func startLocationUpdates() {
+        print("📍 Attempting to start location updates...")
+        print("📍 Current permission status: \(locationPermissionStatus.rawValue)")
+        
         guard locationPermissionStatus == .authorizedAlways else {
+            print("❌ Cannot start location updates: permission not granted")
             errorMessage = "Always location permission is required for background tracking"
             return
         }
         
+        // Check if location services are enabled
+        guard CLLocationManager.locationServicesEnabled() else {
+            print("❌ Location services are disabled")
+            errorMessage = "Location services are disabled. Please enable them in Settings."
+            return
+        }
+        
+        print("📍 Starting location updates...")
         isUpdatingLocation = true
         
         // Enable background location updates only after authorization
@@ -126,7 +142,7 @@ class LocationService: NSObject, ObservableObject {
         locationManager.startMonitoringSignificantLocationChanges()
         
         isLocationSharingEnabled = true
-        print("📍 Location updates started")
+        print("📍 Location updates started successfully")
     }
     
     func stopLocationUpdates() {
@@ -294,24 +310,66 @@ extension LocationService: @preconcurrency CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("❌ Location manager failed with error: \(error)")
-        errorMessage = "Location update failed: \(error.localizedDescription)"
+        
+        // Handle specific error types
+        if let clError = error as? CLError {
+            switch clError.code {
+            case .denied:
+                errorMessage = "Location access denied. Please enable location services in Settings."
+            case .locationUnknown:
+                errorMessage = "Unable to determine location. Please try again."
+            case .network:
+                errorMessage = "Network error. Please check your internet connection."
+            case .headingFailure:
+                errorMessage = "Compass heading unavailable."
+            case .regionMonitoringDenied:
+                errorMessage = "Region monitoring denied. Please enable location services."
+            case .regionMonitoringFailure:
+                errorMessage = "Region monitoring failed. Please try again."
+            case .regionMonitoringSetupDelayed:
+                errorMessage = "Region monitoring setup delayed. Please wait."
+            case .regionMonitoringResponseDelayed:
+                errorMessage = "Region monitoring response delayed. Please wait."
+            case .geocodeFoundNoResult:
+                errorMessage = "Address lookup failed. Location will be saved without address."
+            case .geocodeFoundPartialResult:
+                errorMessage = "Partial address found. Location saved with limited address info."
+            case .geocodeCanceled:
+                errorMessage = "Address lookup canceled."
+            default:
+                errorMessage = "Location error: \(error.localizedDescription)"
+            }
+        } else {
+            errorMessage = "Location update failed: \(error.localizedDescription)"
+        }
+        
+        // Clear error message after 5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            self.errorMessage = nil
+        }
     }
     
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        print("📍 Location authorization changed to: \(status.rawValue)")
         locationPermissionStatus = status
         
         switch status {
         case .authorizedAlways:
+            print("📍 Always permission granted, starting location updates")
             startLocationUpdates()
         case .authorizedWhenInUse:
+            print("📍 When in use permission granted, requesting always permission")
             // Request upgrade to always authorization
             locationManager.requestAlwaysAuthorization()
         case .denied, .restricted:
+            print("📍 Location permission denied or restricted")
             stopLocationUpdates()
             errorMessage = "Location access denied. Please enable it in Settings for safety features."
         case .notDetermined:
+            print("📍 Location permission not determined, requesting always permission")
             locationManager.requestAlwaysAuthorization()
         @unknown default:
+            print("📍 Unknown location permission status")
             break
         }
     }
