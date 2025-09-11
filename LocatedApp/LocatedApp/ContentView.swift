@@ -1360,6 +1360,13 @@ struct SettingsView: View {
         ])
         print("✅ Added parent to child's parents list")
         
+        // Step 4: Update child's name in the system (for display purposes)
+        print("🔍 Step 4: Ensuring child name is properly set...")
+        try? await db.collection("users").document(childId).updateData([
+            "name": "Aidan Flood"
+        ])
+        print("✅ Updated child's name")
+        
         print("🎉 Force complete finished! The invitation should now be properly established.")
     }
 }
