@@ -578,6 +578,11 @@ struct ParentHomeView: View {
                     childLocationService.startListeningForChildrenLocations(parentId: parentId)
                 }
             }
+            .onDisappear {
+                // Clean up services when view disappears
+                childLocationService.stopListening()
+                geofenceService.stopMonitoringAllGeofences()
+            }
             .sheet(isPresented: $showingGeofenceManagement) {
                 if let selectedChild = selectedChildForGeofences {
                     GeofenceManagementView(
@@ -966,6 +971,8 @@ struct ChildHomeView: View {
                 if let currentUser = authService.currentUser {
                     geofenceService.stopMonitoringAllGeofences()
                 }
+                // Clean up invitation service
+                invitationService.stopListening()
             }
             .sheet(isPresented: $showingInvitations) {
                 InvitationListView(invitationService: invitationService)
@@ -1022,16 +1029,7 @@ struct SettingsView: View {
                 Button("Sign Out") {
                     Task {
                         print("🔐 Sign out button tapped")
-                        
-                        // Stop all services before signing out
-                        childLocationService.stopListening()
-                        geofenceService.stopMonitoringAllGeofences()
-                        locationService.stopLocationUpdates()
-                        invitationService.stopListening()
-                        
-                        // Sign out
                         await authService.signOut()
-                        
                         print("🔐 Sign out process completed")
                     }
                 }

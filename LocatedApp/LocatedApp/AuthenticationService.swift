@@ -117,6 +117,13 @@ class AuthenticationService: ObservableObject {
         }
     }
     
+    // MARK: - Service Cleanup
+    func cleanupServices() {
+        print("🔐 Cleaning up all services...")
+        // This method will be called by views that have access to the services
+        // The actual cleanup will be handled by the individual views
+    }
+    
     func resetPassword(email: String) async {
         isLoading = true
         errorMessage = nil
