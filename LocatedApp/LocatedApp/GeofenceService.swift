@@ -49,6 +49,7 @@ enum GeofenceEventType: String, Codable, CaseIterable {
 }
 
 // MARK: - Geofence Service
+@MainActor
 class GeofenceService: ObservableObject {
     private let db = Firestore.firestore()
     private let locationManager = CLLocationManager()
@@ -289,7 +290,7 @@ class GeofenceService: ObservableObject {
 }
 
 // MARK: - CLLocationManagerDelegate
-extension GeofenceService: CLLocationManagerDelegate {
+extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard let circularRegion = region as? CLCircularRegion,
               let geofence = geofences.first(where: { $0.id == circularRegion.identifier }) else {
