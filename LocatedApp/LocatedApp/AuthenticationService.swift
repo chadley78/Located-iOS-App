@@ -160,15 +160,20 @@ class AuthenticationService: ObservableObject {
     
     // MARK: - User Profile Management
     private func fetchUserProfile(userId: String) async {
+        print("🔍 Fetching user profile for userId: \(userId)")
         do {
             let document = try await db.collection("users").document(userId).getDocument()
             if let data = document.data() {
+                print("🔍 User document data: \(data)")
                 var user = try Firestore.Decoder().decode(User.self, from: data)
                 user.id = userId
+                print("🔍 Decoded user: name=\(user.name), email=\(user.email), userType=\(user.userType)")
                 currentUser = user
+            } else {
+                print("❌ No user document found for userId: \(userId)")
             }
         } catch {
-            print("Error fetching user profile: \(error)")
+            print("❌ Error fetching user profile: \(error)")
         }
     }
     
