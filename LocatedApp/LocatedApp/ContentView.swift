@@ -1735,7 +1735,11 @@ class InvitationService: ObservableObject {
                     print("🔍 Document data: \(document.data())")
                     
                     do {
-                        let invitation = try Firestore.Decoder().decode(ParentChildInvitation.self, from: document.data())
+                        // Create decoder with document ID in userInfo
+                        let decoder = Firestore.Decoder()
+                        decoder.userInfo[DocumentIDCodingKey.self] = document.documentID
+                        
+                        let invitation = try decoder.decode(ParentChildInvitation.self, from: document.data())
                         print("🔍 Successfully decoded invitation: \(invitation.parentName)")
                         return invitation
                     } catch {
@@ -1755,12 +1759,8 @@ class InvitationService: ObservableObject {
             throw NSError(domain: "InvitationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
-        guard let invitationId = invitation.id else {
-            throw NSError(domain: "InvitationService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid invitation ID"])
-        }
-        
         // Update invitation status
-        try await db.collection("parent_child_invitations").document(invitationId).updateData([
+        try await db.collection("parent_child_invitations").document(invitation.id).updateData([
             "status": "accepted",
             "acceptedAt": Timestamp(date: Date())
         ])
@@ -1783,11 +1783,7 @@ class InvitationService: ObservableObject {
     }
     
     func declineInvitation(_ invitation: ParentChildInvitation) async throws {
-        guard let invitationId = invitation.id else {
-            throw NSError(domain: "InvitationService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid invitation ID"])
-        }
-        
-        try await db.collection("parent_child_invitations").document(invitationId).updateData([
+        try await db.collection("parent_child_invitations").document(invitation.id).updateData([
             "status": "declined",
             "declinedAt": Timestamp(date: Date())
         ])
@@ -1814,7 +1810,7 @@ class InvitationService: ObservableObject {
 
 // MARK: - Parent Child Invitation Model
 struct ParentChildInvitation: Codable, Identifiable {
-    @DocumentID var id: String?
+    let id: String
     let parentId: String
     let parentName: String
     let childName: String
@@ -1824,6 +1820,51 @@ struct ParentChildInvitation: Codable, Identifiable {
     let invitationCode: String
     let acceptedAt: Timestamp?
     let declinedAt: Timestamp?
+    
+    // Custom initializer to handle document ID
+    init(id: String, parentId: String, parentName: String, childName: String, childEmail: String, status: String, createdAt: Timestamp, invitationCode: String, acceptedAt: Timestamp? = nil, declinedAt: Timestamp? = nil) {
+        self.id = id
+        self.parentId = parentId
+        self.parentName = parentName
+        self.childName = childName
+        self.childEmail = childEmail
+        self.status = status
+        self.createdAt = createdAt
+        self.invitationCode = invitationCode
+        self.acceptedAt = acceptedAt
+        self.declinedAt = declinedAt
+    }
+    
+    // Custom decoding to handle document ID
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Get document ID from userInfo if available
+        if let documentId = decoder.userInfo[DocumentIDCodingKey.self] as? String {
+            self.id = documentId
+        } else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Document ID not found"))
+        }
+        
+        self.parentId = try container.decode(String.self, forKey: .parentId)
+        self.parentName = try container.decode(String.self, forKey: .parentName)
+        self.childName = try container.decode(String.self, forKey: .childName)
+        self.childEmail = try container.decode(String.self, forKey: .childEmail)
+        self.status = try container.decode(String.self, forKey: .status)
+        self.createdAt = try container.decode(Timestamp.self, forKey: .createdAt)
+        self.invitationCode = try container.decode(String.self, forKey: .invitationCode)
+        self.acceptedAt = try container.decodeIfPresent(Timestamp.self, forKey: .acceptedAt)
+        self.declinedAt = try container.decodeIfPresent(Timestamp.self, forKey: .declinedAt)
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case parentId, parentName, childName, childEmail, status, createdAt, invitationCode, acceptedAt, declinedAt
+    }
+}
+
+// Document ID coding key for Firestore
+struct DocumentIDCodingKey: CodingUserInfoKey {
+    static let key = DocumentIDCodingKey(rawValue: "DocumentID")!
 }
 
 // MARK: - Invitation List View
