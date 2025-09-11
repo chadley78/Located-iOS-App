@@ -233,16 +233,19 @@ struct LocationPickerView: View {
     var body: some View {
         NavigationView {
             VStack {
-                Map(coordinateRegion: $region, annotationItems: []) { _ in
-                    MapPin(coordinate: region.center, tint: .red)
+                Map(coordinateRegion: $region, annotationItems: [MapPinAnnotation(coordinate: region.center)]) { annotation in
+                    MapPin(coordinate: annotation.coordinate, tint: .red)
                 }
                 .onTapGesture { location in
                     // Convert tap location to coordinate
                     let coordinate = region.center
                     selectedCoordinate = coordinate
                 }
-                .onChange(of: region.center) { newCenter in
-                    selectedCoordinate = newCenter
+                .onChange(of: region.center.latitude) { _ in
+                    selectedCoordinate = region.center
+                }
+                .onChange(of: region.center.longitude) { _ in
+                    selectedCoordinate = region.center
                 }
                 
                 VStack(spacing: 16) {
@@ -333,11 +336,16 @@ struct GeofencePreviewMap: View {
     }
 }
 
-// MARK: - Map Annotation
+// MARK: - Map Annotations
 struct GeofenceAnnotation: Identifiable {
     let id = UUID()
     let coordinate: CLLocationCoordinate2D
     let name: String
+}
+
+struct MapPinAnnotation: Identifiable {
+    let id = UUID()
+    let coordinate: CLLocationCoordinate2D
 }
 
 // MARK: - Location Manager
