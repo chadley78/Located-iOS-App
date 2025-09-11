@@ -1395,6 +1395,96 @@ struct SettingsView: View {
     }
 }
 
+// MARK: - Geofence Management View
+struct GeofenceManagementView: View {
+    let childId: String
+    let childName: String
+    @StateObject private var geofenceService = GeofenceService()
+    @State private var showingCreateGeofence = false
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                if geofenceService.geofences.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "location.circle")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        
+                        Text("No Geofences")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("Create geofences to monitor \(childName)'s location")
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Button("Create First Geofence") {
+                            showingCreateGeofence = true
+                        }
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.blue)
+                        .cornerRadius(25)
+                        .padding(.horizontal, 40)
+                    }
+                    .padding()
+                } else {
+                    List {
+                        ForEach(geofenceService.geofences, id: \.id) { geofence in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(geofence.name)
+                                    .font(.headline)
+                                
+                                Text("📍 \(geofence.latitude, specifier: "%.4f"), \(geofence.longitude, specifier: "%.4f")")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                Text("Radius: \(Int(geofence.radius)) meters")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .onDelete(perform: deleteGeofences)
+                    }
+                }
+            }
+            .navigationTitle("Geofences for \(childName)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Add") {
+                        showingCreateGeofence = true
+                    }
+                }
+            }
+            .onAppear {
+                geofenceService.fetchGeofences(for: childId)
+            }
+            .sheet(isPresented: $showingCreateGeofence) {
+                CreateGeofenceView(childId: childId, childName: childName)
+            }
+        }
+    }
+    
+    private func deleteGeofences(offsets: IndexSet) {
+        for index in offsets {
+            let geofence = geofenceService.geofences[index]
+            geofenceService.deleteGeofence(geofence)
+        }
+    }
+}
+
 // MARK: - Parent Map View
 struct ParentMapView: View {
     @EnvironmentObject var authService: AuthenticationService
