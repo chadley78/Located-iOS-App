@@ -1127,6 +1127,7 @@ struct ChildrenListView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthenticationService
+    @StateObject private var invitationService = InvitationService()
     
     var body: some View {
         NavigationView {
@@ -1177,6 +1178,21 @@ struct SettingsView: View {
                 .padding()
                 .background(Color.orange.opacity(0.1))
                 .cornerRadius(12)
+                
+                // Debug cleanup button for child users
+                if authService.currentUser?.userType == .child {
+                    Button("Cleanup Pending Children") {
+                        Task {
+                            await invitationService.cleanupPendingChildren()
+                        }
+                    }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(Color.purple)
+                    .cornerRadius(8)
+                }
                 
                 Button("Sign Out") {
                     Task {
@@ -2066,6 +2082,54 @@ class InvitationService: ObservableObject {
         listener = nil
         pendingInvitations.removeAll()
         hasPendingInvitations = false
+    }
+    
+    // Debug method to manually clean up pending children
+    func cleanupPendingChildren() async {
+        print("🔍 MANUAL CLEANUP: Checking for accepted invitations...")
+        
+        guard let currentUser = Auth.auth().currentUser else {
+            print("❌ No authenticated user")
+            return
+        }
+        
+        // Get all pending invitations for this child
+        let query = db.collection("parent_child_invitations")
+            .whereField("childEmail", isEqualTo: currentUser.email ?? "")
+            .whereField("status", isEqualTo: "accepted")
+        
+        do {
+            let snapshot = try await query.getDocuments()
+            print("🔍 Found \(snapshot.documents.count) accepted invitations")
+            
+            for document in snapshot.documents {
+                let data = document.data()
+                let parentId = data["parentId"] as? String ?? ""
+                let invitationId = document.documentID
+                
+                print("🔍 Processing accepted invitation: \(invitationId) for parent: \(parentId)")
+                
+                // Remove from parent's pending children list
+                let parentDoc = try await db.collection("users").document(parentId).getDocument()
+                if let parentData = parentDoc.data(),
+                   let pendingChildrenData = parentData["pendingChildren"] as? [[String: Any]] {
+                    
+                    let updatedPendingChildren = pendingChildrenData.filter { pendingChildData in
+                        let pendingInvitationId = pendingChildData["invitationId"] as? String
+                        return pendingInvitationId != invitationId
+                    }
+                    
+                    if updatedPendingChildren.count != pendingChildrenData.count {
+                        try await db.collection("users").document(parentId).updateData([
+                            "pendingChildren": updatedPendingChildren
+                        ])
+                        print("✅ Cleaned up pending child for invitation: \(invitationId)")
+                    }
+                }
+            }
+        } catch {
+            print("❌ Error during cleanup: \(error)")
+        }
     }
     
     deinit {
