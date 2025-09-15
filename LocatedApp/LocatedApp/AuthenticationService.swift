@@ -8,35 +8,15 @@ struct User: Codable, Identifiable {
     var name: String
     var email: String
     var userType: UserType
-    var parents: [String] = []
-    var children: [String] = []
-    var pendingChildren: [PendingChild]? = []
+    var familyId: String? // Reference to the family this user belongs to
     var createdAt: Date = Date()
     var lastActive: Date = Date()
     var isActive: Bool = true
+    var fcmTokens: [String] = [] // For push notifications
     
     enum UserType: String, Codable, CaseIterable {
         case parent = "parent"
         case child = "child"
-    }
-}
-
-// MARK: - Pending Child Model
-struct PendingChild: Codable, Identifiable {
-    let id: String
-    let name: String
-    let email: String
-    let invitationCode: String
-    let createdAt: Date
-    let invitationId: String
-    
-    init(id: String, name: String, email: String, invitationCode: String, createdAt: Date = Date(), invitationId: String) {
-        self.id = id
-        self.name = name
-        self.email = email
-        self.invitationCode = invitationCode
-        self.createdAt = createdAt
-        self.invitationId = invitationId
     }
 }
 

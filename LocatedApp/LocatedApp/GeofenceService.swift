@@ -7,7 +7,7 @@ import MapKit
 // MARK: - Geofence Data Models
 struct Geofence: Codable, Identifiable {
     let id: String
-    let childId: String
+    let familyId: String // Reference to the family
     let name: String
     let latitude: Double
     let longitude: Double
@@ -17,12 +17,13 @@ struct Geofence: Codable, Identifiable {
     let createdBy: String // parent user ID
     
     enum CodingKeys: String, CodingKey {
-        case id, childId, name, latitude, longitude, radius, isActive, createdAt, createdBy
+        case id, familyId, name, latitude, longitude, radius, isActive, createdAt, createdBy
     }
 }
 
 struct GeofenceEvent: Codable, Identifiable {
     let id: String
+    let familyId: String // Reference to the family
     let childId: String
     let childName: String
     let geofenceId: String
@@ -32,7 +33,7 @@ struct GeofenceEvent: Codable, Identifiable {
     let location: LocationData
     
     enum CodingKeys: String, CodingKey {
-        case id, childId, childName, geofenceId, geofenceName, eventType, timestamp, location
+        case id, familyId, childId, childName, geofenceId, geofenceName, eventType, timestamp, location
     }
 }
 
@@ -76,7 +77,7 @@ class GeofenceService: NSObject, ObservableObject {
     
     /// Create a new geofence for a child
     func createGeofence(
-        childId: String,
+        familyId: String,
         name: String,
         latitude: Double,
         longitude: Double,
@@ -86,11 +87,11 @@ class GeofenceService: NSObject, ObservableObject {
             throw GeofenceError.notAuthenticated
         }
         
-        print("🔍 Creating geofence for childId: \(childId), by user: \(currentUser.uid)")
+        print("🔍 Creating geofence for familyId: \(familyId), by user: \(currentUser.uid)")
         
         let geofence = Geofence(
             id: UUID().uuidString,
-            childId: childId,
+            familyId: familyId,
             name: name,
             latitude: latitude,
             longitude: longitude,
@@ -102,7 +103,7 @@ class GeofenceService: NSObject, ObservableObject {
         
         let geofenceData: [String: Any] = [
             "id": geofence.id,
-            "childId": geofence.childId,
+            "familyId": geofence.familyId,
             "name": geofence.name,
             "latitude": geofence.latitude,
             "longitude": geofence.longitude,
@@ -128,14 +129,14 @@ class GeofenceService: NSObject, ObservableObject {
         }
     }
     
-    /// Fetch geofences for a specific child
-    func fetchGeofences(for childId: String) async {
+    /// Fetch geofences for a specific family
+    func fetchGeofences(for familyId: String) async {
         isLoading = true
         errorMessage = nil
         
         do {
             let snapshot = try await db.collection("geofences")
-                .whereField("childId", isEqualTo: childId)
+                .whereField("familyId", isEqualTo: familyId)
                 .whereField("isActive", isEqualTo: true)
                 .getDocuments()
             

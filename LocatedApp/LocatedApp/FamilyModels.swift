@@ -1,0 +1,346 @@
+import Foundation
+import FirebaseFirestore
+import FirebaseAuth
+
+// MARK: - Family Data Models
+
+/// Represents a family in the system
+struct Family: Codable, Identifiable {
+    let id: String
+    let name: String
+    let createdBy: String // Parent user ID who created the family
+    let createdAt: Date
+    let members: [String: FamilyMember] // Map of userId -> FamilyMember
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, createdBy, createdAt, members
+    }
+}
+
+/// Represents a member within a family
+struct FamilyMember: Codable {
+    let role: FamilyRole
+    let name: String
+    let joinedAt: Date
+    
+    enum CodingKeys: String, CodingKey {
+        case role, name, joinedAt
+    }
+}
+
+/// Roles within a family
+enum FamilyRole: String, Codable, CaseIterable {
+    case parent = "parent"
+    case child = "child"
+    
+    var displayName: String {
+        switch self {
+        case .parent: return "Parent"
+        case .child: return "Child"
+        }
+    }
+}
+
+/// Represents an invitation to join a family
+struct FamilyInvitation: Codable, Identifiable {
+    let id: String // This is the invite code
+    let familyId: String
+    let createdBy: String // Parent user ID
+    let childName: String
+    let createdAt: Date
+    let expiresAt: Date
+    let usedBy: String? // Child user ID who used the invitation
+    let usedAt: Date? // When the invitation was used
+    
+    enum CodingKeys: String, CodingKey {
+        case id, familyId, createdBy, childName, createdAt, expiresAt, usedBy, usedAt
+    }
+    
+    var isExpired: Bool {
+        Date() > expiresAt
+    }
+    
+    var isUsed: Bool {
+        usedBy != nil
+    }
+    
+    var isValid: Bool {
+        !isExpired && !isUsed
+    }
+}
+
+// MARK: - Updated User Model
+
+/// Updated User model to work with family-centric architecture
+struct User: Codable, Identifiable {
+    var id: String?
+    var name: String
+    var email: String
+    var userType: UserType
+    var familyId: String? // Reference to the family this user belongs to
+    var createdAt: Date = Date()
+    var lastActive: Date = Date()
+    var isActive: Bool = true
+    var fcmTokens: [String] = [] // For push notifications
+    
+    enum UserType: String, Codable, CaseIterable {
+        case parent = "parent"
+        case child = "child"
+    }
+}
+
+// MARK: - Updated Location Data Model
+
+/// Updated LocationData model to include familyId
+struct LocationData: Codable {
+    var id: String?
+    var familyId: String // Denormalized for security rules
+    var lat: Double
+    var lng: Double
+    var accuracy: Double
+    var timestamp: Date
+    var address: String?
+    var batteryLevel: Int?
+    var isMoving: Bool
+    var lastUpdated: Date
+    
+    init(familyId: String, lat: Double, lng: Double, accuracy: Double, timestamp: Date = Date(), address: String? = nil, batteryLevel: Int? = nil, isMoving: Bool = false) {
+        self.familyId = familyId
+        self.lat = lat
+        self.lng = lng
+        self.accuracy = accuracy
+        self.timestamp = timestamp
+        self.address = address
+        self.batteryLevel = batteryLevel
+        self.isMoving = isMoving
+        self.lastUpdated = Date()
+    }
+}
+
+// MARK: - Updated Geofence Models
+
+/// Updated Geofence model to work with family-centric architecture
+struct Geofence: Codable, Identifiable {
+    let id: String
+    let familyId: String // Reference to the family
+    let name: String
+    let latitude: Double
+    let longitude: Double
+    let radius: Double // in meters
+    let isActive: Bool
+    let createdAt: Date
+    let createdBy: String // parent user ID
+    
+    enum CodingKeys: String, CodingKey {
+        case id, familyId, name, latitude, longitude, radius, isActive, createdAt, createdBy
+    }
+}
+
+/// Updated GeofenceEvent model to work with family-centric architecture
+struct GeofenceEvent: Codable, Identifiable {
+    let id: String
+    let familyId: String // Reference to the family
+    let childId: String
+    let childName: String
+    let geofenceId: String
+    let geofenceName: String
+    let eventType: GeofenceEventType
+    let timestamp: Date
+    let location: LocationData
+    
+    enum CodingKeys: String, CodingKey {
+        case id, familyId, childId, childName, geofenceId, geofenceName, eventType, timestamp, location
+    }
+}
+
+enum GeofenceEventType: String, Codable, CaseIterable {
+    case enter = "enter"
+    case exit = "exit"
+    
+    var displayName: String {
+        switch self {
+        case .enter: return "Entered"
+        case .exit: return "Left"
+        }
+    }
+}
+
+// MARK: - Family Service
+
+/// Service for managing family-related operations
+@MainActor
+class FamilyService: ObservableObject {
+    @Published var currentFamily: Family?
+    @Published var familyMembers: [String: FamilyMember] = [:]
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    
+    private let db = Firestore.firestore()
+    private let auth = Auth.auth()
+    
+    init() {
+        // Listen for family changes
+        if let userId = auth.currentUser?.uid {
+            listenToFamily(userId: userId)
+        }
+    }
+    
+    // MARK: - Family Management
+    
+    /// Create a new family
+    func createFamily(name: String) async throws -> String {
+        guard let userId = auth.currentUser?.uid else {
+            throw FamilyError.notAuthenticated
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let familyId = UUID().uuidString
+            let family = Family(
+                id: familyId,
+                name: name,
+                createdBy: userId,
+                createdAt: Date(),
+                members: [
+                    userId: FamilyMember(
+                        role: .parent,
+                        name: auth.currentUser?.displayName ?? "Parent",
+                        joinedAt: Date()
+                    )
+                ]
+            )
+            
+            // Create family document
+            try await db.collection("families").document(familyId).setData(from: family)
+            
+            // Update user's familyId
+            try await db.collection("users").document(userId).updateData([
+                "familyId": familyId
+            ])
+            
+            currentFamily = family
+            familyMembers = family.members
+            
+            isLoading = false
+            return familyId
+            
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            throw error
+        }
+    }
+    
+    /// Join an existing family
+    func joinFamily(familyId: String) async throws {
+        guard let userId = auth.currentUser?.uid else {
+            throw FamilyError.notAuthenticated
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Get family document
+            let familyDoc = try await db.collection("families").document(familyId).getDocument()
+            
+            guard let familyData = familyDoc.data() else {
+                throw FamilyError.familyNotFound
+            }
+            
+            // Update user's familyId
+            try await db.collection("users").document(userId).updateData([
+                "familyId": familyId
+            ])
+            
+            // The actual family membership will be handled by the acceptInvitation Cloud Function
+            isLoading = false
+            
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            throw error
+        }
+    }
+    
+    /// Listen to family changes
+    private func listenToFamily(userId: String) {
+        // First get the user's familyId
+        db.collection("users").document(userId).addSnapshotListener { [weak self] documentSnapshot, error in
+            if let error = error {
+                print("❌ Error listening to user document: \(error)")
+                return
+            }
+            
+            guard let document = documentSnapshot,
+                  let data = document.data(),
+                  let familyId = data["familyId"] as? String else {
+                print("ℹ️ User has no familyId")
+                return
+            }
+            
+            // Listen to family document
+            self?.db.collection("families").document(familyId).addSnapshotListener { familySnapshot, familyError in
+                if let familyError = familyError {
+                    print("❌ Error listening to family document: \(familyError)")
+                    return
+                }
+                
+                guard let familyData = familySnapshot?.data() else {
+                    print("ℹ️ Family document not found")
+                    return
+                }
+                
+                do {
+                    let family = try Firestore.Decoder().decode(Family.self, from: familyData)
+                    self?.currentFamily = family
+                    self?.familyMembers = family.members
+                } catch {
+                    print("❌ Error decoding family: \(error)")
+                }
+            }
+        }
+    }
+    
+    /// Get family members as an array
+    func getFamilyMembers() -> [(String, FamilyMember)] {
+        return Array(familyMembers)
+    }
+    
+    /// Get children in the family
+    func getChildren() -> [(String, FamilyMember)] {
+        return familyMembers.filter { $0.value.role == .child }
+    }
+    
+    /// Get parents in the family
+    func getParents() -> [(String, FamilyMember)] {
+        return familyMembers.filter { $0.value.role == .parent }
+    }
+}
+
+// MARK: - Family Errors
+
+enum FamilyError: LocalizedError {
+    case notAuthenticated
+    case familyNotFound
+    case invalidInvitation
+    case invitationExpired
+    case invitationAlreadyUsed
+    
+    var errorDescription: String? {
+        switch self {
+        case .notAuthenticated:
+            return "User is not authenticated"
+        case .familyNotFound:
+            return "Family not found"
+        case .invalidInvitation:
+            return "Invalid invitation code"
+        case .invitationExpired:
+            return "Invitation has expired"
+        case .invitationAlreadyUsed:
+            return "Invitation has already been used"
+        }
+    }
+}

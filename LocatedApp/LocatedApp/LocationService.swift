@@ -7,6 +7,7 @@ import Combine
 // MARK: - Location Model
 struct LocationData: Codable {
     var id: String?
+    var familyId: String // Denormalized for security rules
     var lat: Double
     var lng: Double
     var accuracy: Double
@@ -16,7 +17,8 @@ struct LocationData: Codable {
     var isMoving: Bool
     var lastUpdated: Date
     
-    init(lat: Double, lng: Double, accuracy: Double, timestamp: Date = Date(), address: String? = nil, batteryLevel: Int? = nil, isMoving: Bool = false) {
+    init(familyId: String, lat: Double, lng: Double, accuracy: Double, timestamp: Date = Date(), address: String? = nil, batteryLevel: Int? = nil, isMoving: Bool = false) {
+        self.familyId = familyId
         self.lat = lat
         self.lng = lng
         self.accuracy = accuracy
@@ -235,7 +237,12 @@ class LocationService: NSObject, ObservableObject {
             return
         }
         
+        // Get user's familyId
+        let userDoc = try? await Firestore.firestore().collection("users").document(userId).getDocument()
+        let familyId = userDoc?.data()?["familyId"] as? String ?? "unknown"
+        
         let locationData = LocationData(
+            familyId: familyId,
             lat: location.coordinate.latitude,
             lng: location.coordinate.longitude,
             accuracy: location.horizontalAccuracy,
