@@ -1565,18 +1565,9 @@ class ParentMapViewModel: ObservableObject {
                     return
                 }
                 
-                let newChildren = userData.children
-                print("🔍 MapViewModel - Parent has \(newChildren.count) children: \(newChildren)")
-                
-                // Stop listening to old children that are no longer in the list
-                self.stopListeningToRemovedChildren(newChildren: newChildren)
-                
-                // Start listening to new children
-                for childId in newChildren {
-                    if !self.isListeningToChild(childId: childId) {
-                        self.listenForChildLocation(childId: childId)
-                    }
-                }
+                // For now, we'll use a simple approach since we're transitioning to family-centric
+                // This will be replaced by FamilyService in the new architecture
+                print("🔍 MapViewModel - Parent user data loaded, but using family-centric approach now")
             }
         
         listeners.append(parentListener)
@@ -1996,69 +1987,6 @@ struct AddChildView: View {
                 }
             }
         }
-    }
-    
-    private func createParentChildInvitation(parentId: String, childName: String, childEmail: String) async throws {
-        let db = Firestore.firestore()
-        
-        // Validate inputs
-        guard !parentId.isEmpty, !childName.isEmpty, !childEmail.isEmpty else {
-            throw NSError(domain: "InvitationService", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing required fields: parentId, childName, or childEmail"])
-        }
-        
-        // Create invitation document
-        let invitationData: [String: Any] = [
-            "parentId": parentId,
-            "parentName": authService.currentUser?.name ?? "Unknown Parent",
-            "childName": childName,
-            "childEmail": childEmail,
-            "status": "pending", // pending, accepted, declined
-            "createdAt": Timestamp(date: Date()),
-            "invitationCode": generateInvitationCode()
-        ]
-        
-        print("Creating invitation with data: \(invitationData)")
-        
-        do {
-            let docRef = try await db.collection("parent_child_invitations").addDocument(data: invitationData)
-            print("Invitation created successfully with ID: \(docRef.documentID)")
-            
-            // Add child to parent's pending children list
-            let pendingChild = PendingChild(
-                id: UUID().uuidString,
-                name: childName,
-                email: childEmail,
-                invitationCode: invitationData["invitationCode"] as! String,
-                invitationId: docRef.documentID
-            )
-            
-            // Get current pending children and add the new one
-            let parentDoc = try await db.collection("users").document(parentId).getDocument()
-            var currentPendingChildren: [[String: Any]] = []
-            
-            if let parentData = parentDoc.data(),
-               let existingPendingChildren = parentData["pendingChildren"] as? [[String: Any]] {
-                currentPendingChildren = existingPendingChildren
-            }
-            
-            // Add the new pending child
-            currentPendingChildren.append(try Firestore.Encoder().encode(pendingChild) as! [String: Any])
-            
-            try await db.collection("users").document(parentId).updateData([
-                "pendingChildren": currentPendingChildren
-            ])
-            
-            print("Added child to parent's pending children list")
-            
-        } catch {
-            print("Error creating invitation: \(error)")
-            throw error
-        }
-    }
-    
-    private func generateInvitationCode() -> String {
-        let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return String((0..<6).map { _ in characters.randomElement()! })
     }
 }
 
