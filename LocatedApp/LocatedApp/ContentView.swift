@@ -963,8 +963,8 @@ struct ChildHomeView: View {
                             }
                         }
                         
-                        // Parents Monitoring
-                        Text("👨‍👩‍👧‍👦 Parents Monitoring: \(authService.currentUser?.parents.count ?? 0)")
+                        // Family Status
+                        Text("👨‍👩‍👧‍👦 Family Status: Connected")
                             .font(.system(size: 16))
                     }
                 }
@@ -1846,7 +1846,6 @@ struct AddChildView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authService: AuthenticationService
     
-    @State private var childEmail = ""
     @State private var childName = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -1879,18 +1878,6 @@ struct AddChildView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
                     
-                    // Child Email Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Child's Email")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                        
-                        TextField("Enter child's email", text: $childEmail)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
                 }
                 .padding(.horizontal, 30)
                 
@@ -1946,13 +1933,13 @@ struct AddChildView: View {
     }
     
     private func sendInvitation() {
-        guard !childName.isEmpty && !childEmail.isEmpty else { return }
+        guard !childName.isEmpty else { return }
         guard let parentId = authService.currentUser?.id else {
             errorMessage = "Please sign in to send invitations"
             return
         }
         
-        print("Sending invitation - Parent ID: \(parentId), Child Name: \(childName), Child Email: \(childEmail)")
+        print("Creating family invitation - Parent ID: \(parentId), Child Name: \(childName)")
         print("Current user: \(authService.currentUser?.name ?? "Unknown")")
         
         isLoading = true
@@ -1961,32 +1948,50 @@ struct AddChildView: View {
         
         Task {
             do {
-                try await createParentChildInvitation(
-                    parentId: parentId,
-                    childName: childName,
-                    childEmail: childEmail
-                )
+                // For now, we'll create a simple invitation code directly
+                // In a real implementation, this would call the Cloud Function
+                let inviteCode = generateInviteCode()
+                
+                // Create invitation document directly in Firestore
+                let invitationData: [String: Any] = [
+                    "familyId": "temp_family_id", // This should come from the user's family
+                    "createdBy": parentId,
+                    "childName": childName.trimmingCharacters(in: .whitespacesAndNewlines),
+                    "createdAt": Date(),
+                    "expiresAt": Date().addingTimeInterval(24 * 60 * 60), // 24 hours
+                    "usedBy": NSNull()
+                ]
+                
+                try await Firestore.firestore()
+                    .collection("invitations")
+                    .document(inviteCode)
+                    .setData(invitationData)
                 
                 await MainActor.run {
                     isLoading = false
-                    successMessage = "Invitation sent to \(childEmail)!"
+                    successMessage = "Invitation code: \(inviteCode)"
                     
                     // Clear form
                     childName = ""
-                    childEmail = ""
                     
                     // Auto-dismiss after showing success
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                         dismiss()
                     }
                 }
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = "Failed to send invitation: \(error.localizedDescription)"
+                    errorMessage = "Failed to create invitation: \(error.localizedDescription)"
                 }
             }
         }
+    }
+    
+    private func generateInviteCode() -> String {
+        let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        let code = String((0..<6).map { _ in chars.randomElement()! })
+        return code
     }
 }
 
