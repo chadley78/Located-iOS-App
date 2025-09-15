@@ -88,6 +88,20 @@ class GeofenceService: NSObject, ObservableObject {
         
         print("🔍 Creating geofence for childId: \(childId), by user: \(currentUser.uid)")
         
+        // Check if the user is a parent of this child
+        do {
+            let childDoc = try await db.collection("users").document(childId).getDocument()
+            if let childData = childDoc.data() {
+                let parents = childData["parents"] as? [String] ?? []
+                print("🔍 Child's parents: \(parents)")
+                print("🔍 Current user is parent: \(parents.contains(currentUser.uid))")
+            } else {
+                print("❌ Child document not found")
+            }
+        } catch {
+            print("❌ Failed to check child relationship: \(error)")
+        }
+        
         let geofence = Geofence(
             id: UUID().uuidString,
             childId: childId,
