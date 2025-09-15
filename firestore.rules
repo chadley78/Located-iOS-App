@@ -7,6 +7,12 @@ service cloud.firestore {
       let familyDoc = get(/databases/$(database)/documents/families/$(familyId)).data;
       return request.auth.uid in familyDoc.members;
     }
+    
+    // Helper function to check if user has familyId in their user document
+    function hasFamilyId(familyId) {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userDoc.familyId == familyId;
+    }
 
     // Helper function to check if a user is a parent in a specific family
     function isFamilyParent(familyId) {
@@ -22,8 +28,8 @@ service cloud.firestore {
 
     // Families collection - the single source of truth for family membership
     match /families/{familyId} {
-      // Only members of the family can read it
-      allow read: if isFamilyMember(familyId);
+      // Only members of the family can read it, or users who have this familyId in their user document
+      allow read: if isFamilyMember(familyId) || hasFamilyId(familyId);
       
       // Only parents can write to family documents (create, update, delete)
       allow write: if isFamilyParent(familyId);
