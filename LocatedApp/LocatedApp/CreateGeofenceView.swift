@@ -8,8 +8,7 @@ struct CreateGeofenceView: View {
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var locationManager = LocationManager()
     
-    let childId: String
-    let childName: String
+    let familyId: String
     
     @State private var geofenceName = ""
     @State private var selectedRadius: Double = 100
@@ -29,7 +28,7 @@ struct CreateGeofenceView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    Text("For \(childName)")
+                    Text("Family Geofence")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -197,7 +196,7 @@ struct CreateGeofenceView: View {
         Task {
             do {
                 try await geofenceService.createGeofence(
-                    childId: childId,
+                    familyId: familyId,
                     name: geofenceName.trimmingCharacters(in: .whitespacesAndNewlines),
                     latitude: coordinate.latitude,
                     longitude: coordinate.longitude,

@@ -6,8 +6,7 @@ struct GeofenceManagementView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var geofenceService = GeofenceService()
     
-    let childId: String
-    let childName: String
+    let familyId: String
     
     @State private var showingCreateGeofence = false
     @State private var selectedGeofence: Geofence?
@@ -22,17 +21,11 @@ struct GeofenceManagementView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    Text("For \(childName)")
+                    Text("Family Geofences")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                
-                // Debug info
-                Text("Debug: ChildId = \(childId)")
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .padding()
                 
                 if geofenceService.isLoading {
                     Spacer()
@@ -52,7 +45,7 @@ struct GeofenceManagementView: View {
                                 .font(.title3)
                                 .fontWeight(.semibold)
                             
-                            Text("Create your first geofence to get notified when \(childName) enters or leaves specific areas.")
+                            Text("Create your first geofence to get notified when family members enter or leave specific areas.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -125,14 +118,14 @@ struct GeofenceManagementView: View {
             }
             .onAppear {
                 Task {
-                    await geofenceService.fetchGeofences(for: childId)
+                    await geofenceService.fetchGeofences(for: familyId)
                 }
             }
             .sheet(isPresented: $showingCreateGeofence) {
-                CreateGeofenceView(childId: childId, childName: childName)
+                CreateGeofenceView(familyId: familyId)
                     .onDisappear {
                         Task {
-                            await geofenceService.fetchGeofences(for: childId)
+                            await geofenceService.fetchGeofences(for: familyId)
                         }
                     }
             }

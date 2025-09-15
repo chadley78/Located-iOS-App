@@ -478,59 +478,106 @@ struct MainTabView: View {
 // MARK: - Parent Home View
 struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
-    @StateObject private var childLocationService = ChildLocationService()
+    @StateObject private var familyService = FamilyService()
     @StateObject private var geofenceService = GeofenceService()
     
-    @State private var selectedChildForGeofences: ChildLocationData?
+    @State private var showingFamilySetup = false
+    @State private var showingFamilyManagement = false
     @State private var showingGeofenceManagement = false
-    @State private var geofenceChildId: String?
-    @State private var geofenceChildName: String?
-    @State private var showingAddChild = false
-    @State private var showingChildSelection = false
-    @State private var geofenceData: (id: String, name: String)?
     
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                // Children Status Overview
+                // Family Status Overview
                 VStack(spacing: 16) {
-                    Text("Children Status")
+                    Text("Family Overview")
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    if childLocationService.childrenLocations.isEmpty && childLocationService.pendingChildren.isEmpty {
-                        Text("No children added yet")
-                            .foregroundColor(.secondary)
-                            .padding()
+                    if let family = familyService.currentFamily {
+                        // Show family info
+                        VStack(spacing: 12) {
+                            HStack {
+                                Image(systemName: "house.fill")
+                                    .foregroundColor(.blue)
+                                Text(family.name)
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(familyService.getFamilyMembers().count) members")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            // Show children
+                            let children = familyService.getChildren()
+                            if children.isEmpty {
+                                Text("No children in family yet")
+                                    .foregroundColor(.secondary)
+                                    .padding()
+                            } else {
+                                ForEach(children, id: \.0) { childId, child in
+                                    ChildStatusRow(childId: childId, child: child)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(UIColor.systemGray6))
+                        .cornerRadius(12)
                     } else {
-                        // Show active children
-                        ForEach(childLocationService.childrenLocations, id: \.childId) { childLocation in
-                            ChildLocationCard(childLocation: childLocation)
+                        // No family state
+                        VStack(spacing: 16) {
+                            Image(systemName: "house")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                            
+                            Text("No Family Created")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Create a family to start tracking your children and setting up geofences.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                            
+                            Button("Create Family") {
+                                showingFamilySetup = true
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                            .padding(.horizontal)
                         }
-                        
-                        // Show pending children
-                        ForEach(childLocationService.pendingChildren, id: \.id) { pendingChild in
-                            PendingChildCard(pendingChild: pendingChild)
-                        }
+                        .padding()
+                        .background(Color(UIColor.systemGray6))
+                        .cornerRadius(12)
                     }
                 }
-                .padding()
-                .background(Color(UIColor.systemGray6))
-                .cornerRadius(12)
                 
                 // Quick Actions
                 VStack(spacing: 12) {
                     Text("Quick Actions")
                         .font(.headline)
                     
-                    HStack(spacing: 12) {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 12) {
+                        // Family Management
                         Button(action: {
-                            showingAddChild = true
+                            if familyService.currentFamily != nil {
+                                showingFamilyManagement = true
+                            } else {
+                                showingFamilySetup = true
+                            }
                         }) {
                             VStack {
-                                Image(systemName: "person.badge.plus")
+                                Image(systemName: "house.fill")
                                     .font(.title2)
-                                Text("Add Child")
+                                Text("Family")
                                     .font(.caption)
                             }
                             .foregroundColor(.blue)
@@ -540,11 +587,12 @@ struct ParentHomeView: View {
                             .cornerRadius(12)
                         }
                         
+                        // Map View
                         NavigationLink(destination: ParentMapView()) {
                             VStack {
                                 Image(systemName: "map")
                                     .font(.title2)
-                                Text("View Map")
+                                Text("Map")
                                     .font(.caption)
                             }
                             .foregroundColor(.green)
@@ -554,24 +602,10 @@ struct ParentHomeView: View {
                             .cornerRadius(12)
                         }
                         
+                        // Geofences
                         Button(action: {
-                            print("🔍 Geofences button tapped!")
-                            // For now, let's use a hardcoded approach since we know there's one child
-                            // TODO: Make this dynamic based on actual children data
-                            let childId = "h29wApYrBBZheUalyvWOEWS8sdf2" // From console output
-                            let childName = "Aidan Flood" // From console output
-                            
-                            print("🔍 Creating GeofenceManagementView directly with childId: \(childId), childName: \(childName)")
-                            
-                            // Create the view directly and present it
-                            let geofenceView = GeofenceManagementView(childId: childId, childName: childName)
-                            
-                            // Present the view using a different method
-                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                               let window = windowScene.windows.first {
-                                let hostingController = UIHostingController(rootView: geofenceView)
-                                hostingController.modalPresentationStyle = .pageSheet
-                                window.rootViewController?.present(hostingController, animated: true)
+                            if let family = familyService.currentFamily {
+                                showingGeofenceManagement = true
                             }
                         }) {
                             VStack {
@@ -586,62 +620,84 @@ struct ParentHomeView: View {
                             .background(Color.orange.opacity(0.1))
                             .cornerRadius(12)
                         }
+                        .disabled(familyService.currentFamily == nil)
+                        
+                        // Settings
+                        NavigationLink(destination: SettingsView()) {
+                            VStack {
+                                Image(systemName: "gear")
+                                    .font(.title2)
+                                Text("Settings")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 60)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(12)
+                        }
                     }
                 }
+                .padding(.horizontal)
                 
                 Spacer()
             }
             .padding()
-            .navigationTitle("Located")
-            .onAppear {
-                if let parentId = authService.currentUser?.id, !parentId.isEmpty {
-                    childLocationService.startListeningForChildrenLocations(parentId: parentId)
-                }
+            .navigationTitle("Home")
+            .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showingFamilySetup) {
+                FamilySetupView()
+                    .environmentObject(authService)
             }
-            .onDisappear {
-                // Clean up services when view disappears
-                childLocationService.stopListening()
-                geofenceService.stopMonitoringAllGeofences()
+            .sheet(isPresented: $showingFamilyManagement) {
+                FamilyManagementView()
+                    .environmentObject(authService)
             }
             .sheet(isPresented: $showingGeofenceManagement) {
-                VStack {
-                    Text("Debug Info:")
-                        .font(.headline)
-                    Text("geofenceData: \(geofenceData?.id ?? "nil"), \(geofenceData?.name ?? "nil")")
-                        .font(.caption)
-                    Text("showingGeofenceManagement: \(showingGeofenceManagement)")
-                        .font(.caption)
-                    
-                    if let data = geofenceData {
-                        GeofenceManagementView(
-                            childId: data.id,
-                            childName: data.name
-                        )
-                        .onAppear {
-                            print("🔍 Presenting GeofenceManagementView for child: \(data.name) (ID: \(data.id))")
-                        }
-                    } else {
-                        Text("Error: No child data available")
-                            .onAppear {
-                                print("❌ No child data for geofences! geofenceData: \(geofenceData?.id ?? "nil"), \(geofenceData?.name ?? "nil")")
-                            }
-                    }
+                if let family = familyService.currentFamily {
+                    GeofenceManagementView(familyId: family.id)
                 }
             }
-            .sheet(isPresented: $showingAddChild) {
-                AddChildView()
-            }
-            .sheet(isPresented: $showingChildSelection) {
-                ChildSelectionView(
-                    children: childLocationService.childrenLocations,
-                    onChildSelected: { child in
-                        selectedChildForGeofences = child
-                        showingGeofenceManagement = true
-                        showingChildSelection = false
-                    }
-                )
+        }
+        .onAppear {
+            // Load family data when view appears
+            if let userId = authService.currentUser?.id {
+                // FamilyService will automatically listen for changes
             }
         }
+    }
+}
+
+// MARK: - Child Status Row
+struct ChildStatusRow: View {
+    let childId: String
+    let child: FamilyMember
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "person.fill")
+                .foregroundColor(.green)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(child.name)
+                    .font(.headline)
+                
+                Text("Child")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // Status indicator (could be enhanced with actual location status)
+            Circle()
+                .fill(Color.green)
+                .frame(width: 8, height: 8)
+        }
+        .padding()
+        .background(Color(UIColor.systemGray6))
+        .cornerRadius(8)
     }
 }
 
