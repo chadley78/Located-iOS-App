@@ -24,10 +24,11 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(database)/documents/users/$(childId)).data.parents;
     }
     
-    // Geofences collection - temporarily allow any authenticated user to create geofences
+    // Geofences collection - parents can create/manage geofences for their children
     match /geofences/{geofenceId} {
-      // Allow read/write for any authenticated user (temporary for testing)
-      allow read, write: if request.auth != null;
+      // Allow read/write if the user is authenticated and the childId is in the user's children array
+      allow read, write: if request.auth != null && 
+        request.resource.data.childId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.children;
     }
     
     // Geofence events collection - children can write events, parents can read events for their children
