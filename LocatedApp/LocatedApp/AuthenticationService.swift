@@ -4,20 +4,20 @@ import FirebaseFirestore
 
 // MARK: - User Model
 struct User: Codable, Identifiable {
-    var id: String?
-    var name: String
-    var email: String
-    var userType: UserType
-    var familyId: String? // Reference to the family this user belongs to
-    var createdAt: Date = Date()
-    var lastActive: Date = Date()
-    var isActive: Bool = true
-    var fcmTokens: [String]? // For push notifications - optional for backward compatibility
+    let id: String?
+    let name: String
+    let email: String
+    let userType: UserType
+    let familyId: String? // Reference to the family this user belongs to
+    let createdAt: Date
+    let lastActive: Date
+    let isActive: Bool
+    let fcmTokens: [String]? // For push notifications - optional for backward compatibility
     
     // Legacy fields for backward compatibility (will be ignored during encoding)
-    private var children: [String]?
-    private var parents: [String]?
-    private var pendingChildren: [PendingChild]?
+    private let children: [String]?
+    private let parents: [String]?
+    private let pendingChildren: [PendingChild]?
     
     enum UserType: String, Codable, CaseIterable {
         case parent = "parent"
@@ -30,7 +30,25 @@ struct User: Codable, Identifiable {
         case children, parents, pendingChildren // Legacy fields
     }
     
-    // Custom initializer to handle missing fields
+    // Custom initializer for creating new users
+    init(id: String? = nil, name: String, email: String, userType: UserType, familyId: String? = nil) {
+        self.id = id
+        self.name = name
+        self.email = email
+        self.userType = userType
+        self.familyId = familyId
+        self.createdAt = Date()
+        self.lastActive = Date()
+        self.isActive = true
+        self.fcmTokens = []
+        
+        // Legacy fields (nil for new users)
+        self.children = nil
+        self.parents = nil
+        self.pendingChildren = nil
+    }
+    
+    // Custom initializer to handle missing fields from Firestore
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
