@@ -378,6 +378,7 @@ struct LocationPickerView: View {
                 selectedCoordinate = coordinate
                 searchText = completion.title
                 showingSearchResults = false
+                searchResults = [] // Clear the results
             }
         }
     }
@@ -436,23 +437,8 @@ struct GeofencePreviewMap: View {
     let radius: Double
     let geofenceName: String
     
-    @State private var region: MKCoordinateRegion
-    
-    init(coordinate: CLLocationCoordinate2D, radius: Double, geofenceName: String) {
-        self.coordinate = coordinate
-        self.radius = radius
-        self.geofenceName = geofenceName
-        
-        // Calculate appropriate span based on radius
-        let span = max(radius / 111000, 0.001) // Convert meters to degrees (roughly)
-        self._region = State(initialValue: MKCoordinateRegion(
-            center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: span * 2, longitudeDelta: span * 2)
-        ))
-    }
-    
     var body: some View {
-        Map(coordinateRegion: $region, annotationItems: [GeofenceAnnotation(coordinate: coordinate, name: geofenceName)]) { annotation in
+        Map(coordinateRegion: .constant(calculateRegion()), annotationItems: [GeofenceAnnotation(coordinate: coordinate, name: geofenceName)]) { annotation in
             MapAnnotation(coordinate: annotation.coordinate) {
                 VStack {
                     Circle()
@@ -469,6 +455,15 @@ struct GeofencePreviewMap: View {
                 }
             }
         }
+    }
+    
+    private func calculateRegion() -> MKCoordinateRegion {
+        // Calculate appropriate span based on radius
+        let span = max(radius / 111000, 0.001) // Convert meters to degrees (roughly)
+        return MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: span * 2, longitudeDelta: span * 2)
+        )
     }
 }
 
