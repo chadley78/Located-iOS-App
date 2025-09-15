@@ -12,12 +12,52 @@ struct User: Codable, Identifiable {
     var createdAt: Date = Date()
     var lastActive: Date = Date()
     var isActive: Bool = true
-    var fcmTokens: [String] = [] // For push notifications
+    var fcmTokens: [String]? // For push notifications - optional for backward compatibility
+    
+    // Legacy fields for backward compatibility (will be ignored during encoding)
+    private var children: [String]?
+    private var parents: [String]?
+    private var pendingChildren: [PendingChild]?
     
     enum UserType: String, Codable, CaseIterable {
         case parent = "parent"
         case child = "child"
     }
+    
+    // Custom coding keys to handle legacy fields
+    enum CodingKeys: String, CodingKey {
+        case id, name, email, userType, familyId, createdAt, lastActive, isActive, fcmTokens
+        case children, parents, pendingChildren // Legacy fields
+    }
+    
+    // Custom initializer to handle missing fields
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decodeIfPresent(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        email = try container.decode(String.self, forKey: .email)
+        userType = try container.decode(UserType.self, forKey: .userType)
+        familyId = try container.decodeIfPresent(String.self, forKey: .familyId)
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        lastActive = try container.decodeIfPresent(Date.self, forKey: .lastActive) ?? Date()
+        isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
+        fcmTokens = try container.decodeIfPresent([String].self, forKey: .fcmTokens)
+        
+        // Legacy fields (ignored)
+        children = try container.decodeIfPresent([String].self, forKey: .children)
+        parents = try container.decodeIfPresent([String].self, forKey: .parents)
+        pendingChildren = try container.decodeIfPresent([PendingChild].self, forKey: .pendingChildren)
+    }
+}
+
+// Legacy struct for backward compatibility
+struct PendingChild: Codable {
+    let id: String
+    let name: String
+    let email: String
+    let invitationCode: String
+    let invitationId: String
 }
 
 // MARK: - Authentication Service
