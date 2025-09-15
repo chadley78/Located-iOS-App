@@ -5,7 +5,7 @@
 
 const {setGlobalOptions} = require("firebase-functions");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
-const {onRequest} = require("firebase-functions/v2/https");
+const {onRequest, onCall} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -50,28 +50,39 @@ exports.onGeofenceEvent = onDocumentCreated(
           return;
         }
 
-        // Get child's profile to find authorized parents
-        const childDoc = await admin.firestore()
-            .collection("users")
-            .doc(childId)
-            .get();
-
-        if (!childDoc.exists) {
-          logger.error(`Child document not found: ${childId}`);
+        // Get family information to find authorized parents
+        const familyId = eventData.familyId;
+        if (!familyId) {
+          logger.error(`No familyId found in geofence event: ${eventId}`);
           return;
         }
 
-        const childData = childDoc.data();
-        const parents = childData.parents || [];
+        const familyDoc = await admin.firestore()
+            .collection("families")
+            .doc(familyId)
+            .get();
 
-        if (parents.length === 0) {
-          logger.warn(`No parents found for child: ${childId}`);
+        if (!familyDoc.exists) {
+          logger.error(`Family document not found: ${familyId}`);
+          return;
+        }
+
+        const familyData = familyDoc.data();
+        const members = familyData.members || {};
+
+        // Find all parents in the family
+        const parentIds = Object.keys(members).filter(
+            (userId) => members[userId].role === "parent",
+        );
+
+        if (parentIds.length === 0) {
+          logger.warn(`No parents found in family: ${familyId}`);
           return;
         }
 
         // Get FCM tokens for all parents
         const parentTokens = [];
-        const parentPromises = parents.map(async (parentId) => {
+        const parentPromises = parentIds.map(async (parentId) => {
           try {
             const parentDoc = await admin.firestore()
                 .collection("users")
@@ -268,3 +279,171 @@ exports.registerFCMToken = onRequest(async (req, res) => {
     });
   }
 });
+
+/**
+ * Callable Cloud Function to create a family invitation
+ * Parent calls this to generate an invite code for their child
+ */
+exports.createInvitation = onCall(async (request) => {
+  try {
+    const {familyId, childName} = request.data;
+    const parentId = request.auth.uid;
+
+    if (!familyId || !childName) {
+      throw new Error("familyId and childName are required");
+    }
+
+    // Verify the user is a parent in this family
+    const familyDoc = await admin.firestore()
+        .collection("families")
+        .doc(familyId)
+        .get();
+
+    if (!familyDoc.exists) {
+      throw new Error("Family not found");
+    }
+
+    const familyData = familyDoc.data();
+    const memberData = familyData.members[parentId];
+
+    if (!memberData || memberData.role !== "parent") {
+      throw new Error("Only parents can create invitations");
+    }
+
+    // Generate a unique 6-character alphanumeric invite code
+    const inviteCode = generateInviteCode();
+
+    // Create invitation document
+    const invitationData = {
+      familyId: familyId,
+      createdBy: parentId,
+      childName: childName,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      usedBy: null,
+    };
+
+    await admin.firestore()
+        .collection("invitations")
+        .doc(inviteCode)
+        .set(invitationData);
+
+    logger.info(`Invitation created: ${inviteCode}`, {
+      familyId: familyId,
+      createdBy: parentId,
+      childName: childName,
+    });
+
+    return {
+      success: true,
+      inviteCode: inviteCode,
+      expiresAt: invitationData.expiresAt,
+    };
+  } catch (error) {
+    logger.error("Error creating invitation:", error);
+    throw new Error(`Failed to create invitation: ${error.message}`);
+  }
+});
+
+/**
+ * Callable Cloud Function to accept a family invitation
+ * Child calls this to join a family using an invite code
+ */
+exports.acceptInvitation = onCall(async (request) => {
+  try {
+    const {inviteCode} = request.data;
+    const childId = request.auth.uid;
+
+    if (!inviteCode) {
+      throw new Error("inviteCode is required");
+    }
+
+    // Get invitation document
+    const invitationDoc = await admin.firestore()
+        .collection("invitations")
+        .doc(inviteCode)
+        .get();
+
+    if (!invitationDoc.exists) {
+      throw new Error("Invalid invitation code");
+    }
+
+    const invitationData = invitationDoc.data();
+
+    // Check if invitation has expired
+    const now = new Date();
+    const expiresAt = invitationData.expiresAt.toDate();
+    if (now > expiresAt) {
+      throw new Error("Invitation has expired");
+    }
+
+    // Check if invitation has already been used
+    if (invitationData.usedBy) {
+      throw new Error("Invitation has already been used");
+    }
+
+    // Get child's user data
+    const childDoc = await admin.firestore()
+        .collection("users")
+        .doc(childId)
+        .get();
+
+    if (!childDoc.exists) {
+      throw new Error("Child user not found");
+    }
+
+    const childData = childDoc.data();
+
+    // Add child to family
+    await admin.firestore()
+        .collection("families")
+        .doc(invitationData.familyId)
+        .update({
+          [`members.${childId}`]: {
+            role: "child",
+            name: childData.name || invitationData.childName,
+            joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+        });
+
+    // Mark invitation as used
+    await admin.firestore()
+        .collection("invitations")
+        .doc(inviteCode)
+        .update({
+          usedBy: childId,
+          usedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+    logger.info(`Invitation accepted: ${inviteCode}`, {
+      childId: childId,
+      familyId: invitationData.familyId,
+      childName: childData.name,
+    });
+
+    return {
+      success: true,
+      familyId: invitationData.familyId,
+      familyName: invitationData.familyName || "Your Family",
+    };
+  } catch (error) {
+    logger.error("Error accepting invitation:", error);
+    throw new Error(`Failed to accept invitation: ${error.message}`);
+  }
+});
+
+/**
+ * Helper function to generate a unique 6-character alphanumeric invite code
+ * @return {string} A unique invite code
+ */
+function generateInviteCode() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+
+  // Generate 6-character code
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return result;
+}
