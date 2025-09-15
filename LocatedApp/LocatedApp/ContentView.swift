@@ -1915,7 +1915,7 @@ struct AddChildView: View {
                 .frame(height: 50)
                 .background(Color.blue)
                 .cornerRadius(25)
-                .disabled(isLoading || childName.isEmpty || childEmail.isEmpty)
+                .disabled(isLoading || childName.isEmpty)
                 .padding(.horizontal, 30)
                 
                 Spacer()
