@@ -234,6 +234,7 @@ struct LocationPickerView: View {
     @State private var searchText = ""
     @State private var searchResults: [MKLocalSearchCompletion] = []
     @State private var showingSearchResults = false
+    @State private var isSelectingLocation = false
     
     var body: some View {
         NavigationView {
@@ -357,18 +358,31 @@ struct LocationPickerView: View {
         searchCompleter.resultTypes = [MKLocalSearchCompleter.ResultType.address, MKLocalSearchCompleter.ResultType.pointOfInterest]
         
         searchDelegate.onResultsUpdate = { (results: [MKLocalSearchCompletion]) in
+            // Don't update if we're in the middle of selecting a location
+            guard !isSelectingLocation else { return }
+            
             searchResults = results
             showingSearchResults = !results.isEmpty
         }
     }
     
     private func performSearch(for completion: MKLocalSearchCompletion) {
+        // Set flag to prevent delegate from interfering
+        isSelectingLocation = true
+        
+        // Immediately close the dropdown
+        showingSearchResults = false
+        searchResults = []
+        
         let searchRequest = MKLocalSearch.Request(completion: completion)
         let search = MKLocalSearch(request: searchRequest)
         
         search.start { response, error in
             guard let response = response,
                   let mapItem = response.mapItems.first else {
+                DispatchQueue.main.async {
+                    isSelectingLocation = false
+                }
                 return
             }
             
@@ -377,8 +391,9 @@ struct LocationPickerView: View {
                 region.center = coordinate
                 selectedCoordinate = coordinate
                 searchText = completion.title
-                showingSearchResults = false
-                searchResults = [] // Clear the results
+                
+                // Reset flag after selection is complete
+                isSelectingLocation = false
             }
         }
     }
