@@ -116,23 +116,40 @@ class FamilyService: ObservableObject {
                 ]
             )
             
+            print("🔍 Creating family with ID: \(familyId)")
+            print("🔍 Family data: \(family)")
+            
+            // First, clear any existing familyId from user document
+            try await db.collection("users").document(userId).updateData([
+                "familyId": FieldValue.delete()
+            ])
+            print("✅ Cleared existing familyId from user document")
+            
             // Create family document
             try await db.collection("families").document(familyId).setData(from: family)
+            print("✅ Family document created successfully")
             
             // Update user's familyId
             try await db.collection("users").document(userId).updateData([
                 "familyId": familyId
             ])
+            print("✅ Updated user's familyId to: \(familyId)")
             
-            currentFamily = family
-            familyMembers = family.members
+            await MainActor.run {
+                self.currentFamily = family
+                self.familyMembers = family.members
+                self.isLoading = false
+            }
             
-            isLoading = false
+            print("✅ Family '\(name)' created successfully with ID: \(familyId)")
             return familyId
             
         } catch {
-            isLoading = false
-            errorMessage = error.localizedDescription
+            print("❌ Error creating family: \(error.localizedDescription)")
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
             throw error
         }
     }
