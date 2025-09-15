@@ -356,7 +356,7 @@ struct LocationPickerView: View {
         searchCompleter.delegate = searchDelegate
         searchCompleter.resultTypes = [MKLocalSearchCompleter.ResultType.address, MKLocalSearchCompleter.ResultType.pointOfInterest]
         
-        searchDelegate.onResultsUpdate = { results in
+        searchDelegate.onResultsUpdate = { (results: [MKLocalSearchCompletion]) in
             searchResults = results
             showingSearchResults = !results.isEmpty
         }
@@ -384,7 +384,7 @@ struct LocationPickerView: View {
 }
 
 // MARK: - Search Completer Delegate
-class SearchCompleterDelegate: NSObject, MKLocalSearchCompleterDelegate {
+class SearchCompleterDelegate: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
     var onResultsUpdate: (([MKLocalSearchCompletion]) -> Void)?
     
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
