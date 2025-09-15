@@ -352,11 +352,11 @@ struct GeofenceDetailsView: View {
             }
             .onAppear {
                 Task {
-                    await geofenceService.fetchGeofenceEvents(for: geofence.childId)
+                    await geofenceService.fetchGeofenceEvents(for: geofence.familyId)
                 }
             }
             .sheet(isPresented: $showingEvents) {
-                GeofenceEventsView(childId: geofence.childId, childName: geofence.name)
+                GeofenceEventsView(familyId: geofence.familyId, geofenceName: geofence.name)
             }
         }
     }
@@ -414,8 +414,8 @@ struct GeofenceEventsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var geofenceService = GeofenceService()
     
-    let childId: String
-    let childName: String
+    let familyId: String
+    let geofenceName: String
     
     var body: some View {
         NavigationView {
@@ -461,7 +461,7 @@ struct GeofenceEventsView: View {
             }
             .onAppear {
                 Task {
-                    await geofenceService.fetchGeofenceEvents(for: childId)
+                    await geofenceService.fetchGeofenceEvents(for: familyId)
                 }
             }
         }

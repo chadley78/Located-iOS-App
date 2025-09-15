@@ -283,11 +283,11 @@ class GeofenceService: NSObject, ObservableObject {
         }
     }
     
-    /// Fetch geofence events for a child
-    func fetchGeofenceEvents(for childId: String) async {
+    /// Fetch geofence events for a family
+    func fetchGeofenceEvents(for familyId: String) async {
         do {
             let snapshot = try await db.collection("geofence_events")
-                .whereField("childId", isEqualTo: childId)
+                .whereField("familyId", isEqualTo: familyId)
                 .order(by: "timestamp", descending: true)
                 .limit(to: 50)
                 .getDocuments()
