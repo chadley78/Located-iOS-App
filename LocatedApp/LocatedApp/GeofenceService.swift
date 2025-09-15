@@ -89,6 +89,22 @@ class GeofenceService: NSObject, ObservableObject {
         
         print("🔍 Creating geofence for familyId: \(familyId), by user: \(currentUser.uid)")
         
+        // Check if the user has a familyId in their user document
+        let userDoc = try await Firestore.firestore().collection("users").document(currentUser.uid).getDocument()
+        guard let userData = userDoc.data(),
+              let userFamilyId = userData["familyId"] as? String else {
+            print("❌ User has no familyId - cannot create geofence")
+            throw GeofenceError.notFamilyMember
+        }
+        
+        // Verify the user is trying to create a geofence for their own family
+        guard userFamilyId == familyId else {
+            print("❌ User trying to create geofence for different family")
+            throw GeofenceError.notFamilyMember
+        }
+        
+        print("✅ User is member of family: \(familyId)")
+        
         let geofence = Geofence(
             id: UUID().uuidString,
             familyId: familyId,
@@ -356,6 +372,7 @@ enum GeofenceError: LocalizedError {
     case notAuthenticated
     case invalidLocation
     case geofenceNotFound
+    case notFamilyMember
     
     var errorDescription: String? {
         switch self {
@@ -365,6 +382,8 @@ enum GeofenceError: LocalizedError {
             return "Invalid location data"
         case .geofenceNotFound:
             return "Geofence not found"
+        case .notFamilyMember:
+            return "User is not a member of this family"
         }
     }
 }
