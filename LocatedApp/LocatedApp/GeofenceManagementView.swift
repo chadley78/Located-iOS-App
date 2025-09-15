@@ -436,7 +436,7 @@ struct GeofenceEventsView: View {
                             .font(.title3)
                             .fontWeight(.semibold)
                         
-                        Text("Events will appear here when \(childName) enters or leaves geofenced areas.")
+                        Text("Events will appear here when family members enter or leave the '\(geofenceName)' geofence.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
