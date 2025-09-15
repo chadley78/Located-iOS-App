@@ -1,7 +1,6 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseFunctions
 
 // MARK: - Family Setup View
 struct FamilySetupView: View {
@@ -428,23 +427,28 @@ struct InviteChildView: View {
         
         Task {
             do {
-                // Call the Cloud Function to create invitation
-                let functions = Functions.functions()
-                let createInvitation = functions.httpsCallable("createInvitation")
+                // For now, we'll create a simple invitation code
+                // In a real implementation, this would call the Cloud Function
+                let inviteCode = generateInviteCode()
                 
-                let result = try await createInvitation.call([
+                // Create invitation document directly in Firestore
+                let invitationData: [String: Any] = [
                     "familyId": family.id,
-                    "childName": childName.trimmingCharacters(in: .whitespacesAndNewlines)
-                ])
+                    "createdBy": Auth.auth().currentUser?.uid ?? "",
+                    "childName": childName.trimmingCharacters(in: .whitespacesAndNewlines),
+                    "createdAt": Date(),
+                    "expiresAt": Date().addingTimeInterval(24 * 60 * 60), // 24 hours
+                    "usedBy": NSNull()
+                ]
                 
-                if let data = result.data as? [String: Any],
-                   let inviteCode = data["inviteCode"] as? String {
-                    await MainActor.run {
-                        self.inviteCode = inviteCode
-                        self.isLoading = false
-                    }
-                } else {
-                    throw NSError(domain: "InvitationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid response from server"])
+                try await Firestore.firestore()
+                    .collection("invitations")
+                    .document(inviteCode)
+                    .setData(invitationData)
+                
+                await MainActor.run {
+                    self.inviteCode = inviteCode
+                    self.isLoading = false
                 }
             } catch {
                 await MainActor.run {
@@ -453,6 +457,12 @@ struct InviteChildView: View {
                 }
             }
         }
+    }
+    
+    private func generateInviteCode() -> String {
+        let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        let code = String((0..<6).map { _ in chars.randomElement()! })
+        return code
     }
 }
 
