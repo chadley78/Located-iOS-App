@@ -86,6 +86,8 @@ class GeofenceService: NSObject, ObservableObject {
             throw GeofenceError.notAuthenticated
         }
         
+        print("🔍 Creating geofence for childId: \(childId), by user: \(currentUser.uid)")
+        
         let geofence = Geofence(
             id: UUID().uuidString,
             childId: childId,
@@ -98,7 +100,7 @@ class GeofenceService: NSObject, ObservableObject {
             createdBy: currentUser.uid
         )
         
-        try await db.collection("geofences").document(geofence.id).setData([
+        let geofenceData: [String: Any] = [
             "id": geofence.id,
             "childId": geofence.childId,
             "name": geofence.name,
@@ -108,7 +110,17 @@ class GeofenceService: NSObject, ObservableObject {
             "isActive": geofence.isActive,
             "createdAt": geofence.createdAt,
             "createdBy": geofence.createdBy
-        ])
+        ]
+        
+        print("🔍 Geofence data: \(geofenceData)")
+        
+        do {
+            try await db.collection("geofences").document(geofence.id).setData(geofenceData)
+            print("✅ Geofence created successfully")
+        } catch {
+            print("❌ Failed to create geofence: \(error)")
+            throw error
+        }
         
         // Add to local array
         await MainActor.run {
