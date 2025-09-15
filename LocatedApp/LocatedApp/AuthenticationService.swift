@@ -4,20 +4,20 @@ import FirebaseFirestore
 
 // MARK: - User Model
 struct User: Codable, Identifiable {
-    let id: String?
-    let name: String
-    let email: String
-    let userType: UserType
-    let familyId: String? // Reference to the family this user belongs to
-    let createdAt: Date
-    let lastActive: Date
-    let isActive: Bool
-    let fcmTokens: [String]? // For push notifications - optional for backward compatibility
+    var id: String?
+    var name: String
+    var email: String
+    var userType: UserType
+    var familyId: String? // Reference to the family this user belongs to
+    var createdAt: Date
+    var lastActive: Date
+    var isActive: Bool
+    var fcmTokens: [String]? // For push notifications - optional for backward compatibility
     
     // Legacy fields for backward compatibility (will be ignored during encoding)
-    private let children: [String]?
-    private let parents: [String]?
-    private let pendingChildren: [PendingChild]?
+    private var children: [String]?
+    private var parents: [String]?
+    private var pendingChildren: [PendingChild]?
     
     enum UserType: String, Codable, CaseIterable {
         case parent = "parent"
