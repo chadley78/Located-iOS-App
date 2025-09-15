@@ -221,3 +221,4 @@ Geofence Event
 - Notification Settings
 
 **Total: 16 screens to design**
+

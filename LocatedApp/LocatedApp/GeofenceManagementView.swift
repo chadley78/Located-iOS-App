@@ -3,6 +3,7 @@ import MapKit
 
 // MARK: - Geofence Management View
 struct GeofenceManagementView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var geofenceService = GeofenceService()
     
     let childId: String
@@ -115,6 +116,13 @@ struct GeofenceManagementView: View {
             }
             .navigationTitle("Geofences")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Back") {
+                        dismiss()
+                    }
+                }
+            }
             .onAppear {
                 Task {
                     await geofenceService.fetchGeofences(for: childId)

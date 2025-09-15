@@ -225,14 +225,71 @@ struct LocationPickerView: View {
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var searchCompleter = MKLocalSearchCompleter()
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
     )
+    @State private var searchText = ""
+    @State private var searchResults: [MKLocalSearchCompletion] = []
+    @State private var showingSearchResults = false
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 0) {
+                // Search Bar
+                VStack(spacing: 0) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.gray)
+                        
+                        TextField("Search for a location...", text: $searchText)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .onChange(of: searchText) { newValue in
+                                if newValue.count > 2 {
+                                    searchCompleter.queryFragment = newValue
+                                } else {
+                                    searchResults = []
+                                    showingSearchResults = false
+                                }
+                            }
+                        
+                        if !searchText.isEmpty {
+                            Button("Clear") {
+                                searchText = ""
+                                searchResults = []
+                                showingSearchResults = false
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    
+                    // Search Results
+                    if showingSearchResults && !searchResults.isEmpty {
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(searchResults, id: \.self) { result in
+                                    SearchResultRow(result: result) {
+                                        performSearch(for: result)
+                                    }
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 200)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(10)
+                        .shadow(radius: 2)
+                        .padding(.horizontal)
+                    }
+                }
+                .background(Color(.systemBackground))
+                
+                // Map
                 Map(coordinateRegion: $region, annotationItems: [MapPinAnnotation(coordinate: region.center)]) { annotation in
                     MapPin(coordinate: annotation.coordinate, tint: .red)
                 }
@@ -289,8 +346,80 @@ struct LocationPickerView: View {
                 if let userLocation = locationManager.location {
                     region.center = userLocation.coordinate
                 }
+                setupSearchCompleter()
             }
         }
+    }
+    
+    private func setupSearchCompleter() {
+        searchCompleter.delegate = self
+        searchCompleter.resultTypes = [.address, .pointOfInterest]
+    }
+    
+    private func performSearch(for completion: MKLocalSearchCompletion) {
+        let searchRequest = MKLocalSearch.Request(completion: completion)
+        let search = MKLocalSearch(request: searchRequest)
+        
+        search.start { response, error in
+            guard let response = response,
+                  let mapItem = response.mapItems.first else {
+                return
+            }
+            
+            DispatchQueue.main.async {
+                let coordinate = mapItem.placemark.coordinate
+                region.center = coordinate
+                selectedCoordinate = coordinate
+                searchText = completion.title
+                showingSearchResults = false
+            }
+        }
+    }
+}
+
+// MARK: - MKLocalSearchCompleterDelegate
+extension LocationPickerView: MKLocalSearchCompleterDelegate {
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        DispatchQueue.main.async {
+            searchResults = completer.results
+            showingSearchResults = !completer.results.isEmpty
+        }
+    }
+    
+    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        print("Search completer failed: \(error.localizedDescription)")
+    }
+}
+
+// MARK: - Search Result Row
+struct SearchResultRow: View {
+    let result: MKLocalSearchCompletion
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(result.title)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.leading)
+                
+                if !result.subtitle.isEmpty {
+                    Text(result.subtitle)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .background(Color(.systemBackground))
+        
+        Divider()
+            .padding(.leading, 16)
     }
 }
 
