@@ -225,7 +225,8 @@ struct LocationPickerView: View {
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     
     @StateObject private var locationManager = LocationManager()
-    @StateObject private var searchCompleter = MKLocalSearchCompleter()
+    @StateObject private var searchDelegate = SearchCompleterDelegate()
+    @State private var searchCompleter = MKLocalSearchCompleter()
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -352,8 +353,13 @@ struct LocationPickerView: View {
     }
     
     private func setupSearchCompleter() {
-        searchCompleter.delegate = self
-        searchCompleter.resultTypes = [.address, .pointOfInterest]
+        searchCompleter.delegate = searchDelegate
+        searchCompleter.resultTypes = [MKLocalSearchCompleter.ResultType.address, MKLocalSearchCompleter.ResultType.pointOfInterest]
+        
+        searchDelegate.onResultsUpdate = { results in
+            searchResults = results
+            showingSearchResults = !results.isEmpty
+        }
     }
     
     private func performSearch(for completion: MKLocalSearchCompletion) {
@@ -377,12 +383,13 @@ struct LocationPickerView: View {
     }
 }
 
-// MARK: - MKLocalSearchCompleterDelegate
-extension LocationPickerView: MKLocalSearchCompleterDelegate {
+// MARK: - Search Completer Delegate
+class SearchCompleterDelegate: NSObject, MKLocalSearchCompleterDelegate {
+    var onResultsUpdate: (([MKLocalSearchCompletion]) -> Void)?
+    
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
         DispatchQueue.main.async {
-            searchResults = completer.results
-            showingSearchResults = !completer.results.isEmpty
+            self.onResultsUpdate?(completer.results)
         }
     }
     
