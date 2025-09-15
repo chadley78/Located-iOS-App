@@ -1,62 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // Helper function to check if a user is in a specific family
+    function isFamilyMember(familyId) {
+      let familyDoc = get(/databases/$(database)/documents/families/$(familyId)).data;
+      return request.auth.uid in familyDoc.members;
+    }
+
+    // Helper function to check if a user is a parent in a specific family
+    function isFamilyParent(familyId) {
+      let familyDoc = get(/databases/$(database)/documents/families/$(familyId)).data;
+      return request.auth.uid in familyDoc.members && 
+             familyDoc.members[request.auth.uid].role == 'parent';
+    }
+
     // Users collection - users can only read/write their own profile
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow children to update parent documents when accepting invitations
-      // This is needed for the acceptInvitation flow
-      allow update: if request.auth != null && 
-        request.auth.uid != userId && // Not updating own document
-        request.resource.data.keys().hasAll(['children']) && // Only updating children array
-        request.resource.data.children.hasAll(request.auth.uid); // Adding self to children array
     }
-    
-    // Locations collection - children can write their own location, parents can read their children's locations
+
+    // Families collection - the single source of truth for family membership
+    match /families/{familyId} {
+      // Only members of the family can read it
+      allow read: if isFamilyMember(familyId);
+      
+      // Only parents can write to family documents (create, update, delete)
+      allow write: if isFamilyParent(familyId);
+    }
+
+    // Locations collection - children can write their own location, family members can read
     match /locations/{childId} {
-      // A child can only update their own location
+      // A child can only write to their own location document
       allow write: if request.auth != null && request.auth.uid == childId;
       
-      // A parent can read the location if their ID is in the child's 'parents' list
-      allow read: if request.auth != null && 
-        request.auth.uid in get(/databases/$(database)/documents/users/$(childId)).data.parents;
+      // Any member of the same family can read a child's location
+      allow read: if isFamilyMember(resource.data.familyId);
     }
-    
-    // Geofences collection - parents can create/manage geofences for their children
+
+    // Geofences collection - family members can read/write geofences
     match /geofences/{geofenceId} {
-      // Allow read/write if the user is authenticated and the childId is in the user's children array
-      allow read, write: if request.auth != null && 
-        request.resource.data.childId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.children;
+      // Any member of the family can read/write geofences
+      allow read, write: if isFamilyMember(resource.data.familyId);
     }
-    
-    // Geofence events collection - children can write events, parents can read events for their children
+
+    // Geofence events collection - children can write events, family members can read
     match /geofence_events/{eventId} {
       // A child can write geofence events for themselves
       allow write: if request.auth != null && request.auth.uid == resource.data.childId;
       
-      // A parent can read geofence events if they are a parent of the child
-      allow read: if request.auth != null && 
-        request.auth.uid in get(/databases/$(database)/documents/users/$(resource.data.childId)).data.parents;
+      // Any member of the same family can read geofence events
+      allow read: if isFamilyMember(resource.data.familyId);
     }
+
+    // Invitations collection - secure handling via Cloud Functions only
+    // No direct client access is allowed to prevent abuse
+    match /invitations/{inviteCode} {
+      allow read, write: if false; // Disallow all client access
+    }
+
+    // Legacy collections - keeping for backward compatibility during migration
+    // These will be removed once migration is complete
     
-    // Parent-child relationships collection - for managing invitations
+    // Parent-child relationships collection - deprecated, use families instead
     match /parent_child_invitations/{invitationId} {
-      // Parents can create invitations
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.parentId;
-      
-      // Parents can read invitations they created
-      allow read: if request.auth != null && 
-        request.auth.uid == resource.data.parentId;
-      
-      // Children can read invitations sent to their email
-      allow read: if request.auth != null && 
-        request.auth.token.email == resource.data.childEmail;
-      
-      // Children can update invitations (accept/decline)
-      allow update: if request.auth != null && 
-        request.auth.token.email == resource.data.childEmail;
+      // Disable all access to encourage migration to new system
+      allow read, write: if false;
     }
   }
 }
