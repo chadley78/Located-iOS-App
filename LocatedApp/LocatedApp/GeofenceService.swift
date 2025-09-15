@@ -173,11 +173,11 @@ class GeofenceService: NSObject, ObservableObject {
     
     // MARK: - Geofence Monitoring
     
-    /// Start monitoring all geofences for a child
-    func startMonitoringGeofences(for childId: String) {
-        let childGeofences = geofences.filter { $0.childId == childId }
+    /// Start monitoring all geofences for a family
+    func startMonitoringGeofences(for familyId: String) {
+        let familyGeofences = geofences.filter { $0.familyId == familyId }
         
-        for geofence in childGeofences {
+        for geofence in familyGeofences {
             startMonitoringGeofence(geofence)
         }
     }
@@ -229,26 +229,30 @@ class GeofenceService: NSObject, ObservableObject {
         location: CLLocation
     ) async {
         do {
-            // Get child name
-            let childDoc = try await db.collection("users").document(geofence.childId).getDocument()
-            let childName = childDoc.data()?["name"] as? String ?? "Unknown Child"
+            // For family-centric approach, we need to get the current user's info
+            guard let currentUserId = Auth.auth().currentUser?.uid else {
+                print("❌ No authenticated user for geofence event")
+                return
+            }
             
             let event = GeofenceEvent(
                 id: UUID().uuidString,
-                childId: geofence.childId,
-                childName: childName,
+                familyId: geofence.familyId,
+                childId: currentUserId,
+                childName: "Current User", // This should be updated to get actual name
                 geofenceId: geofence.id,
                 geofenceName: geofence.name,
                 eventType: eventType,
                 timestamp: Date(),
                 location: LocationData(
+                    familyId: geofence.familyId,
                     lat: location.coordinate.latitude,
                     lng: location.coordinate.longitude,
                     accuracy: location.horizontalAccuracy,
                     timestamp: Date(),
                     address: nil,
                     batteryLevel: nil,
-                    isMoving: false
+                    isMoving: location.speed > 1.0
                 )
             )
             

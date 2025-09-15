@@ -704,7 +704,6 @@ struct ChildStatusRow: View {
 // MARK: - Child Location Service
 class ChildLocationService: ObservableObject {
     @Published var childrenLocations: [ChildLocationData] = []
-    @Published var pendingChildren: [PendingChild] = []
     
     private let db = Firestore.firestore()
     private var listeners: [ListenerRegistration] = []
@@ -735,24 +734,9 @@ class ChildLocationService: ObservableObject {
                     return
                 }
                 
-                let newChildren = userData.children
-                let newPendingChildren = userData.pendingChildren ?? []
-                
-                print("🔍 Parent has \(newChildren.count) children: \(newChildren)")
-                print("🔍 Parent has \(newPendingChildren.count) pending children: \(newPendingChildren.map { $0.name })")
-                
-                // Update pending children
-                self.pendingChildren = newPendingChildren
-                
-                // Stop listening to old children that are no longer in the list
-                self.stopListeningToRemovedChildren(newChildren: newChildren)
-                
-                // Start listening to new children
-                for childId in newChildren {
-                    if !self.isListeningToChild(childId: childId) {
-                        self.listenForChildLocation(childId: childId)
-                    }
-                }
+                // For now, we'll use a simple approach since we're transitioning to family-centric
+                // This will be replaced by FamilyService in the new architecture
+                print("🔍 Parent user data loaded, but using family-centric approach now")
             }
         
         listeners.append(parentListener)
@@ -911,60 +895,6 @@ struct ChildLocationCard: View {
     
     private var isLocationRecent: Bool {
         childLocation.lastSeen.timeIntervalSinceNow > -300 // 5 minutes
-    }
-    
-    private func formatTimeAgo(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
-}
-
-// MARK: - Pending Child Card
-struct PendingChildCard: View {
-    let pendingChild: PendingChild
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Circle()
-                    .fill(.orange)
-                    .frame(width: 12, height: 12)
-                
-                Text(pendingChild.name)
-                    .font(.headline)
-                
-                Spacer()
-                
-                Text("PENDING")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.orange)
-            }
-            
-            Text("Email: \(pendingChild.email)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            Text("Invitation Code: \(pendingChild.invitationCode)")
-                .font(.caption)
-                .foregroundColor(.blue)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(4)
-            
-            Text("Sent: \(formatTimeAgo(pendingChild.createdAt))")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-        .background(Color.orange.opacity(0.1))
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-        )
     }
     
     private func formatTimeAgo(_ date: Date) -> String {
