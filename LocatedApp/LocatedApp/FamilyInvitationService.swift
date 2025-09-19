@@ -222,9 +222,9 @@ class FamilyInvitationService: ObservableObject {
     
     /// Stop listening for invitations
     nonisolated func stopListening() {
-        listener?.remove()
-        listener = nil
         Task { @MainActor in
+            listener?.remove()
+            listener = nil
             pendingInvitations = []
             hasPendingInvitations = false
         }
