@@ -81,6 +81,8 @@ class FamilyService: ObservableObject {
     
     private let db = Firestore.firestore()
     private let auth = Auth.auth()
+    private var userListener: ListenerRegistration?
+    private var familyListener: ListenerRegistration?
     
     init() {
         // Listen for family changes
@@ -191,8 +193,12 @@ class FamilyService: ObservableObject {
     
     /// Listen to family changes
     private func listenToFamily(userId: String) {
+        // Stop existing listeners
+        userListener?.remove()
+        familyListener?.remove()
+        
         // First get the user's familyId
-        db.collection("users").document(userId).addSnapshotListener { [weak self] documentSnapshot, error in
+        userListener = db.collection("users").document(userId).addSnapshotListener { [weak self] documentSnapshot, error in
             if let error = error {
                 print("❌ Error listening to user document: \(error)")
                 return
@@ -202,11 +208,17 @@ class FamilyService: ObservableObject {
                   let data = document.data(),
                   let familyId = data["familyId"] as? String else {
                 print("ℹ️ User has no familyId")
+                self?.familyListener?.remove()
+                self?.currentFamily = nil
+                self?.familyMembers = [:]
                 return
             }
             
+            // Stop old family listener
+            self?.familyListener?.remove()
+            
             // Listen to family document
-            self?.db.collection("families").document(familyId).addSnapshotListener { familySnapshot, familyError in
+            self?.familyListener = self?.db.collection("families").document(familyId).addSnapshotListener { familySnapshot, familyError in
                 if let familyError = familyError {
                     print("❌ Error listening to family document: \(familyError)")
                     return
