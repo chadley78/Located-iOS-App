@@ -219,11 +219,13 @@ class FamilyInvitationService: ObservableObject {
     }
     
     /// Stop listening for invitations
-    func stopListening() {
+    nonisolated func stopListening() {
         listener?.remove()
         listener = nil
-        pendingInvitations = []
-        hasPendingInvitations = false
+        Task { @MainActor in
+            pendingInvitations = []
+            hasPendingInvitations = false
+        }
         print("🛑 Stopped listening for family invitations")
     }
     
