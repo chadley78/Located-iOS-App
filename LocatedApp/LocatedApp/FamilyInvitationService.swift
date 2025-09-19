@@ -11,7 +11,7 @@ class FamilyInvitationService: ObservableObject {
     @Published var errorMessage: String?
     
     private let db = Firestore.firestore()
-    nonisolated private var listener: ListenerRegistration?
+    nonisolated(unsafe) private var listener: ListenerRegistration?
     
     init() {
         // Start listening for invitations when service is created
