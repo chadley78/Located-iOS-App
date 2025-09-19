@@ -11,7 +11,7 @@ class FamilyInvitationService: ObservableObject {
     @Published var errorMessage: String?
     
     private let db = Firestore.firestore()
-    private var listener: ListenerRegistration?
+    nonisolated private var listener: ListenerRegistration?
     
     init() {
         // Start listening for invitations when service is created
@@ -26,7 +26,8 @@ class FamilyInvitationService: ObservableObject {
         
         // Listen for invitations where this user is the target
         // We'll check invitations by looking for unused invitations
-        listener = db.collection("invitations")
+        Task { @MainActor in
+            listener = db.collection("invitations")
             .whereField("usedBy", isEqualTo: NSNull())
             .addSnapshotListener { [weak self] querySnapshot, error in
                 guard let self = self else { return }
@@ -70,6 +71,7 @@ class FamilyInvitationService: ObservableObject {
                 self.hasPendingInvitations = !validInvitations.isEmpty
                 print("🔍 Final pending invitations count: \(self.pendingInvitations.count)")
             }
+        }
     }
     
     /// Accept a family invitation using an invite code
