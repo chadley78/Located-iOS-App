@@ -32,9 +32,13 @@ service cloud.firestore {
       allow read: if isFamilyMember(familyId) || hasFamilyId(familyId);
       
       // Allow creation if the user is the creator (createdBy field matches user ID)
-      // Allow updates/deletes only if user is a parent in the family
+      // and the user is included in the members map as a parent
       allow create: if request.auth != null && 
-                       request.auth.uid == resource.data.createdBy;
+                       request.auth.uid == resource.data.createdBy &&
+                       request.auth.uid in resource.data.members &&
+                       resource.data.members[request.auth.uid].role == 'parent';
+      
+      // Allow updates/deletes only if user is a parent in the family
       allow update, delete: if isFamilyParent(familyId);
     }
 
