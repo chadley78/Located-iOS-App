@@ -129,6 +129,9 @@ class FamilyService: ObservableObject {
             try await db.collection("families").document(familyId).setData(from: family)
             print("✅ Family document created successfully")
             
+            // Wait a moment for the family document to be available
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
             // Update user's familyId
             try await db.collection("users").document(userId).updateData([
                 "familyId": familyId
