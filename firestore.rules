@@ -31,8 +31,11 @@ service cloud.firestore {
       // Only members of the family can read it, or users who have this familyId in their user document
       allow read: if isFamilyMember(familyId) || hasFamilyId(familyId);
       
-      // Only parents can write to family documents (create, update, delete)
-      allow write: if isFamilyParent(familyId);
+      // Allow creation if the user is the creator (createdBy field matches user ID)
+      // Allow updates/deletes only if user is a parent in the family
+      allow create: if request.auth != null && 
+                       request.auth.uid == resource.data.createdBy;
+      allow update, delete: if isFamilyParent(familyId);
     }
 
     // Locations collection - children can write their own location, family members can read
