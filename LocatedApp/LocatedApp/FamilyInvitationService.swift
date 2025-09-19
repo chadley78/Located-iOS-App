@@ -14,10 +14,8 @@ class FamilyInvitationService: ObservableObject {
     nonisolated(unsafe) private var listener: ListenerRegistration?
     
     init() {
-        // Start listening for invitations when service is created
-        if let userId = Auth.auth().currentUser?.uid {
-            startListeningForInvitations(userId: userId)
-        }
+        // Don't automatically start listening - it causes permissions errors
+        // Invitations will be handled manually when needed
     }
     
     /// Start listening for family invitations for the current user
@@ -164,18 +162,30 @@ class FamilyInvitationService: ObservableObject {
         errorMessage = nil
         
         do {
+            print("🔍 Creating invitation for familyId: \(familyId)")
+            print("🔍 Current user: \(userId)")
+            
             // Verify the user is a parent in this family
             let familyDoc = try await db.collection("families").document(familyId).getDocument()
+            print("🔍 Family document exists: \(familyDoc.exists)")
+            
             guard familyDoc.exists else {
+                print("❌ Family document not found: \(familyId)")
                 throw FamilyInvitationError.familyNotFound
             }
             
             let familyData = familyDoc.data()!
+            print("🔍 Family data: \(familyData)")
+            
             let members = familyData["members"] as! [String: [String: Any]]
+            print("🔍 Family members: \(members)")
             
             guard let memberData = members[userId],
                   let role = memberData["role"] as? String,
                   role == "parent" else {
+                print("❌ User is not a parent in this family")
+                print("❌ User ID: \(userId)")
+                print("❌ Member data: \(members[userId] ?? [:])")
                 throw FamilyInvitationError.notAuthorized
             }
             
