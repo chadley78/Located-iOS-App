@@ -190,3 +190,6 @@ The following composite indexes should be created in Firestore:
 3. Test security rules using the Firebase Console Rules Playground
 4. Monitor usage and performance through Firebase Console Analytics
 
+
+
+

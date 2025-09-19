@@ -3,6 +3,8 @@ import FirebaseCore
 
 @main
 struct LocatedAppApp: App {
+    @StateObject private var familyService = FamilyService()
+    
     // Initialize Firebase and background services when the app launches
     init() {
         // Configure Firebase immediately in the initializer
@@ -16,6 +18,7 @@ struct LocatedAppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(familyService)
         }
     }
 }

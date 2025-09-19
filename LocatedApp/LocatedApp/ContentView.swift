@@ -478,7 +478,7 @@ struct MainTabView: View {
 // MARK: - Parent Home View
 struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
-    @StateObject private var familyService = FamilyService()
+    @EnvironmentObject var familyService: FamilyService
     @StateObject private var geofenceService = GeofenceService()
     
     @State private var showingFamilySetup = false
@@ -1128,7 +1128,7 @@ struct ChildHomeView: View {
 // MARK: - Children List View
 struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
-    @StateObject private var familyService = FamilyService()
+    @EnvironmentObject var familyService: FamilyService
     @State private var showingInviteChild = false
     
     var body: some View {
