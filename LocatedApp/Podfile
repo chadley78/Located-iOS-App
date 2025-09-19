@@ -9,6 +9,7 @@ target 'LocatedApp' do
   pod 'Firebase/Auth'
   pod 'Firebase/Firestore'
   pod 'Firebase/Core'
+  pod 'Firebase/Functions'
 
   target 'LocatedAppTests' do
     inherit! :search_paths

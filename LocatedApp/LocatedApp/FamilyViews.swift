@@ -296,6 +296,7 @@ struct FamilyMemberRow: View {
 // MARK: - Invite Child View
 struct InviteChildView: View {
     @EnvironmentObject var familyService: FamilyService
+    @StateObject private var invitationService = FamilyInvitationService()
     @Environment(\.dismiss) private var dismiss
     
     @State private var childName = ""
@@ -367,6 +368,48 @@ struct InviteChildView: View {
                         Text("This code expires in 24 hours")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                        
+                        // Share buttons
+                        HStack(spacing: 16) {
+                            Button(action: {
+                                // Copy to clipboard
+                                UIPasteboard.general.string = inviteCode
+                            }) {
+                                HStack {
+                                    Image(systemName: "doc.on.doc")
+                                    Text("Copy")
+                                }
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                            
+                            Button(action: {
+                                // Share via system share sheet
+                                let activityVC = UIActivityViewController(
+                                    activityItems: ["Join my family on Located! Use this code: \(inviteCode)"],
+                                    applicationActivities: nil
+                                )
+                                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                   let window = windowScene.windows.first {
+                                    window.rootViewController?.present(activityVC, animated: true)
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Share")
+                                }
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                        }
                     }
                     .padding()
                     .background(Color.green.opacity(0.1))
@@ -427,24 +470,10 @@ struct InviteChildView: View {
         
         Task {
             do {
-                // For now, we'll create a simple invitation code
-                // In a real implementation, this would call the Cloud Function
-                let inviteCode = generateInviteCode()
-                
-                // Create invitation document directly in Firestore
-                let invitationData: [String: Any] = [
-                    "familyId": family.id,
-                    "createdBy": Auth.auth().currentUser?.uid ?? "",
-                    "childName": childName.trimmingCharacters(in: .whitespacesAndNewlines),
-                    "createdAt": Date(),
-                    "expiresAt": Date().addingTimeInterval(24 * 60 * 60), // 24 hours
-                    "usedBy": NSNull()
-                ]
-                
-                try await Firestore.firestore()
-                    .collection("invitations")
-                    .document(inviteCode)
-                    .setData(invitationData)
+                let inviteCode = try await invitationService.createInvitation(
+                    familyId: family.id,
+                    childName: childName.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
                 
                 await MainActor.run {
                     self.inviteCode = inviteCode
@@ -457,12 +486,6 @@ struct InviteChildView: View {
                 }
             }
         }
-    }
-    
-    private func generateInviteCode() -> String {
-        let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        let code = String((0..<6).map { _ in chars.randomElement()! })
-        return code
     }
 }
 

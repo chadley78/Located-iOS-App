@@ -909,9 +909,10 @@ struct ChildHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
+    @StateObject private var familyService = FamilyService()
+    @StateObject private var invitationService = FamilyInvitationService()
     @State private var showingLocationPermissionAlert = false
-    @State private var showingInvitations = false
-    @StateObject private var invitationService = InvitationService()
+    @State private var showingAcceptInvitation = false
     
     var body: some View {
         NavigationView {
@@ -972,60 +973,64 @@ struct ChildHomeView: View {
                 .background(Color(UIColor.systemGray6))
                 .cornerRadius(12)
                 
-                // Invitation Notification
-                if invitationService.hasPendingInvitations {
+                // Family Status
+                if let family = familyService.currentFamily {
                     VStack(spacing: 12) {
                         HStack {
-                            Image(systemName: "envelope.badge")
+                            Image(systemName: "house.fill")
                                 .foregroundColor(.blue)
                                 .font(.title2)
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("New Parent Invitation")
+                                Text("Family: \(family.name)")
                                     .font(.headline)
-                                Text("You have \(invitationService.pendingInvitations.count) pending invitation(s)")
+                                Text("You're connected to your family")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                             
                             Spacer()
                             
-                            Button("View") {
-                                showingInvitations = true
-                            }
-                            .font(.caption)
-                            .foregroundColor(.blue)
+                            Circle()
+                                .fill(.green)
+                                .frame(width: 8, height: 8)
                         }
                     }
                     .padding()
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(12)
-                    .onAppear {
-                        print("🔍 Invitation notification card is now visible")
-                    }
                 } else {
-                    // Debug: Show why notification card is not appearing
-                    VStack {
-                        Text("Debug: hasPendingInvitations = \(invitationService.hasPendingInvitations)")
+                    // No family - show invitation prompt
+                    VStack(spacing: 12) {
+                        HStack {
+                            Image(systemName: "house")
+                                .foregroundColor(.gray)
+                                .font(.title2)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Not Connected to Family")
+                                    .font(.headline)
+                                Text("Ask your parent for an invitation code to join")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button("Join Family") {
+                                showingAcceptInvitation = true
+                            }
                             .font(.caption)
-                            .foregroundColor(.red)
-                        Text("Pending count = \(invitationService.pendingInvitations.count)")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        
-                        Button("Test Check Invitations") {
-                            let childEmail = authService.currentUser?.email ?? ""
-                            print("🔍 Manual test - checking invitations for: \(childEmail)")
-                            invitationService.checkForInvitations(childEmail: childEmail)
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(6)
                         }
-                        .font(.caption)
-                        .foregroundColor(.blue)
                     }
-                    .onAppear {
-                        print("🔍 Invitation notification card is NOT visible")
-                        print("🔍 hasPendingInvitations: \(invitationService.hasPendingInvitations)")
-                        print("🔍 pendingInvitations.count: \(invitationService.pendingInvitations.count)")
-                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(12)
                 }
                 
                 // Location Controls
@@ -1097,10 +1102,7 @@ struct ChildHomeView: View {
                     }
                 }
                 
-                // Check for pending invitations
-                let childEmail = authService.currentUser?.email ?? ""
-                print("🔍 ChildHomeView onAppear - checking invitations for: \(childEmail)")
-                invitationService.checkForInvitations(childEmail: childEmail)
+                // The FamilyInvitationService will automatically start listening for invitations
             }
             .onDisappear {
                 // Stop geofence monitoring when view disappears
@@ -1110,8 +1112,8 @@ struct ChildHomeView: View {
                 // Clean up invitation service
                 invitationService.stopListening()
             }
-            .sheet(isPresented: $showingInvitations) {
-                InvitationListView(invitationService: invitationService)
+            .sheet(isPresented: $showingAcceptInvitation) {
+                AcceptFamilyInvitationView()
             }
         }
     }
