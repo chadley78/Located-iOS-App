@@ -1127,21 +1127,92 @@ struct ChildHomeView: View {
 
 // MARK: - Children List View
 struct ChildrenListView: View {
+    @EnvironmentObject var authService: AuthenticationService
+    @StateObject private var familyService = FamilyService()
+    @State private var showingInviteChild = false
+    
     var body: some View {
         NavigationView {
-            VStack {
-                Text("Children List")
-                    .font(.largeTitle)
+            VStack(spacing: 20) {
+                if let family = familyService.currentFamily {
+                    // Family Header
+                    VStack(spacing: 16) {
+                        Image(systemName: "house.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.blue)
+                        
+                        Text(family.name)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("\(familyService.getFamilyMembers().count) members")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                     .padding()
-                
-                Text("Children management will be implemented later")
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+                    .background(Color(UIColor.systemGray6))
+                    .cornerRadius(12)
+                    
+                    // Family Members List
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Family Members")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        ForEach(familyService.getFamilyMembers(), id: \.0) { userId, member in
+                            FamilyMemberRow(userId: userId, member: member)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Add Child Button
+                    Button(action: {
+                        showingInviteChild = true
+                    }) {
+                        HStack {
+                            Image(systemName: "person.badge.plus")
+                            Text("Invite Child")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                    
+                } else {
+                    // No Family State
+                    VStack(spacing: 20) {
+                        Image(systemName: "house")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        
+                        Text("No Family")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("You haven't created or joined a family yet.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Text("Go to the Family tab to create a family first.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                     .padding()
-                
-                Spacer()
+                }
             }
+            .padding()
             .navigationTitle("Children")
+            .sheet(isPresented: $showingInviteChild) {
+                InviteChildView()
+                    .environmentObject(familyService)
+            }
         }
     }
 }
