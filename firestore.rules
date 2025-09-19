@@ -46,8 +46,11 @@ service cloud.firestore {
 
     // Geofences collection - family members can read/write geofences
     match /geofences/{geofenceId} {
-      // Any member of the family can read/write geofences
-      allow read, write: if isFamilyMember(resource.data.familyId);
+      // Any member of the family can read geofences
+      allow read: if isFamilyMember(resource.data.familyId);
+      
+      // Any member of the family can write geofences (check request data for new documents)
+      allow write: if isFamilyMember(request.resource.data.familyId);
     }
 
     // Geofence events collection - children can write events, family members can read
