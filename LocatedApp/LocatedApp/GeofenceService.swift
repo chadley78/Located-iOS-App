@@ -105,6 +105,21 @@ class GeofenceService: NSObject, ObservableObject {
         
         print("✅ User is member of family: \(familyId)")
         
+        // Additional debugging: Check if family document exists and is accessible
+        do {
+            let familyDoc = try await Firestore.firestore().collection("families").document(familyId).getDocument()
+            if familyDoc.exists {
+                print("✅ Family document exists and is accessible")
+                if let familyData = familyDoc.data() {
+                    print("🔍 Family data: \(familyData)")
+                }
+            } else {
+                print("❌ Family document does not exist: \(familyId)")
+            }
+        } catch {
+            print("❌ Error accessing family document: \(error)")
+        }
+        
         let geofence = Geofence(
             id: UUID().uuidString,
             familyId: familyId,
