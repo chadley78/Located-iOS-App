@@ -85,6 +85,7 @@ class AuthenticationService: ObservableObject {
     @Published var isAuthenticated = false
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var shouldShowWelcome = false
     
     private let auth = Auth.auth()
     private let db = Firestore.firestore()
@@ -100,14 +101,31 @@ class AuthenticationService: ObservableObject {
     
     private func handleAuthStateChange(user: FirebaseAuth.User?) async {
         if let user = user {
-            // User is signed in
+            // User is signed in - fetch profile first, then set authenticated
             await fetchUserProfile(userId: user.uid)
-            isAuthenticated = true
+            // Only set authenticated after currentUser is loaded
+            if currentUser != nil {
+                // If we should show welcome, don't set authenticated yet
+                if !shouldShowWelcome {
+                    isAuthenticated = true
+                    print("🔍 User authenticated successfully: \(currentUser?.name ?? "Unknown") (\(currentUser?.userType.rawValue ?? "unknown"))")
+                } else {
+                    print("🔍 User authenticated but waiting for welcome screen: \(currentUser?.name ?? "Unknown") (\(currentUser?.userType.rawValue ?? "unknown")), shouldShowWelcome = \(shouldShowWelcome)")
+                }
+            }
         } else {
             // User is signed out
             currentUser = nil
             isAuthenticated = false
+            shouldShowWelcome = false
+            print("🔍 User signed out")
         }
+    }
+    
+    func completeWelcomeFlow() {
+        shouldShowWelcome = false
+        isAuthenticated = true
+        print("🔍 Welcome flow completed, user now authenticated")
     }
     
     // MARK: - Authentication Methods
@@ -143,7 +161,7 @@ class AuthenticationService: ObservableObject {
         do {
             let authResult = try await auth.signIn(withEmail: email, password: password)
             await fetchUserProfile(userId: authResult.user.uid)
-            isAuthenticated = true
+            // isAuthenticated will be set by handleAuthStateChange after currentUser is loaded
             
         } catch {
             errorMessage = error.localizedDescription
@@ -209,8 +227,20 @@ class AuthenticationService: ObservableObject {
                 currentUser = user
             } else {
                 print("❌ No user document found for userId: \(userId)")
-                // Create a default user document if none exists
-                await createDefaultUserDocument(userId: userId)
+                // Add a small delay and try again before creating default
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 second delay
+                let retryDocument = try await db.collection("users").document(userId).getDocument()
+                if let retryData = retryDocument.data() {
+                    print("🔍 User document found on retry: \(retryData)")
+                    var user = try Firestore.Decoder().decode(User.self, from: retryData)
+                    user.id = userId
+                    print("🔍 Decoded user on retry: name=\(user.name), email=\(user.email), userType=\(user.userType)")
+                    currentUser = user
+                } else {
+                    print("❌ Still no user document found after retry, creating default")
+                    // Create a default user document if none exists
+                    await createDefaultUserDocument(userId: userId)
+                }
             }
         } catch {
             print("❌ Error fetching user profile: \(error)")
@@ -226,26 +256,40 @@ class AuthenticationService: ObservableObject {
             return
         }
         
-        // Create a default user with parent type (most common case)
+        // Try to determine user type from email or other context
+        let userType: User.UserType
+        if let email = firebaseUser.email, email.contains("@temp.located.app") {
+            // Temporary child accounts have this email pattern
+            userType = .child
+            print("🔍 Detected child user from email pattern")
+        } else {
+            // Default to parent for regular accounts
+            userType = .parent
+            print("🔍 Defaulting to parent user type")
+        }
+        
         let defaultUser = User(
             id: userId,
             name: firebaseUser.displayName ?? "User",
             email: firebaseUser.email ?? "",
-            userType: .parent  // Default to parent
+            userType: userType
         )
         
         do {
             try await saveUserProfile(defaultUser)
             currentUser = defaultUser
-            print("🔍 Created default user document with userType: parent")
+            print("🔍 Created default user document with userType: \(userType.rawValue)")
         } catch {
             print("❌ Error creating default user document: \(error)")
         }
     }
     
-    private func saveUserProfile(_ user: User) async throws {
+    func saveUserProfile(_ user: User) async throws {
+        print("🔍 Saving user profile: name=\(user.name), userType=\(user.userType.rawValue), id=\(user.id ?? "nil")")
         let userData = try Firestore.Encoder().encode(user)
+        print("🔍 Encoded user data: \(userData)")
         try await db.collection("users").document(user.id ?? "").setData(userData)
+        print("🔍 Successfully saved user profile to Firestore")
     }
     
     func updateUserProfile(_ user: User) async {

@@ -5,17 +5,37 @@ import UIKit
 import MapKit
 
 struct ContentView: View {
+    let invitationCode: String?
     @StateObject private var authService = AuthenticationService()
     @StateObject private var locationService = LocationService()
+    @EnvironmentObject var familyService: FamilyService
+    
+    init(invitationCode: String? = nil) {
+        self.invitationCode = invitationCode
+    }
     
     var body: some View {
         Group {
             if authService.isAuthenticated {
-                MainTabView()
-                    .environmentObject(authService)
-                    .environmentObject(locationService)
+                if authService.currentUser != nil {
+                    MainTabView()
+                        .environmentObject(authService)
+                        .environmentObject(locationService)
+                        .environmentObject(familyService)
+                } else {
+                    // Show loading while user data is being fetched
+                    VStack {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Loading...")
+                            .font(.headline)
+                            .padding(.top)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemBackground))
+                }
             } else {
-                WelcomeView()
+                WelcomeView(invitationCode: invitationCode)
                     .environmentObject(authService)
             }
         }
@@ -26,13 +46,31 @@ struct ContentView: View {
                 locationService.requestLocationPermission()
             }
         }
+        .onChange(of: authService.isAuthenticated) { isAuthenticated in
+            // Handle authentication state changes
+            if isAuthenticated {
+                locationService.requestLocationPermission()
+                // Restart family listener when user becomes authenticated
+                if let userId = authService.currentUser?.id {
+                    print("🔄 ContentView: User authenticated, restarting family listener for: \(userId)")
+                    familyService.handleAuthStateChange(isAuthenticated: true, userId: userId)
+                }
+            } else {
+                // Stop family listener when user signs out
+                familyService.handleAuthStateChange(isAuthenticated: false, userId: nil)
+            }
+        }
     }
 }
 
 // MARK: - Welcome View
 struct WelcomeView: View {
+    let invitationCode: String?
     @EnvironmentObject var authService: AuthenticationService
-    @State private var showingSignIn = false
+    
+    init(invitationCode: String? = nil) {
+        self.invitationCode = invitationCode
+    }
     
     var body: some View {
         NavigationView {
@@ -68,7 +106,7 @@ struct WelcomeView: View {
                 
                 // Role Selection Buttons
                 VStack(spacing: 16) {
-                    NavigationLink(destination: AuthenticationView(userType: .parent)) {
+                    NavigationLink(destination: AuthenticationView(userType: .parent, invitationCode: invitationCode)) {
                         Text("I'm a Parent")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
@@ -78,7 +116,7 @@ struct WelcomeView: View {
                             .cornerRadius(25)
                     }
                     
-                    NavigationLink(destination: AuthenticationView(userType: .child)) {
+                    NavigationLink(destination: AuthenticationView(userType: .child, invitationCode: invitationCode)) {
                         Text("I'm a Child")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
@@ -91,28 +129,9 @@ struct WelcomeView: View {
                 .padding(.horizontal, 50)
                 
                 Spacer()
-                
-                // Sign In Link
-                VStack(spacing: 8) {
-                    Text("Already have an account?")
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary)
-                    
-                    Button("Sign In") {
-                        showingSignIn = true
-                    }
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.blue)
-                }
-                
-                Spacer()
             }
             .padding()
             .navigationBarHidden(true)
-            .sheet(isPresented: $showingSignIn) {
-                SignInView()
-                    .environmentObject(authService)
-            }
         }
     }
 }
@@ -120,29 +139,255 @@ struct WelcomeView: View {
 // MARK: - Authentication View
 struct AuthenticationView: View {
     let userType: User.UserType
+    let invitationCode: String?
     @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var familyService: FamilyService
     @State private var isSignUp = false
     
     var body: some View {
         VStack(spacing: 20) {
-            if isSignUp {
-                SignUpView(userType: userType)
+            if userType == .child {
+                // Child-specific flow
+                ChildSignUpView(invitationCode: invitationCode)
                     .environmentObject(authService)
+                    .environmentObject(familyService)
             } else {
-                SignInView()
-                    .environmentObject(authService)
+                // Parent flow (existing)
+                if isSignUp {
+                    SignUpView(userType: userType)
+                        .environmentObject(authService)
+                } else {
+                    SignInView()
+                        .environmentObject(authService)
+                }
+                
+                // Toggle between Sign In and Sign Up
+                Button(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up") {
+                    isSignUp.toggle()
+                }
+                .font(.system(size: 16))
+                .foregroundColor(.blue)
+                .padding(.top, 20)
             }
-            
-            // Toggle between Sign In and Sign Up
-            Button(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up") {
-                isSignUp.toggle()
-            }
-            .font(.system(size: 16))
-            .foregroundColor(.blue)
-            .padding(.top, 20)
         }
         .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(userType == .parent ? "Parent Login" : "Child Login")
+        .navigationTitle(userType == .parent ? "Parent Login" : "Join Your Family")
+    }
+}
+
+// MARK: - Child Sign Up View
+struct ChildSignUpView: View {
+    let invitationCode: String?
+    @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var familyService: FamilyService
+    @StateObject private var invitationService = FamilyInvitationService()
+    
+    @State private var inviteCode = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var showingWelcome = false
+    @State private var isExistingChild = false
+    
+    var body: some View {
+        Group {
+            if showingWelcome {
+                if isExistingChild {
+                    ChildWelcomeBackView {
+                        // Complete the welcome flow and show main view
+                        authService.completeWelcomeFlow()
+                    }
+                } else {
+                    ChildWelcomeView {
+                        // Complete the welcome flow and show main view
+                        authService.completeWelcomeFlow()
+                    }
+                }
+            } else {
+                VStack(spacing: 24) {
+                    Spacer()
+                    
+                    // Header
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 50))
+                            .foregroundColor(.green)
+                        
+                        Text("Join Your Family")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                Text("Enter the invitation code your parent shared with you.")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            VStack(spacing: 20) {
+                // Invitation Code Field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Invitation Code")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    
+                    TextField("Enter invitation code", text: $inviteCode)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .autocapitalization(.allCharacters)
+                        .disableAutocorrection(true)
+                        .font(.system(size: 18, weight: .medium, design: .monospaced))
+                }
+            }
+            .padding(.horizontal, 30)
+            
+            // Error Message
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.caption)
+                    .padding(.horizontal, 30)
+            }
+            
+            
+            Spacer()
+            
+            // Join Family Button
+            Button(action: joinFamily) {
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                } else {
+                    Text("Join Family")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(isFormValid ? Color.green : Color.gray)
+            .cornerRadius(25)
+            .disabled(!isFormValid || isLoading)
+            .padding(.horizontal, 30)
+            
+                    Spacer()
+                }
+                .onAppear {
+                    // Pre-fill invitation code if provided
+                    if let code = invitationCode {
+                        inviteCode = code
+                    }
+                }
+                .alert("Error", isPresented: .constant(errorMessage != nil)) {
+                    Button("OK") {
+                        errorMessage = nil
+                    }
+                } message: {
+                    Text(errorMessage ?? "")
+                }
+            }
+        }
+    }
+    
+    private var isFormValid: Bool {
+        !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    private func joinFamily() {
+        guard isFormValid else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                let trimmedCode = inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                
+                // Set welcome screen state BEFORE creating user account (prevents auth bypass)
+                await MainActor.run {
+                    authService.shouldShowWelcome = true
+                    print("🔍 Set shouldShowWelcome = true before user creation")
+                }
+                
+                // Generate a temporary email for the child (we still need this for Firebase Auth)
+                let tempEmail = "child_\(UUID().uuidString)@temp.located.app"
+                let tempPassword = "temp_\(UUID().uuidString.prefix(8))"
+                
+                print("🔍 Creating temporary account for child")
+                
+                // Create user account with temporary email
+                let authResult = try await Auth.auth().createUser(withEmail: tempEmail, password: tempPassword)
+                
+                // Get child name from invitation
+                let childName = await getChildNameFromInvitation(inviteCode: trimmedCode)
+                
+                // Update the user's display name
+                let changeRequest = authResult.user.createProfileChangeRequest()
+                changeRequest.displayName = childName
+                try await changeRequest.commitChanges()
+                
+                // Create user profile
+                let newUser = User(
+                    id: authResult.user.uid,
+                    name: childName,
+                    email: tempEmail,
+                    userType: .child
+                )
+                
+                print("🔍 Created child user object: name=\(newUser.name), userType=\(newUser.userType.rawValue)")
+                
+                // Save user profile to Firestore
+                try await authService.saveUserProfile(newUser)
+                print("🔍 Saved child user profile to Firestore")
+                
+                // Now accept the invitation (user is now authenticated)
+                let invitationResult = try await invitationService.acceptInvitation(inviteCode: trimmedCode)
+                print("🔍 Invitation accepted successfully")
+                
+                // Check if this was for an existing child based on the Cloud Function response
+                let isExistingChildResponse = invitationResult["isExistingChild"] as? Bool ?? false
+                
+                await MainActor.run {
+                    if isExistingChildResponse {
+                        print("🔍 Invitation was for existing child - show welcome back screen")
+                        isExistingChild = true
+                    } else {
+                        print("🔍 Invitation was for new child - show welcome screen")
+                        isExistingChild = false
+                    }
+                    
+                    isLoading = false
+                    showingWelcome = true
+                    print("🔍 Showing welcome screen - isExistingChild: \(isExistingChild)")
+                }
+                
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    
+    // Helper function to get child name from invitation
+    private func getChildNameFromInvitation(inviteCode: String) async -> String {
+        do {
+            let invitationDoc = try await Firestore.firestore()
+                .collection("invitations")
+                .document(inviteCode)
+                .getDocument()
+            
+            guard let invitationData = invitationDoc.data(),
+                  let childName = invitationData["childName"] as? String else {
+                return "Child"
+            }
+            
+            return childName
+            
+        } catch {
+            print("❌ Error getting child name from invitation: \(error)")
+            return "Child"
+        }
     }
 }
 
@@ -438,7 +683,7 @@ struct MainTabView: View {
         TabView {
             if authService.currentUser?.userType == .parent {
                 // Debug logging
-                let _ = print("🔍 MainTabView: Showing PARENT UI for user: \(authService.currentUser?.name ?? "Unknown")")
+                let _ = print("🔍 MainTabView: Showing PARENT UI for user: \(authService.currentUser?.name ?? "Unknown"), userType: \(authService.currentUser?.userType.rawValue ?? "nil")")
                 ParentHomeView()
                     .tabItem {
                         Image(systemName: "map")
@@ -909,10 +1154,7 @@ struct ChildHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
-    @StateObject private var familyService = FamilyService()
-    @StateObject private var invitationService = FamilyInvitationService()
     @State private var showingLocationPermissionAlert = false
-    @State private var showingAcceptInvitation = false
     
     var body: some View {
         NavigationView {
@@ -964,74 +1206,12 @@ struct ChildHomeView: View {
                             }
                         }
                         
-                        // Family Status
-                        Text("👨‍👩‍👧‍👦 Family Status: Connected")
-                            .font(.system(size: 16))
                     }
                 }
                 .padding()
                 .background(Color(UIColor.systemGray6))
                 .cornerRadius(12)
                 
-                // Family Status
-                if let family = familyService.currentFamily {
-                    VStack(spacing: 12) {
-                        HStack {
-                            Image(systemName: "house.fill")
-                                .foregroundColor(.blue)
-                                .font(.title2)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Family: \(family.name)")
-                                    .font(.headline)
-                                Text("You're connected to your family")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            Circle()
-                                .fill(.green)
-                                .frame(width: 8, height: 8)
-                        }
-                    }
-                    .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(12)
-                } else {
-                    // No family - show invitation prompt
-                    VStack(spacing: 12) {
-                        HStack {
-                            Image(systemName: "house")
-                                .foregroundColor(.gray)
-                                .font(.title2)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Not Connected to Family")
-                                    .font(.headline)
-                                Text("Ask your parent for an invitation code to join")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            Button("Join Family") {
-                                showingAcceptInvitation = true
-                            }
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(6)
-                        }
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(12)
-                }
                 
                 // Location Controls
                 VStack(spacing: 12) {
@@ -1102,18 +1282,12 @@ struct ChildHomeView: View {
                     }
                 }
                 
-                // The FamilyInvitationService will automatically start listening for invitations
             }
             .onDisappear {
                 // Stop geofence monitoring when view disappears
                 if let currentUser = authService.currentUser {
                     geofenceService.stopMonitoringAllGeofences()
                 }
-                // Clean up invitation service
-                invitationService.stopListening()
-            }
-            .sheet(isPresented: $showingAcceptInvitation) {
-                AcceptFamilyInvitationView()
             }
         }
     }
@@ -1130,6 +1304,9 @@ struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @State private var showingInviteChild = false
+    @State private var selectedChildId: String?
+    @State private var selectedChildMember: FamilyMember?
+    @State private var showingChildProfile = false
     
     var body: some View {
         NavigationView {
@@ -1159,9 +1336,26 @@ struct ChildrenListView: View {
                             .font(.headline)
                             .padding(.horizontal)
                         
-                        ForEach(familyService.getFamilyMembers(), id: \.0) { userId, member in
-                            FamilyMemberRow(userId: userId, member: member)
+                        List {
+                            ForEach(familyService.getFamilyMembers(), id: \.0) { userId, member in
+                                FamilyMemberRow(userId: userId, member: member)
+                                    .onTapGesture {
+                                        if member.role == .child {
+                                            print("🔍 Child tapped: \(member.name) (\(userId))")
+                                            selectedChildId = userId
+                                            selectedChildMember = member
+                                            print("🔍 Set selectedChildId: \(selectedChildId ?? "nil")")
+                                            print("🔍 Set selectedChildMember: \(selectedChildMember?.name ?? "nil")")
+                                            showingChildProfile = true
+                                            print("🔍 Set showingChildProfile = true")
+                                        }
+                                    }
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                    .listRowBackground(Color.clear)
+                            }
                         }
+                        .listStyle(PlainListStyle())
+                        .frame(height: min(400, CGFloat(familyService.getFamilyMembers().count * 60)))
                     }
                     
                     Spacer()
@@ -1212,6 +1406,268 @@ struct ChildrenListView: View {
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
+            }
+            .sheet(isPresented: $showingChildProfile) {
+                if let childId = selectedChildId, let childMember = selectedChildMember {
+                    ChildProfileView(childId: childId, child: childMember)
+                        .environmentObject(familyService)
+                        .onAppear {
+                            print("🔍 ChildProfileView appeared for: \(childMember.name) (\(childId))")
+                        }
+                } else {
+                    Text("Error: No child selected")
+                        .onAppear {
+                            print("🔍 Error view appeared - childId: \(selectedChildId ?? "nil"), member: \(selectedChildMember?.name ?? "nil")")
+                        }
+                }
+            }
+            .onChange(of: selectedChildId) { newValue in
+                print("🔍 selectedChildId changed to: \(newValue ?? "nil")")
+            }
+            .onChange(of: selectedChildMember) { newValue in
+                print("🔍 selectedChildMember changed to: \(newValue?.name ?? "nil")")
+            }
+            .onChange(of: showingChildProfile) { newValue in
+                print("🔍 showingChildProfile changed to: \(newValue)")
+            }
+        }
+    }
+    
+}
+
+// MARK: - Child Profile View
+struct ChildProfileView: View {
+    let childId: String
+    let child: FamilyMember
+    @EnvironmentObject var familyService: FamilyService
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var childName: String
+    @State private var isEditingName = false
+    @State private var showingDeleteAlert = false
+    @State private var newInviteCode: String?
+    
+    init(childId: String, child: FamilyMember) {
+        self.childId = childId
+        self.child = child
+        self._childName = State(initialValue: child.name)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                // Profile Header
+                VStack(spacing: 16) {
+                    // Profile Image Placeholder
+                    Circle()
+                        .fill(Color.blue.opacity(0.2))
+                        .frame(width: 120, height: 120)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.blue)
+                        )
+                    
+                    // Name Section
+                    VStack(spacing: 8) {
+                        if isEditingName {
+                            TextField("Child's Name", text: $childName)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .multilineTextAlignment(.center)
+                        } else {
+                            Text(childName)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+                        
+                        Button(isEditingName ? "Save" : "Edit Name") {
+                            if isEditingName {
+                                // Save the name change
+                                saveNameChange()
+                            }
+                            isEditingName.toggle()
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                    
+                    Text("Family Member")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .padding()
+                .background(Color(UIColor.systemGray6))
+                .cornerRadius(16)
+                
+                // Action Buttons
+                VStack(spacing: 16) {
+                    // Reissue Invitation Button
+                    Button(action: {
+                        generateNewInviteCode()
+                    }) {
+                        HStack {
+                            Image(systemName: "envelope.badge")
+                            Text("Generate New Invitation Code")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                    }
+                    
+                    // New Invitation Code Display (Green Panel)
+                    if let inviteCode = newInviteCode {
+                        VStack(spacing: 16) {
+                            Text("New Invitation Code Created!")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.green)
+                            
+                            Text("Share this code with \(childName):")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                            
+                            Text(inviteCode)
+                                .font(.system(size: 24, weight: .bold, design: .monospaced))
+                                .foregroundColor(.blue)
+                                .padding()
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                            
+                            Text("This code expires in 24 hours")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            // Share buttons
+                            HStack(spacing: 16) {
+                                Button(action: {
+                                    // Copy to clipboard
+                                    UIPasteboard.general.string = inviteCode
+                                }) {
+                                    HStack {
+                                        Image(systemName: "doc.on.doc")
+                                        Text("Copy")
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(6)
+                                }
+                                
+                                Button(action: {
+                                    // Share invitation
+                                    let shareText = "Join my family on Located! Use this code: \(inviteCode)"
+                                    let activityVC = UIActivityViewController(
+                                        activityItems: [shareText],
+                                        applicationActivities: nil
+                                    )
+                                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                       let window = windowScene.windows.first {
+                                        window.rootViewController?.present(activityVC, animated: true)
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "square.and.arrow.up")
+                                        Text("Share")
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(6)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color.green.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                    
+                    // Delete Child Button
+                    Button(action: {
+                        showingDeleteAlert = true
+                    }) {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Remove from Family")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.red)
+                        .cornerRadius(12)
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Child Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .alert("Remove Child", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Remove", role: .destructive) {
+                    removeChild()
+                }
+            } message: {
+                Text("Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
+            }
+        }
+    }
+    
+    private func saveNameChange() {
+        // TODO: Implement name change functionality
+        // This would update the child's name in Firestore
+        print("🔍 Saving name change: \(childName)")
+    }
+    
+    private func generateNewInviteCode() {
+        Task {
+            do {
+                if let familyId = familyService.currentFamily?.id {
+                    let invitationService = FamilyInvitationService()
+                    let newCode = try await invitationService.createInvitation(familyId: familyId, childName: childName)
+                    
+                    await MainActor.run {
+                        newInviteCode = newCode
+                    }
+                }
+            } catch {
+                print("❌ Error creating new invitation: \(error)")
+            }
+        }
+    }
+    
+    private func removeChild() {
+        Task {
+            do {
+                if let familyId = familyService.currentFamily?.id {
+                    try await familyService.removeChildFromFamily(childId: childId, familyId: familyId)
+                    await MainActor.run {
+                        dismiss()
+                    }
+                }
+            } catch {
+                print("❌ Error removing child: \(error)")
             }
         }
     }

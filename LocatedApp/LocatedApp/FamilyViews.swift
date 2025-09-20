@@ -140,6 +140,7 @@ struct FamilyManagementView: View {
     @StateObject private var familyService = FamilyService()
     @State private var showingInviteChild = false
     @State private var showingFamilySettings = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationView {
@@ -242,6 +243,13 @@ struct FamilyManagementView: View {
             .padding()
             .navigationTitle("Family")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
@@ -279,6 +287,13 @@ struct FamilyMemberRow: View {
             Text(formatJoinDate(member.joinedAt))
                 .font(.caption)
                 .foregroundColor(.secondary)
+            
+            // Navigation indicator for children
+            if member.role == .child {
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
         }
         .padding()
         .background(Color(UIColor.systemGray6))
@@ -388,9 +403,13 @@ struct InviteChildView: View {
                             }
                             
                             Button(action: {
-                                // Share via system share sheet
+                                // Share invitation with deep link
+                                let deepLink = invitationService.generateInvitationLink(inviteCode: inviteCode)
+                                let universalLink = invitationService.generateUniversalLink(inviteCode: inviteCode)
+                                let shareText = "Join my family on Located! Use this code: \(inviteCode)\n\nOr click this link: \(deepLink)\n\nIf the link doesn't work, use this: \(universalLink)"
+                                
                                 let activityVC = UIActivityViewController(
-                                    activityItems: ["Join my family on Located! Use this code: \(inviteCode)"],
+                                    activityItems: [shareText],
                                     applicationActivities: nil
                                 )
                                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -445,6 +464,11 @@ struct InviteChildView: View {
             .navigationTitle("Invite Child")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()

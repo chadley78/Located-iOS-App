@@ -8,6 +8,7 @@ const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {onRequest, onCall} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const {v4: uuidv4} = require("uuid");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -310,6 +311,41 @@ exports.createInvitation = onCall(async (request) => {
       throw new Error("Only parents can create invitations");
     }
 
+    // Check if there's an existing child with this name
+    const existingChild = Object.entries(familyData.members || {})
+        .find(([userId, memberData]) =>
+          memberData.role === "child" && memberData.name === childName);
+
+    // Invalidate all existing invitations for this child
+    if (existingChild) {
+      const [existingChildId] = existingChild;
+
+      // Mark all existing invitations for this child as used
+      const existingInvitations = await admin.firestore()
+          .collection("invitations")
+          .where("familyId", "==", familyId)
+          .where("childName", "==", childName)
+          .where("usedBy", "==", null)
+          .get();
+
+      const batch = admin.firestore().batch();
+      existingInvitations.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          usedBy: existingChildId,
+          usedAt: admin.firestore.FieldValue.serverTimestamp(),
+          invalidatedBy: "new_invitation",
+        });
+      });
+
+      if (!existingInvitations.empty) {
+        await batch.commit();
+        const count = existingInvitations.docs.length;
+        const message = `Invalidated ${count} old invitations for child: ` +
+            `${childName}`;
+        logger.info(message);
+      }
+    }
+
     // Generate a unique 6-character alphanumeric invite code
     const inviteCode = generateInviteCode();
 
@@ -321,6 +357,7 @@ exports.createInvitation = onCall(async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       usedBy: null,
+      isForExistingChild: !!existingChild, // Flag for existing child
     };
 
     await admin.firestore()
@@ -332,12 +369,14 @@ exports.createInvitation = onCall(async (request) => {
       familyId: familyId,
       createdBy: parentId,
       childName: childName,
+      isForExistingChild: !!existingChild,
     });
 
     return {
       success: true,
       inviteCode: inviteCode,
       expiresAt: invitationData.expiresAt,
+      isForExistingChild: !!existingChild,
     };
   } catch (error) {
     logger.error("Error creating invitation:", error);
@@ -394,41 +433,186 @@ exports.acceptInvitation = onCall(async (request) => {
 
     const childData = childDoc.data();
 
-    // Add child to family
-    await admin.firestore()
-        .collection("families")
-        .doc(invitationData.familyId)
-        .update({
-          [`members.${childId}`]: {
-            role: "child",
-            name: childData.name || invitationData.childName,
-            joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
+    // Check if this is for an existing child
+    if (invitationData.isForExistingChild) {
+      // This is for an existing child - find the existing child in the family
+      const familyDoc = await admin.firestore()
+          .collection("families")
+          .doc(invitationData.familyId)
+          .get();
+
+      if (!familyDoc.exists) {
+        throw new Error("Family not found");
+      }
+
+      const familyData = familyDoc.data();
+      const existingChild = Object.entries(familyData.members || {})
+          .find(([userId, memberData]) => {
+            const isChild = memberData.role === "child";
+            const nameMatches = memberData.name === invitationData.childName;
+            return isChild && nameMatches;
+          });
+
+      if (existingChild) {
+        const [existingChildId] = existingChild;
+
+        // Remove the old child from the family (since we're replacing them)
+        await admin.firestore()
+            .collection("families")
+            .doc(invitationData.familyId)
+            .update({
+              [`members.${existingChildId}`]:
+                admin.firestore.FieldValue.delete(),
+            });
+
+        // Add the new child to the family (using the new authenticated user ID)
+        await admin.firestore()
+            .collection("families")
+            .doc(invitationData.familyId)
+            .update({
+              [`members.${childId}`]: {
+                role: "child",
+                name: invitationData.childName,
+                joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+              },
+            });
+
+        // Update the new child's user document with the familyId
+        await admin.firestore()
+            .collection("users")
+            .doc(childId)
+            .update({
+              familyId: invitationData.familyId,
+            });
+
+        // Mark invitation as used by the new child
+        await admin.firestore()
+            .collection("invitations")
+            .doc(inviteCode)
+            .update({
+              usedBy: childId,
+              usedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+        logger.info(`Invitation accepted for existing child: ${inviteCode}`, {
+          existingChildId: existingChildId,
+          newChildId: childId,
+          familyId: invitationData.familyId,
+          childName: invitationData.childName,
         });
 
-    // Mark invitation as used
-    await admin.firestore()
-        .collection("invitations")
-        .doc(inviteCode)
-        .update({
-          usedBy: childId,
-          usedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        return {
+          success: true,
+          familyId: invitationData.familyId,
+          familyName: invitationData.familyName || "Your Family",
+          isExistingChild: true,
+          existingChildId: existingChildId,
+        };
+      } else {
+        throw new Error("Existing child not found in family");
+      }
+    } else {
+      // This is for a new child - create new family member
+      await admin.firestore()
+          .collection("families")
+          .doc(invitationData.familyId)
+          .update({
+            [`members.${childId}`]: {
+              role: "child",
+              name: childData.name || invitationData.childName,
+              joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+          });
 
-    logger.info(`Invitation accepted: ${inviteCode}`, {
-      childId: childId,
-      familyId: invitationData.familyId,
-      childName: childData.name,
-    });
+      // Update child's user document with familyId
+      await admin.firestore()
+          .collection("users")
+          .doc(childId)
+          .update({
+            familyId: invitationData.familyId,
+          });
 
-    return {
-      success: true,
-      familyId: invitationData.familyId,
-      familyName: invitationData.familyName || "Your Family",
-    };
+      // Mark invitation as used
+      await admin.firestore()
+          .collection("invitations")
+          .doc(inviteCode)
+          .update({
+            usedBy: childId,
+            usedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+      logger.info(`Invitation accepted for new child: ${inviteCode}`, {
+        childId: childId,
+        familyId: invitationData.familyId,
+        childName: childData.name || invitationData.childName,
+      });
+
+      return {
+        success: true,
+        familyId: invitationData.familyId,
+        familyName: invitationData.familyName || "Your Family",
+        isExistingChild: false,
+      };
+    }
   } catch (error) {
     logger.error("Error accepting invitation:", error);
     throw new Error(`Failed to accept invitation: ${error.message}`);
+  }
+});
+
+/**
+ * Callable Cloud Function to create a new family
+ * Parent calls this to create a new family and become the first parent member
+ */
+exports.createFamily = onCall(async (request) => {
+  try {
+    // 1. Ensure the user is authenticated
+    if (!request.auth) {
+      throw new Error("You must be logged in to create a family.");
+    }
+
+    const {familyName, parentName} = request.data;
+    if (!familyName || !parentName) {
+      throw new Error(
+          "The function must be called with 'familyName' and " +
+          "'parentName' arguments.");
+    }
+
+    const uid = request.auth.uid;
+    const newFamilyId = uuidv4();
+
+    // 2. Create the new family document object
+    const newFamily = {
+      name: familyName,
+      createdBy: uid,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      members: {
+        [uid]: {
+          role: "parent",
+          name: parentName,
+          joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+      },
+    };
+
+    // 3. Write the new document to Firestore
+    await admin.firestore()
+        .collection("families")
+        .doc(newFamilyId)
+        .set(newFamily);
+
+    logger.info(`Family created successfully with ID: ${newFamilyId}`, {
+      familyId: newFamilyId,
+      createdBy: uid,
+      familyName: familyName,
+      parentName: parentName,
+    });
+
+    return {familyId: newFamilyId};
+  } catch (error) {
+    logger.error("Error creating family:", error);
+    throw new Error(
+        `An error occurred while creating the family: ${error.message}`);
   }
 });
 

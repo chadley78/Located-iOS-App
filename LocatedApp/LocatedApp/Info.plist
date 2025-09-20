@@ -13,5 +13,16 @@
 	<string>This app needs location access to provide safety features like geofencing and live location tracking for child safety.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>This app needs location access to provide safety features like geofencing and live location tracking for child safety.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Located App Invitation</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>located</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

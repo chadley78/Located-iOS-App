@@ -72,8 +72,8 @@ class FamilyInvitationService: ObservableObject {
         }
     }
     
-    /// Accept a family invitation using an invite code
-    func acceptInvitation(inviteCode: String) async throws {
+    /// Accept a family invitation using Cloud Function via HTTP
+    func acceptInvitation(inviteCode: String) async throws -> [String: Any] {
         guard let userId = Auth.auth().currentUser?.uid else {
             throw FamilyInvitationError.notAuthenticated
         }
@@ -82,65 +82,50 @@ class FamilyInvitationService: ObservableObject {
         errorMessage = nil
         
         do {
-            print("🔍 Accepting invitation with code: \(inviteCode)")
+            print("🔍 Accepting invitation using Cloud Function with code: \(inviteCode)")
             
-            // Get invitation document
-            let invitationDoc = try await db.collection("invitations").document(inviteCode).getDocument()
+            // Get Firebase ID token for authentication
+            guard let idToken = try await Auth.auth().currentUser?.getIDToken() else {
+                throw FamilyInvitationError.notAuthenticated
+            }
             
-            guard invitationDoc.exists else {
+            // Call the acceptInvitation Cloud Function via HTTP
+            let url = URL(string: "https://us-central1-located-d9dce.cloudfunctions.net/acceptInvitation")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+            
+            let requestBody = [
+                "data": [
+                    "inviteCode": inviteCode
+                ]
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
                 throw FamilyInvitationError.invalidInvitationCode
             }
             
-            let invitationData = invitationDoc.data()!
-            
-            // Check if invitation has expired
-            if let expiresAt = invitationData["expiresAt"] as? Timestamp {
-                let expirationDate = expiresAt.dateValue()
-                if Date() > expirationDate {
-                    throw FamilyInvitationError.invitationExpired
-                }
+            // Parse the response
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let result = json["result"] as? [String: Any],
+                  let success = result["success"] as? Bool,
+                  success else {
+                throw FamilyInvitationError.invalidInvitationCode
             }
-            
-            // Check if invitation has already been used
-            if let usedBy = invitationData["usedBy"] as? String, !usedBy.isEmpty {
-                throw FamilyInvitationError.invitationUsed
-            }
-            
-            // Get child's user data
-            let childDoc = try await db.collection("users").document(userId).getDocument()
-            guard childDoc.exists else {
-                throw FamilyInvitationError.userNotFound
-            }
-            
-            let childData = childDoc.data()!
-            let childName = childData["name"] as? String ?? "Child"
-            
-            // Add child to family
-            let familyId = invitationData["familyId"] as! String
-            try await db.collection("families").document(familyId).updateData([
-                "members.\(userId)": [
-                    "role": "child",
-                    "name": childName,
-                    "joinedAt": Timestamp(date: Date())
-                ]
-            ])
-            
-            // Update child's user document with familyId
-            try await db.collection("users").document(userId).updateData([
-                "familyId": familyId
-            ])
-            
-            // Mark invitation as used
-            try await db.collection("invitations").document(inviteCode).updateData([
-                "usedBy": userId,
-                "usedAt": Timestamp(date: Date())
-            ])
             
             print("✅ Successfully accepted invitation: \(inviteCode)")
             
             await MainActor.run {
                 self.isLoading = false
             }
+            
+            return result
             
         } catch {
             print("❌ Error accepting invitation: \(error)")
@@ -152,7 +137,7 @@ class FamilyInvitationService: ObservableObject {
         }
     }
     
-    /// Create a family invitation (for parents)
+    /// Create a family invitation using Cloud Function via HTTP
     func createInvitation(familyId: String, childName: String) async throws -> String {
         guard let userId = Auth.auth().currentUser?.uid else {
             throw FamilyInvitationError.notAuthenticated
@@ -162,48 +147,42 @@ class FamilyInvitationService: ObservableObject {
         errorMessage = nil
         
         do {
-            print("🔍 Creating invitation for familyId: \(familyId)")
-            print("🔍 Current user: \(userId)")
+            print("🔍 Creating invitation using Cloud Function for familyId: \(familyId)")
             
-            // Verify the user is a parent in this family
-            let familyDoc = try await db.collection("families").document(familyId).getDocument()
-            print("🔍 Family document exists: \(familyDoc.exists)")
+            // Get Firebase ID token for authentication
+            guard let idToken = try await Auth.auth().currentUser?.getIDToken() else {
+                throw FamilyInvitationError.notAuthenticated
+            }
             
-            guard familyDoc.exists else {
-                print("❌ Family document not found: \(familyId)")
+            // Call the createInvitation Cloud Function via HTTP
+            let url = URL(string: "https://us-central1-located-d9dce.cloudfunctions.net/createInvitation")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+            
+            let requestBody = [
+                "data": [
+                    "familyId": familyId,
+                    "childName": childName
+                ]
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
                 throw FamilyInvitationError.familyNotFound
             }
             
-            let familyData = familyDoc.data()!
-            print("🔍 Family data: \(familyData)")
-            
-            let members = familyData["members"] as! [String: [String: Any]]
-            print("🔍 Family members: \(members)")
-            
-            guard let memberData = members[userId],
-                  let role = memberData["role"] as? String,
-                  role == "parent" else {
-                print("❌ User is not a parent in this family")
-                print("❌ User ID: \(userId)")
-                print("❌ Member data: \(members[userId] ?? [:])")
-                throw FamilyInvitationError.notAuthorized
+            // Parse the response
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let result = json["result"] as? [String: Any],
+                  let inviteCode = result["inviteCode"] as? String else {
+                throw FamilyInvitationError.familyNotFound
             }
-            
-            // Generate a unique 6-character alphanumeric invite code
-            let inviteCode = generateInviteCode()
-            
-            // Create invitation document
-            let invitationData: [String: Any] = [
-                "familyId": familyId,
-                "createdBy": userId,
-                "childName": childName,
-                "createdAt": Timestamp(date: Date()),
-                "expiresAt": Timestamp(date: Date().addingTimeInterval(24 * 60 * 60)), // 24 hours
-                "usedBy": NSNull(),
-                "usedAt": NSNull()
-            ]
-            
-            try await db.collection("invitations").document(inviteCode).setData(invitationData)
             
             print("✅ Invitation created successfully: \(inviteCode)")
             
@@ -221,6 +200,18 @@ class FamilyInvitationService: ObservableObject {
             }
             throw error
         }
+    }
+    
+    /// Generate a shareable invitation link
+    func generateInvitationLink(inviteCode: String) -> String {
+        // Deep link format: located://invite/ABC123
+        return "located://invite/\(inviteCode)"
+    }
+    
+    /// Generate a universal link (for web fallback)
+    func generateUniversalLink(inviteCode: String) -> String {
+        // Universal link format: https://located.app/invite/ABC123
+        return "https://located.app/invite/\(inviteCode)"
     }
     
     /// Generate a unique 6-character alphanumeric invite code
@@ -241,8 +232,15 @@ class FamilyInvitationService: ObservableObject {
         print("🛑 Stopped listening for family invitations")
     }
     
+    /// Synchronous cleanup for deinit
+    nonisolated private func cleanup() {
+        listener?.remove()
+        listener = nil
+        print("🛑 Cleaned up family invitation service")
+    }
+    
     deinit {
-        stopListening()
+        cleanup()
     }
 }
 
