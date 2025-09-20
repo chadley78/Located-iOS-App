@@ -505,6 +505,7 @@ exports.acceptInvitation = onCall(async (request) => {
           success: true,
           familyId: invitationData.familyId,
           familyName: invitationData.familyName || "Your Family",
+          childName: invitationData.childName,
           isExistingChild: true,
           existingChildId: existingChildId,
         };
@@ -519,7 +520,8 @@ exports.acceptInvitation = onCall(async (request) => {
           .update({
             [`members.${childId}`]: {
               role: "child",
-              name: childData.name || invitationData.childName,
+              // Use the name from the invitation, not the user document
+              name: invitationData.childName,
               joinedAt: admin.firestore.FieldValue.serverTimestamp(),
             },
           });
@@ -551,6 +553,7 @@ exports.acceptInvitation = onCall(async (request) => {
         success: true,
         familyId: invitationData.familyId,
         familyName: invitationData.familyName || "Your Family",
+        childName: childData.name || invitationData.childName,
         isExistingChild: false,
       };
     }

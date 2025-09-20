@@ -373,6 +373,21 @@ class FamilyService: ObservableObject {
         return familyMembers.filter { $0.value.role == .parent }
     }
     
+    /// Update family name
+    func updateFamilyName(_ newName: String) async throws {
+        guard let family = currentFamily else {
+            throw FamilyError.familyNotFound
+        }
+        
+        print("🔍 Updating family name from '\(family.name)' to '\(newName)'")
+        
+        try await db.collection("families").document(family.id).updateData([
+            "name": newName
+        ])
+        
+        print("✅ Family name updated successfully")
+    }
+    
     /// Clean up listeners
     deinit {
         userListener?.remove()

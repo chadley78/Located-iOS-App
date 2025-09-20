@@ -517,19 +517,72 @@ struct InviteChildView: View {
 struct FamilySettingsView: View {
     @EnvironmentObject var familyService: FamilyService
     @Environment(\.dismiss) private var dismiss
+    @State private var familyName = ""
+    @State private var isEditingName = false
+    @State private var isLoading = false
+    @State private var errorMessage: String?
     
     var body: some View {
         NavigationView {
-            VStack {
-                Text("Family Settings")
-                    .font(.title)
+            VStack(spacing: 20) {
+                if let family = familyService.currentFamily {
+                    // Family Name Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Family Name")
+                            .font(.headline)
+                        
+                        HStack {
+                            if isEditingName {
+                                TextField("Family Name", text: $familyName)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onSubmit {
+                                        saveFamilyName()
+                                    }
+                                
+                                Button("Save") {
+                                    saveFamilyName()
+                                }
+                                .foregroundColor(.blue)
+                                .disabled(familyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                
+                                Button("Cancel") {
+                                    cancelEditing()
+                                }
+                                .foregroundColor(.red)
+                            } else {
+                                Text(family.name)
+                                    .font(.title2)
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
+                                Button("Edit") {
+                                    startEditing()
+                                }
+                                .foregroundColor(.blue)
+                            }
+                        }
+                    }
                     .padding()
-                
-                Text("Settings coming soon...")
-                    .foregroundColor(.secondary)
-                
-                Spacer()
+                    .background(Color(UIColor.systemGray6))
+                    .cornerRadius(12)
+                    
+                    if let errorMessage = errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.horizontal)
+                    }
+                    
+                    Spacer()
+                } else {
+                    Text("No family found")
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                }
             }
+            .padding()
             .navigationTitle("Family Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -537,6 +590,50 @@ struct FamilySettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                }
+            }
+        }
+        .onAppear {
+            if let family = familyService.currentFamily {
+                familyName = family.name
+            }
+        }
+    }
+    
+    private func startEditing() {
+        isEditingName = true
+        errorMessage = nil
+    }
+    
+    private func cancelEditing() {
+        isEditingName = false
+        if let family = familyService.currentFamily {
+            familyName = family.name
+        }
+        errorMessage = nil
+    }
+    
+    private func saveFamilyName() {
+        let trimmedName = familyName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            errorMessage = "Family name cannot be empty"
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                try await familyService.updateFamilyName(trimmedName)
+                await MainActor.run {
+                    isEditingName = false
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    isLoading = false
                 }
             }
         }
