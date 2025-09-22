@@ -816,7 +816,8 @@ struct ParentHomeView: View {
                 MapViewRepresentable(
                     childrenLocations: mapViewModel.childrenLocations,
                     region: $mapViewModel.region,
-                    mapViewModel: mapViewModel
+                    mapViewModel: mapViewModel,
+                    familyService: familyService
                 )
                 .ignoresSafeArea()
                 .padding(.bottom, 50)
@@ -2584,7 +2585,8 @@ struct ParentMapView: View {
                 MapViewRepresentable(
                     childrenLocations: mapViewModel.childrenLocations,
                     region: $mapViewModel.region,
-                    mapViewModel: mapViewModel
+                    mapViewModel: mapViewModel,
+                    familyService: familyService
                 )
                 .ignoresSafeArea()
                 
@@ -3044,6 +3046,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     let childrenLocations: [ChildLocationData]
     @Binding var region: MKCoordinateRegion
     let mapViewModel: ParentMapViewModel
+    let familyService: FamilyService
     
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -3061,6 +3064,10 @@ struct MapViewRepresentable: UIViewRepresentable {
         mapView.removeAnnotations(mapView.annotations.filter { !($0 is MKUserLocation) })
         
         for childLocation in childrenLocations {
+            // Get the child's image data from family service
+            let familyMembers = familyService.getFamilyMembers()
+            let childImageBase64 = familyMembers.first { $0.0 == childLocation.childId }?.1.imageBase64
+            
             let annotation = ChildLocationAnnotation(
                 coordinate: CLLocationCoordinate2D(
                     latitude: childLocation.location.lat,
@@ -3069,7 +3076,8 @@ struct MapViewRepresentable: UIViewRepresentable {
                 childId: childLocation.childId,
                 childName: childLocation.childName,
                 lastSeen: childLocation.lastSeen,
-                pinColor: mapViewModel.getColorForChild(childId: childLocation.childId)
+                pinColor: mapViewModel.getColorForChild(childId: childLocation.childId),
+                imageBase64: childImageBase64
             )
             print("🔍 MapView - Adding annotation for \(childLocation.childName) at \(childLocation.location.lat), \(childLocation.location.lng)")
             mapView.addAnnotation(annotation)
@@ -3101,31 +3109,49 @@ struct MapViewRepresentable: UIViewRepresentable {
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
             
             if annotationView == nil {
-                annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                // Create a custom annotation view for larger pins
+                annotationView = MKAnnotationView(annotation: annotation, reuseIdentifier: identifier)
                 annotationView?.canShowCallout = true
             } else {
                 annotationView?.annotation = annotation
             }
             
-            // Customize the annotation
-            if let markerView = annotationView as? MKMarkerAnnotationView {
+            // Customize the annotation with a larger custom view
+            if let customView = annotationView {
+                // Create a larger custom pin (60x60 instead of default smaller size)
+                let pinSize: CGFloat = 60
+                customView.frame = CGRect(x: 0, y: 0, width: pinSize, height: pinSize)
+                
                 // Use the child's specific color, but make it red if location is old
                 let baseColor = childAnnotation.pinColor
                 let isRecent = isLocationRecent(childAnnotation.lastSeen)
-                markerView.markerTintColor = isRecent ? baseColor : .systemRed
+                let pinColor = isRecent ? baseColor : .systemRed
                 
                 print("🔍 MapView - Pin color for \(childAnnotation.childName): \(isRecent ? "recent (colored)" : "old (red)"), lastSeen: \(childAnnotation.lastSeen), baseColor: \(baseColor)")
                 
-                // Add a placeholder thumbnail (for now, use a person icon)
-                // TODO: Replace with actual child profile photo
-                markerView.glyphImage = UIImage(systemName: "person.fill")
-                markerView.glyphTintColor = .white
+                // Clear any existing subviews to prevent overlapping
+                customView.subviews.forEach { $0.removeFromSuperview() }
+                
+                // Determine location age
+                let locationAge = getLocationAge(childAnnotation.lastSeen)
+                
+                // Create the custom pin view
+                let pinView = createCustomPinView(
+                    size: pinSize,
+                    color: pinColor,
+                    childName: childAnnotation.childName,
+                    imageBase64: childAnnotation.imageBase64,
+                    locationAge: locationAge
+                )
+                
+                customView.addSubview(pinView)
+                pinView.center = CGPoint(x: pinSize/2, y: pinSize/2)
                 
                 // Add a subtle shadow to make the pin stand out
-                markerView.layer.shadowColor = UIColor.black.cgColor
-                markerView.layer.shadowOffset = CGSize(width: 0, height: 2)
-                markerView.layer.shadowRadius = 4
-                markerView.layer.shadowOpacity = 0.3
+                customView.layer.shadowColor = UIColor.black.cgColor
+                customView.layer.shadowOffset = CGSize(width: 0, height: 3)
+                customView.layer.shadowRadius = 6
+                customView.layer.shadowOpacity = 0.4
             }
             
             return annotationView
@@ -3133,6 +3159,135 @@ struct MapViewRepresentable: UIViewRepresentable {
         
         private func isLocationRecent(_ date: Date) -> Bool {
             date.timeIntervalSinceNow > -1800 // 30 minutes
+        }
+        
+        private func getLocationAge(_ date: Date) -> LocationAge {
+            let timeInterval = date.timeIntervalSinceNow
+            
+            if timeInterval > -300 { // Within 5 minutes
+                return .veryRecent
+            } else if timeInterval > -1800 { // Within 30 minutes
+                return .recent
+            } else {
+                return .old
+            }
+        }
+        
+        private enum LocationAge {
+            case veryRecent // Within 5 minutes
+            case recent     // 5-30 minutes
+            case old        // Older than 30 minutes
+        }
+        
+        private func createCustomPinView(size: CGFloat, color: UIColor, childName: String, imageBase64: String?, locationAge: LocationAge) -> UIView {
+            let containerView = UIView(frame: CGRect(x: 0, y: 0, width: size, height: size))
+            containerView.backgroundColor = .clear
+            
+            // Create the main circular pin
+            let pinView = UIView(frame: CGRect(x: 0, y: 0, width: size, height: size))
+            pinView.layer.cornerRadius = size / 2
+            pinView.layer.borderWidth = 3
+            pinView.layer.borderColor = UIColor.white.cgColor
+            
+            // Check if child has a photo
+            let hasPhoto = imageBase64 != nil && Data(base64Encoded: imageBase64!) != nil
+            
+            if hasPhoto {
+                // With photo: use neutral background, photo covers most of it
+                pinView.backgroundColor = UIColor.systemGray5
+                
+                // Add photo in the center
+                let photoSize: CGFloat = size * 0.8
+                let photoImageView = UIImageView(frame: CGRect(
+                    x: (size - photoSize) / 2,
+                    y: (size - photoSize) / 2,
+                    width: photoSize,
+                    height: photoSize
+                ))
+                photoImageView.layer.cornerRadius = photoSize / 2
+                photoImageView.clipsToBounds = true
+                photoImageView.contentMode = .scaleAspectFill
+                
+                if let imageData = Data(base64Encoded: imageBase64!), let childImage = UIImage(data: imageData) {
+                    photoImageView.image = childImage
+                    print("🔍 MapView - Using child photo for \(childName)")
+                }
+                
+                pinView.addSubview(photoImageView)
+            } else {
+                // Without photo: use child's unique color as background with person icon
+                pinView.backgroundColor = color
+                
+                // Add person icon in the center
+                let iconSize: CGFloat = size * 0.4
+                let iconImageView = UIImageView(frame: CGRect(
+                    x: (size - iconSize) / 2,
+                    y: (size - iconSize) / 2,
+                    width: iconSize,
+                    height: iconSize
+                ))
+                iconImageView.image = UIImage(systemName: "person.fill")
+                iconImageView.tintColor = .white
+                iconImageView.contentMode = .scaleAspectFit
+                
+                print("🔍 MapView - Using unique color \(color) with person icon for \(childName) (no photo available)")
+                
+                pinView.addSubview(iconImageView)
+            }
+            
+            containerView.addSubview(pinView)
+            
+            // Add status indicator overlay
+            addStatusIndicator(to: containerView, size: size, locationAge: locationAge)
+            
+            return containerView
+        }
+        
+        private func addStatusIndicator(to containerView: UIView, size: CGFloat, locationAge: LocationAge) {
+            let indicatorSize: CGFloat = size * 0.3
+            let indicatorView = UIView(frame: CGRect(
+                x: size - indicatorSize - 2,
+                y: 2,
+                width: indicatorSize,
+                height: indicatorSize
+            ))
+            indicatorView.layer.cornerRadius = indicatorSize / 2
+            indicatorView.layer.borderWidth = 2
+            indicatorView.layer.borderColor = UIColor.white.cgColor
+            
+            // Add icon based on location age
+            let iconSize: CGFloat = indicatorSize * 0.6
+            let iconImageView = UIImageView(frame: CGRect(
+                x: (indicatorSize - iconSize) / 2,
+                y: (indicatorSize - iconSize) / 2,
+                width: iconSize,
+                height: iconSize
+            ))
+            iconImageView.tintColor = .white
+            iconImageView.contentMode = .scaleAspectFit
+            
+            switch locationAge {
+            case .veryRecent:
+                // Green checkmark for locations within 5 minutes
+                indicatorView.backgroundColor = UIColor.systemGreen
+                iconImageView.image = UIImage(systemName: "checkmark")
+                print("🔍 MapView - Added green checkmark for very recent location")
+                
+            case .recent:
+                // Yellow clock for locations 5-30 minutes old
+                indicatorView.backgroundColor = UIColor.systemYellow
+                iconImageView.image = UIImage(systemName: "clock")
+                print("🔍 MapView - Added yellow clock for recent location")
+                
+            case .old:
+                // Red error for locations older than 30 minutes
+                indicatorView.backgroundColor = UIColor.systemRed
+                iconImageView.image = UIImage(systemName: "exclamationmark")
+                print("🔍 MapView - Added red error for old location")
+            }
+            
+            indicatorView.addSubview(iconImageView)
+            containerView.addSubview(indicatorView)
         }
     }
 }
@@ -3144,13 +3299,15 @@ class ChildLocationAnnotation: NSObject, MKAnnotation {
     let childName: String
     let lastSeen: Date
     let pinColor: UIColor
+    let imageBase64: String?
     
-    init(coordinate: CLLocationCoordinate2D, childId: String, childName: String, lastSeen: Date, pinColor: UIColor = .systemBlue) {
+    init(coordinate: CLLocationCoordinate2D, childId: String, childName: String, lastSeen: Date, pinColor: UIColor = .systemBlue, imageBase64: String? = nil) {
         self.coordinate = coordinate
         self.childId = childId
         self.childName = childName
         self.lastSeen = lastSeen
         self.pinColor = pinColor
+        self.imageBase64 = imageBase64
         super.init()
     }
     
