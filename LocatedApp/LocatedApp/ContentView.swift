@@ -2028,9 +2028,21 @@ struct ChildProfileView: View {
     }
     
     private func saveNameChange() {
-        // TODO: Implement name change functionality
-        // This would update the child's name in Firestore
-        print("🔍 Saving name change: \(childName)")
+        Task {
+            do {
+                if let familyId = familyService.currentFamily?.id {
+                    try await familyService.updateFamilyMemberName(
+                        childId: childId,
+                        familyId: familyId,
+                        newName: childName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    )
+                    print("✅ Successfully updated child name to: \(childName)")
+                }
+            } catch {
+                print("❌ Error updating child name: \(error)")
+                // You could add error handling UI here if needed
+            }
+        }
     }
     
     private func generateNewInviteCode() {

@@ -176,6 +176,21 @@ class FamilyService: ObservableObject {
         print("✅ Successfully removed child from family")
     }
     
+    /// Update a family member's name
+    func updateFamilyMemberName(childId: String, familyId: String, newName: String) async throws {
+        print("🔍 Updating family member \(childId) name to '\(newName)' in family \(familyId)")
+        
+        // Update the member's name in the family document
+        try await db.collection("families").document(familyId).updateData([
+            "members.\(childId).name": newName
+        ])
+        
+        // Force refresh of family data to ensure UI updates immediately
+        await refreshFamilyData(familyId: familyId)
+        
+        print("✅ Successfully updated family member name")
+    }
+    
     // MARK: - Family Management
     
     /// Create a new family using Cloud Function via HTTP
@@ -371,6 +386,34 @@ class FamilyService: ObservableObject {
     /// Get parents in the family
     func getParents() -> [(String, FamilyMember)] {
         return familyMembers.filter { $0.value.role == .parent }
+    }
+    
+    /// Force refresh family data from Firestore
+    func refreshFamilyData(familyId: String) async {
+        print("🔍 Force refreshing family data for family: \(familyId)")
+        
+        do {
+            let familySnapshot = try await db.collection("families").document(familyId).getDocument()
+            
+            guard let familyData = familySnapshot.data() else {
+                print("ℹ️ Family document not found during refresh")
+                return
+            }
+            
+            // Add the familyId as the id field for decoding
+            var familyDataWithId = familyData
+            familyDataWithId["id"] = familyId
+            
+            let family = try Firestore.Decoder().decode(Family.self, from: familyDataWithId)
+            print("✅ Successfully refreshed family: \(family.name) with \(family.members.count) members")
+            
+            await MainActor.run {
+                self.currentFamily = family
+                self.familyMembers = family.members
+            }
+        } catch {
+            print("❌ Error refreshing family data: \(error)")
+        }
     }
     
     /// Update family name
