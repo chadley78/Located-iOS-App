@@ -1790,7 +1790,6 @@ struct ChildrenListView: View {
             return firstMember.name.localizedCaseInsensitiveCompare(secondMember.name) == .orderedAscending
         }
     }
-    
 }
 
 // MARK: - Child Profile View
