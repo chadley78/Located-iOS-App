@@ -2942,8 +2942,9 @@ class ParentMapViewModel: ObservableObject {
         )
         
         // Adjust southward shift based on actual distance between children
+        // Increased shift to account for larger 60px pins
         let childrenDistance = maxLat - minLat
-        let southwardShift = max(childrenDistance * 2.0, 0.04) // Proportional shift, minimum 0.04 degrees (doubled)
+        let southwardShift = max(childrenDistance * 2.5, 0.06) // Increased to 2.5x with minimum 0.06 degrees for larger pins
         let centerLat = (minLat + maxLat) / 2 - southwardShift
         let center = CLLocationCoordinate2D(
             latitude: centerLat,
@@ -2982,14 +2983,14 @@ class ParentMapViewModel: ObservableObject {
             longitude: childLocation.location.lng
         )
         
-        // Set a reasonable span for viewing a single child
+        // Set a reasonable span for viewing a single child with larger pins
         let span = MKCoordinateSpan(
-            latitudeDelta: 0.01, // Smaller span for single child
-            longitudeDelta: 0.01
+            latitudeDelta: 0.015, // Increased span for larger pins
+            longitudeDelta: 0.015
         )
         
-        // Center the map on the child with a slight southward shift to account for the panel
-        let centerLat = coordinate.latitude - 0.005 // Small southward shift
+        // Center the map on the child with increased southward shift to account for larger 60px pins
+        let centerLat = coordinate.latitude - 0.012 // Increased southward shift for larger pins
         let center = CLLocationCoordinate2D(
             latitude: centerLat,
             longitude: coordinate.longitude
