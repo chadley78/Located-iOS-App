@@ -22,9 +22,21 @@ struct FamilyMember: Codable, Equatable {
     let role: FamilyRole
     let name: String
     let joinedAt: Date
+    let imageURL: String?
+    let imageBase64: String?
+    let hasImage: Bool?
+    
+    init(role: FamilyRole, name: String, joinedAt: Date, imageURL: String? = nil, imageBase64: String? = nil, hasImage: Bool? = nil) {
+        self.role = role
+        self.name = name
+        self.joinedAt = joinedAt
+        self.imageURL = imageURL
+        self.imageBase64 = imageBase64
+        self.hasImage = hasImage
+    }
     
     enum CodingKeys: String, CodingKey {
-        case role, name, joinedAt
+        case role, name, joinedAt, imageURL, imageBase64, hasImage
     }
 }
 
@@ -189,6 +201,60 @@ class FamilyService: ObservableObject {
         await refreshFamilyData(familyId: familyId)
         
         print("✅ Successfully updated family member name")
+    }
+    
+    /// Update a child's profile image URL
+    func updateChildImageURL(childId: String, familyId: String, imageURL: String) async throws {
+        print("🔍 Updating child \(childId) image URL in family \(familyId)")
+        
+        // Update the child's image URL in the family document
+        try await db.collection("families").document(familyId).updateData([
+            "members.\(childId).imageURL": imageURL
+        ])
+        
+        // Force refresh of family data to ensure UI updates immediately
+        await refreshFamilyData(familyId: familyId)
+        
+        print("✅ Successfully updated child image URL")
+    }
+    
+    /// Update a child's profile image as base64 string
+    func updateChildImageBase64(childId: String, familyId: String, imageBase64: String) async throws {
+        print("🔍 FamilyService: Updating child \(childId) image base64 in family \(familyId)")
+        print("🔍 FamilyService: Base64 length: \(imageBase64.count)")
+        
+        // Store the compressed image directly in the family document (now small enough)
+        try await db.collection("families").document(familyId).updateData([
+            "members.\(childId).imageBase64": imageBase64
+        ])
+        
+        print("🔍 FamilyService: Successfully updated Firestore document")
+        
+        // Force refresh of family data to ensure UI updates immediately
+        await refreshFamilyData(familyId: familyId, childId: childId)
+        
+        print("✅ FamilyService: Successfully updated child image base64")
+    }
+    
+    /// Load child image from separate collection
+    func loadChildImage(childId: String) async -> String? {
+        print("🔍 FamilyService: Loading image for child: \(childId)")
+        
+        do {
+            let document = try await db.collection("childImages").document(childId).getDocument()
+            
+            if let data = document.data(),
+               let imageBase64 = data["imageBase64"] as? String {
+                print("🔍 FamilyService: Successfully loaded image for child: \(childId)")
+                return imageBase64
+            } else {
+                print("🔍 FamilyService: No image found for child: \(childId)")
+                return nil
+            }
+        } catch {
+            print("❌ FamilyService: Error loading child image: \(error)")
+            return nil
+        }
     }
     
     // MARK: - Family Management
@@ -389,14 +455,14 @@ class FamilyService: ObservableObject {
     }
     
     /// Force refresh family data from Firestore
-    func refreshFamilyData(familyId: String) async {
-        print("🔍 Force refreshing family data for family: \(familyId)")
+    func refreshFamilyData(familyId: String, childId: String? = nil) async {
+        print("🔍 FamilyService: Force refreshing family data for family: \(familyId)")
         
         do {
             let familySnapshot = try await db.collection("families").document(familyId).getDocument()
             
             guard let familyData = familySnapshot.data() else {
-                print("ℹ️ Family document not found during refresh")
+                print("ℹ️ FamilyService: Family document not found during refresh")
                 return
             }
             
@@ -405,14 +471,25 @@ class FamilyService: ObservableObject {
             familyDataWithId["id"] = familyId
             
             let family = try Firestore.Decoder().decode(Family.self, from: familyDataWithId)
-            print("✅ Successfully refreshed family: \(family.name) with \(family.members.count) members")
+            print("✅ FamilyService: Successfully refreshed family: \(family.name) with \(family.members.count) members")
+            
+            // Debug: Check if the child has imageBase64
+            if let childId = childId, let childMember = family.members[childId] {
+                print("🔍 FamilyService: Child member found in refreshed data")
+                print("🔍 FamilyService: Child has imageBase64: \(childMember.imageBase64 != nil)")
+                if let imageBase64 = childMember.imageBase64 {
+                    print("🔍 FamilyService: ImageBase64 length: \(imageBase64.count)")
+                }
+            } else {
+                print("🔍 FamilyService: Child member not found in refreshed data")
+            }
             
             await MainActor.run {
                 self.currentFamily = family
                 self.familyMembers = family.members
             }
         } catch {
-            print("❌ Error refreshing family data: \(error)")
+            print("❌ FamilyService: Error refreshing family data: \(error)")
         }
     }
     

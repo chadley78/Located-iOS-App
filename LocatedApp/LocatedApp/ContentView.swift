@@ -3,6 +3,7 @@ import FirebaseAuth
 import FirebaseFirestore
 import UIKit
 import MapKit
+import PhotosUI
 
 struct ContentView: View {
     let invitationCode: String?
@@ -1804,6 +1805,11 @@ struct ChildProfileView: View {
     @State private var isEditingName = false
     @State private var showingDeleteAlert = false
     @State private var newInviteCode: String?
+    @State private var selectedImage: UIImage?
+    @State private var showingImagePicker = false
+    @State private var isUploadingImage = false
+    @State private var childImageURL: String?
+    @State private var selectedPhotoItem: PhotosPickerItem?
     
     init(childId: String, child: FamilyMember) {
         self.childId = childId
@@ -1859,15 +1865,47 @@ struct ChildProfileView: View {
                 VStack(spacing: 24) {
                     // Profile Header
                     VStack(spacing: 16) {
-                        // Profile Image Placeholder
-                        Circle()
-                            .fill(Color.blue.opacity(0.2))
+                        // Profile Image
+                        ZStack {
+                            if let selectedImage = selectedImage {
+                                Image(uiImage: selectedImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                            } else {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.2))
+                                    .frame(width: 120, height: 120)
+                                    .overlay(
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 50))
+                                            .foregroundColor(.blue)
+                                    )
+                            }
+                            
+                            // Upload button overlay
+                            VStack {
+                                Spacer()
+                                HStack {
+                                    Spacer()
+                                    Button(action: {
+                                        print("🔍 Camera button pressed")
+                                        showingImagePicker = true
+                                    }) {
+                                        Image(systemName: "camera.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(.white)
+                                            .frame(width: 32, height: 32)
+                                            .background(Color.blue)
+                                            .clipShape(Circle())
+                                    }
+                                    .disabled(isUploadingImage)
+                                }
+                                .padding(8)
+                            }
                             .frame(width: 120, height: 120)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.blue)
-                            )
+                        }
                         
                         // Name Section
                         VStack(spacing: 8) {
@@ -2025,6 +2063,24 @@ struct ChildProfileView: View {
         } message: {
             Text("Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
         }
+        .photosPicker(isPresented: $showingImagePicker, selection: $selectedPhotoItem, photoLibrary: .shared())
+        .onChange(of: showingImagePicker) {
+            print("🔍 PhotosPicker presentation changed: \(showingImagePicker)")
+        }
+        .onChange(of: selectedPhotoItem) {
+            print("🔍 PhotosPicker onChange triggered with item: \(selectedPhotoItem != nil ? "selected" : "nil")")
+            Task {
+                if let item = selectedPhotoItem {
+                    await loadSelectedImage(from: item)
+                } else {
+                    print("🔍 PhotosPicker item is nil")
+                }
+            }
+        }
+        .onAppear {
+            print("🔍 ChildProfileView onAppear called for child: \(childId)")
+            loadExistingImage()
+        }
     }
     
     private func saveNameChange() {
@@ -2041,6 +2097,179 @@ struct ChildProfileView: View {
             } catch {
                 print("❌ Error updating child name: \(error)")
                 // You could add error handling UI here if needed
+            }
+        }
+    }
+    
+    private func loadSelectedImage(from item: PhotosPickerItem) async {
+        print("🔍 loadSelectedImage called with item: \(item)")
+        
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                print("❌ Could not load image data")
+                return
+            }
+            
+            print("🔍 Successfully loaded image data: \(data.count) bytes")
+            
+            guard let image = UIImage(data: data) else {
+                print("❌ Could not create UIImage from data")
+                return
+            }
+            
+            print("🔍 Successfully created UIImage")
+            
+            await MainActor.run {
+                selectedImage = image
+            }
+            
+            print("🔍 About to call storeImageAsBase64")
+            // Store the image as base64 in Firestore
+            await storeImageAsBase64(image: image)
+            
+        } catch {
+            print("❌ Error loading selected image: \(error)")
+        }
+    }
+    
+    private func storeImageAsBase64(image: UIImage) async {
+        print("🔍 Starting to store image as base64 for child: \(childId)")
+        
+        // Resize image to a smaller size first
+        let resizedImage = resizeImage(image: image, targetSize: CGSize(width: 300, height: 300))
+        
+        // Compress image more aggressively to stay under Firestore limits
+        guard let imageData = resizedImage.jpegData(compressionQuality: 0.3) else {
+            print("❌ Could not convert image to JPEG data")
+            return
+        }
+        
+        print("🔍 Image data size: \(imageData.count) bytes")
+        
+        // Check if still too large
+        if imageData.count > 1000000 { // 1MB limit
+            print("❌ Image still too large after compression: \(imageData.count) bytes")
+            return
+        }
+        
+        await MainActor.run {
+            isUploadingImage = true
+        }
+        
+        do {
+            // Convert image to base64 string
+            let base64String = imageData.base64EncodedString()
+            print("🔍 Base64 string length: \(base64String.count)")
+            
+            // Save the base64 image data to the family document
+            if let familyId = familyService.currentFamily?.id {
+                print("🔍 Saving to family: \(familyId)")
+                try await familyService.updateChildImageBase64(
+                    childId: childId,
+                    familyId: familyId,
+                    imageBase64: base64String
+                )
+                
+                await MainActor.run {
+                    childImageURL = base64String // Store base64 as "URL" for consistency
+                    isUploadingImage = false
+                }
+                
+                print("✅ Successfully stored child image as base64")
+            } else {
+                print("❌ No family ID found")
+                await MainActor.run {
+                    isUploadingImage = false
+                }
+            }
+            
+        } catch {
+            print("❌ Error storing image: \(error)")
+            await MainActor.run {
+                isUploadingImage = false
+            }
+        }
+    }
+    
+    private func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
+    
+    private func saveImageURLToFamily(imageURL: String) async {
+        do {
+            if let familyId = familyService.currentFamily?.id {
+                try await familyService.updateChildImageURL(
+                    childId: childId,
+                    familyId: familyId,
+                    imageURL: imageURL
+                )
+                print("✅ Successfully saved image URL to family document")
+            }
+        } catch {
+            print("❌ Error saving image URL: \(error)")
+        }
+    }
+    
+    private func loadExistingImage() {
+        print("🔍 Loading existing image for child: \(childId)")
+        
+        // Get the child's image from the family data
+        let familyMembers = familyService.getFamilyMembers()
+        print("🔍 Found \(familyMembers.count) family members")
+        
+        if let member = familyMembers.first(where: { $0.0 == childId }) {
+            print("🔍 Found child member: \(member.1.name)")
+            print("🔍 Child has imageBase64: \(member.1.imageBase64 != nil)")
+            print("🔍 Child has imageURL: \(member.1.imageURL != nil)")
+            
+            // Try base64 first, then fallback to URL
+            if let imageBase64 = member.1.imageBase64 {
+                print("🔍 Loading image from base64 (length: \(imageBase64.count))")
+                loadImageFromBase64(imageBase64)
+            } else if let imageURL = member.1.imageURL {
+                print("🔍 Loading image from URL: \(imageURL)")
+                childImageURL = imageURL
+                loadImageFromURL(imageURL)
+            } else {
+                print("🔍 No image data found for child")
+            }
+        } else {
+            print("🔍 Child not found in family members")
+        }
+    }
+    
+    private func loadImageFromBase64(_ base64String: String) {
+        print("🔍 Attempting to load image from base64 string")
+        guard let data = Data(base64Encoded: base64String),
+              let image = UIImage(data: data) else {
+            print("❌ Could not decode base64 image")
+            return
+        }
+        
+        print("✅ Successfully loaded image from base64")
+        selectedImage = image
+        childImageURL = base64String // Store for consistency
+    }
+    
+    private func loadImageFromURL(_ urlString: String) {
+        guard let url = URL(string: urlString) else {
+            print("❌ Invalid image URL: \(urlString)")
+            return
+        }
+        
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let image = UIImage(data: data) {
+                    await MainActor.run {
+                        selectedImage = image
+                    }
+                }
+            } catch {
+                print("❌ Error loading image from URL: \(error)")
             }
         }
     }
