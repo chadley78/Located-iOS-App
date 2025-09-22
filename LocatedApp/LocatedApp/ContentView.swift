@@ -1537,7 +1537,8 @@ struct ChildrenListView: View {
     @StateObject private var childProfileData = ChildProfileData()
     
     var body: some View {
-        VStack(spacing: 20) {
+        NavigationView {
+            VStack(spacing: 20) {
                 if let family = familyService.currentFamily {
                     // Family Header
                     VStack(spacing: 16) {
@@ -1790,6 +1791,8 @@ struct ChildrenListView: View {
             return firstMember.name.localizedCaseInsensitiveCompare(secondMember.name) == .orderedAscending
         }
     }
+    
+}
 
 // MARK: - Child Profile View
 struct ChildProfileView: View {
