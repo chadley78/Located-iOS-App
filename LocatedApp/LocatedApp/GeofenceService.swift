@@ -188,6 +188,51 @@ class GeofenceService: NSObject, ObservableObject {
         }
     }
     
+    /// Update an existing geofence
+    func updateGeofence(
+        geofence: Geofence,
+        name: String,
+        latitude: Double,
+        longitude: Double,
+        radius: Double
+    ) async throws {
+        guard let currentUser = Auth.auth().currentUser else {
+            throw GeofenceError.notAuthenticated
+        }
+        
+        print("🔍 Updating geofence \(geofence.id) for familyId: \(geofence.familyId), by user: \(currentUser.uid)")
+        
+        // Check if the user has a familyId in their user document
+        let userDoc = try await Firestore.firestore().collection("users").document(currentUser.uid).getDocument()
+        guard let userData = userDoc.data(),
+              let userFamilyId = userData["familyId"] as? String else {
+            print("❌ User has no familyId - cannot update geofence")
+            throw GeofenceError.notFamilyMember
+        }
+        
+        // Verify the user is trying to update a geofence for their own family
+        guard userFamilyId == geofence.familyId else {
+            print("❌ User trying to update geofence for different family")
+            throw GeofenceError.notFamilyMember
+        }
+        
+        print("✅ User is member of family: \(geofence.familyId)")
+        
+        // Update the geofence document
+        try await db.collection("geofences").document(geofence.id).updateData([
+            "name": name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "radius": radius,
+            "updatedAt": Timestamp()
+        ])
+        
+        print("✅ Geofence updated successfully: \(geofence.id)")
+        
+        // Refresh the local geofences list
+        await fetchGeofences(for: geofence.familyId)
+    }
+    
     /// Delete a geofence
     func deleteGeofence(_ geofence: Geofence) async throws {
         try await db.collection("geofences").document(geofence.id).updateData([

@@ -679,7 +679,7 @@ struct MainTabView: View {
         var title: String {
             switch self {
             case .home: return "Home"
-            case .children: return "Children"
+            case .children: return "My Family"
             case .settings: return "Settings"
             }
         }
@@ -804,7 +804,6 @@ struct ParentHomeView: View {
     
     @State private var showingFamilySetup = false
     @State private var showingFamilyManagement = false
-    @State private var showingGeofenceManagement = false
     @State private var scrollOffset: CGFloat = 0
     @State private var panelHeight: CGFloat = 0.25
     @State private var dragOffset: CGFloat = 0
@@ -819,6 +818,16 @@ struct ParentHomeView: View {
                     mapViewModel: mapViewModel
                 )
                 .ignoresSafeArea()
+                .padding(.bottom, 50)
+                
+                // White background to fill the gap
+                VStack {
+                    Spacer()
+                    Rectangle()
+                        .fill(Color(UIColor.systemBackground))
+                        .frame(height: 50)
+                        .ignoresSafeArea(.all, edges: .bottom)
+                }
                 
                 // Map Controls Overlay
                 VStack {
@@ -895,40 +904,76 @@ struct ParentHomeView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             VStack(spacing: 20) {
-                            // Family Overview Section
+                            // Children List Section
                             VStack(spacing: 16) {
                                 Text("Family Overview")
                                     .font(.title2)
                                     .fontWeight(.semibold)
                             
                             if let family = familyService.currentFamily {
-                                // Show family info
-                                VStack(spacing: 12) {
-                                    HStack {
-                                        Image(systemName: "house.fill")
-                                            .foregroundColor(.blue)
-                                        Text(family.name)
+                                let children = familyService.getChildren()
+                                if children.isEmpty {
+                                    // No children state
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "person.2")
+                                            .font(.system(size: 40))
+                                            .foregroundColor(.gray)
+                                        
+                                        Text("No Children Added")
                                             .font(.headline)
-                                        Spacer()
-                                        Text("\(familyService.getFamilyMembers().count) members")
-                                            .font(.caption)
                                             .foregroundColor(.secondary)
+                                        
+                                        Text("Add children to your family to start tracking their locations.")
+                                            .font(.body)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal)
+                                        
+                                        Button("Add Child") {
+                                            showingFamilyManagement = true
+                                        }
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 50)
+                                        .background(Color.blue)
+                                        .cornerRadius(12)
+                                        .padding(.horizontal)
                                     }
-                                    
-                                    // Show children count
-                                    let children = familyService.getChildren()
-                                    HStack {
-                                        Image(systemName: "person.2.fill")
-                                            .foregroundColor(.green)
-                                        Text("\(children.count) children")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                        Spacer()
+                                    .padding()
+                                    .background(Color(UIColor.systemGray6))
+                                    .cornerRadius(12)
+                                } else {
+                                    // Children list
+                                    VStack(spacing: 8) {
+                                        ForEach(children, id: \.0) { childId, child in
+                                            Button(action: {
+                                                mapViewModel.centerOnChild(childId: childId)
+                                            }) {
+                                                HStack {
+                                                    // Child pin with color
+                                                    Circle()
+                                                        .fill(Color(mapViewModel.getColorForChild(childId: childId)))
+                                                        .frame(width: 12, height: 12)
+                                                    
+                                                    Text(child.name)
+                                                        .font(.headline)
+                                                        .foregroundColor(.primary)
+                                                    
+                                                    Spacer()
+                                                    
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                .padding()
+                                                .background(Color(UIColor.systemGray6))
+                                                .cornerRadius(8)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
                                     }
                                 }
-                                .padding()
-                                .background(Color(UIColor.systemGray6))
-                                .cornerRadius(12)
                             } else {
                                 // No family state
                                 VStack(spacing: 16) {
@@ -970,18 +1015,12 @@ struct ParentHomeView: View {
                             
                             VStack(spacing: 12) {
                                 // Family Management Button
-                                Button(action: {
-                                    if familyService.currentFamily != nil {
-                                        showingFamilyManagement = true
-                                    } else {
-                                        showingFamilySetup = true
-                                    }
-                                }) {
+                                NavigationLink(destination: ChildrenListView()) {
                                     HStack {
-                                        Image(systemName: "house.fill")
+                                        Image(systemName: "person.2.fill")
                                             .font(.title2)
                                             .foregroundColor(.blue)
-                                        Text("Family")
+                                        Text("My Family")
                                             .font(.headline)
                                             .foregroundColor(.blue)
                                         Spacer()
@@ -994,17 +1033,13 @@ struct ParentHomeView: View {
                                     .cornerRadius(12)
                                 }
                                 
-                                // Geofences Button
-                                Button(action: {
-                                    if let family = familyService.currentFamily {
-                                        showingGeofenceManagement = true
-                                    }
-                                }) {
+                                // Location Alerts Button
+                                NavigationLink(destination: GeofenceManagementView(familyId: familyService.currentFamily?.id ?? "")) {
                                     HStack {
                                         Image(systemName: "location.circle")
                                             .font(.title2)
                                             .foregroundColor(.orange)
-                                        Text("Geofences")
+                                        Text("Location Alerts")
                                             .font(.headline)
                                             .foregroundColor(.orange)
                                         Spacer()
@@ -1066,7 +1101,7 @@ struct ParentHomeView: View {
                 .offset(y: max(0, -scrollOffset * 0.3)) // Reduced parallax effect
             }
         }
-            .navigationTitle("Home")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showingFamilySetup) {
                 FamilySetupView()
@@ -1075,11 +1110,6 @@ struct ParentHomeView: View {
             .sheet(isPresented: $showingFamilyManagement) {
                 FamilyManagementView()
                     .environmentObject(authService)
-            }
-            .sheet(isPresented: $showingGeofenceManagement) {
-                if let family = familyService.currentFamily {
-                    GeofenceManagementView(familyId: family.id)
-                }
             }
             .onAppear {
                 // Start listening for children locations when view appears
@@ -1476,14 +1506,34 @@ struct ChildHomeView: View {
     }
 }
 
+// MARK: - Child Profile Data
+class ChildProfileData: ObservableObject {
+    @Published var childId: String = ""
+    @Published var childName: String = ""
+    @Published var isPresented: Bool = false
+    
+    func setChild(id: String, name: String) {
+        childId = id
+        childName = name
+        isPresented = true
+    }
+    
+    func dismiss() {
+        isPresented = false
+        // Don't clear the data immediately to avoid race conditions
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.childId = ""
+            self.childName = ""
+        }
+    }
+}
+
 // MARK: - Children List View
 struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @State private var showingInviteChild = false
-    @State private var selectedChildId: String?
-    @State private var selectedChildMember: FamilyMember?
-    @State private var showingChildProfile = false
+    @StateObject private var childProfileData = ChildProfileData()
     
     var body: some View {
         NavigationView {
@@ -1519,20 +1569,68 @@ struct ChildrenListView: View {
                             // Show as VStack for small lists (no scroll needed)
                             VStack(spacing: 8) {
                                 ForEach(sortedMembers, id: \.0) { userId, member in
-                                    FamilyMemberRow(userId: userId, member: member)
-                                        .onTapGesture {
-                                            if member.role == .child {
-                                                print("🔍 Child tapped: \(member.name) (\(userId))")
-                                                selectedChildId = userId
-                                                selectedChildMember = member
-                                                showingChildProfile = true
+                                    if member.role == .child {
+                                        Button(action: {
+                                            childProfileData.setChild(id: userId, name: member.name)
+                                        }) {
+                                            HStack {
+                                                Image(systemName: "person.fill")
+                                                    .foregroundColor(.green)
+                                                    .frame(width: 24)
+                                                
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(member.name)
+                                                        .font(.headline)
+                                                    
+                                                    Text("Child")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                Circle()
+                                                    .fill(Color.green)
+                                                    .frame(width: 8, height: 8)
+                                                
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
                                             }
+                                            .padding(.vertical, 4)
+                                            .padding(.horizontal, 12)
+                                            .background(Color(UIColor.systemBackground))
+                                            .cornerRadius(8)
+                                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    } else {
+                                        HStack {
+                                            Image(systemName: "person.fill")
+                                                .foregroundColor(.blue)
+                                                .frame(width: 24)
+                                            
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(member.name)
+                                                    .font(.headline)
+                                                
+                                                Text("Parent")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Circle()
+                                                .fill(Color.green)
+                                                .frame(width: 8, height: 8)
                                         }
                                         .padding(.vertical, 4)
                                         .padding(.horizontal, 12)
                                         .background(Color(UIColor.systemBackground))
                                         .cornerRadius(8)
                                         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                    }
                                 }
                             }
                         } else {
@@ -1540,20 +1638,68 @@ struct ChildrenListView: View {
                             ScrollView {
                                 LazyVStack(spacing: 8) {
                                     ForEach(sortedMembers, id: \.0) { userId, member in
-                                        FamilyMemberRow(userId: userId, member: member)
-                                            .onTapGesture {
-                                                if member.role == .child {
-                                                    print("🔍 Child tapped: \(member.name) (\(userId))")
-                                                    selectedChildId = userId
-                                                    selectedChildMember = member
-                                                    showingChildProfile = true
+                                        if member.role == .child {
+                                            Button(action: {
+                                                childProfileData.setChild(id: userId, name: member.name)
+                                            }) {
+                                                HStack {
+                                                    Image(systemName: "person.fill")
+                                                        .foregroundColor(.green)
+                                                        .frame(width: 24)
+                                                    
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        Text(member.name)
+                                                            .font(.headline)
+                                                        
+                                                        Text("Child")
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                    }
+                                                    
+                                                    Spacer()
+                                                    
+                                                    Circle()
+                                                        .fill(Color.green)
+                                                        .frame(width: 8, height: 8)
+                                                    
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
                                                 }
+                                                .padding(.vertical, 4)
+                                                .padding(.horizontal, 12)
+                                                .background(Color(UIColor.systemBackground))
+                                                .cornerRadius(8)
+                                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        } else {
+                                            HStack {
+                                                Image(systemName: "person.fill")
+                                                    .foregroundColor(.blue)
+                                                    .frame(width: 24)
+                                                
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(member.name)
+                                                        .font(.headline)
+                                                    
+                                                    Text("Parent")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                Circle()
+                                                    .fill(Color.green)
+                                                    .frame(width: 8, height: 8)
                                             }
                                             .padding(.vertical, 4)
                                             .padding(.horizontal, 12)
                                             .background(Color(UIColor.systemBackground))
                                             .cornerRadius(8)
                                             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 16)
@@ -1606,33 +1752,23 @@ struct ChildrenListView: View {
                 }
             }
             .padding()
-            .navigationTitle("Children")
+            .navigationTitle("My Family")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
             }
-            .sheet(isPresented: $showingChildProfile) {
-                if let childId = selectedChildId, let childMember = selectedChildMember {
-                    ChildProfileView(childId: childId, child: childMember)
+            .fullScreenCover(isPresented: $childProfileData.isPresented) {
+                if !childProfileData.childId.isEmpty && !childProfileData.childName.isEmpty {
+                    // Create a simple child object for the profile view
+                    let child = FamilyMember(
+                        role: .child,
+                        name: childProfileData.childName,
+                        joinedAt: Date()
+                    )
+                    ChildProfileView(childId: childProfileData.childId, child: child)
                         .environmentObject(familyService)
-                        .onAppear {
-                            print("🔍 ChildProfileView appeared for: \(childMember.name) (\(childId))")
-                        }
-                } else {
-                    Text("Error: No child selected")
-                        .onAppear {
-                            print("🔍 Error view appeared - childId: \(selectedChildId ?? "nil"), member: \(selectedChildMember?.name ?? "nil")")
-                        }
                 }
-            }
-            .onChange(of: selectedChildId) { newValue in
-                print("🔍 selectedChildId changed to: \(newValue ?? "nil")")
-            }
-            .onChange(of: selectedChildMember) { newValue in
-                print("🔍 selectedChildMember changed to: \(newValue?.name ?? "nil")")
-            }
-            .onChange(of: showingChildProfile) { newValue in
-                print("🔍 showingChildProfile changed to: \(newValue)")
             }
         }
     }
@@ -1676,183 +1812,218 @@ struct ChildProfileView: View {
     }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                // Profile Header
-                VStack(spacing: 16) {
-                    // Profile Image Placeholder
-                    Circle()
-                        .fill(Color.blue.opacity(0.2))
-                        .frame(width: 120, height: 120)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(.blue)
-                        )
-                    
-                    // Name Section
-                    VStack(spacing: 8) {
-                        if isEditingName {
-                            TextField("Child's Name", text: $childName)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .multilineTextAlignment(.center)
-                        } else {
-                            Text(childName)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                        }
-                        
-                        Button(isEditingName ? "Save" : "Edit Name") {
-                            if isEditingName {
-                                // Save the name change
-                                saveNameChange()
-                            }
-                            isEditingName.toggle()
-                        }
-                        .font(.caption)
-                        .foregroundColor(.blue)
+        VStack(spacing: 0) {
+            // Custom Header with Back Button
+            HStack {
+                Button(action: {
+                    dismiss()
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .medium))
+                        Text("Back")
+                            .font(.system(size: 17))
                     }
-                    
-                    Text("Family Member")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .padding()
-                .background(Color(UIColor.systemGray6))
-                .cornerRadius(16)
-                
-                // Action Buttons
-                VStack(spacing: 16) {
-                    // Reissue Invitation Button
-                    Button(action: {
-                        generateNewInviteCode()
-                    }) {
-                        HStack {
-                            Image(systemName: "envelope.badge")
-                            Text("Generate New Invitation Code")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                    }
-                    
-                    // New Invitation Code Display (Green Panel)
-                    if let inviteCode = newInviteCode {
-                        VStack(spacing: 16) {
-                            Text("New Invitation Code Created!")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.green)
-                            
-                            Text("Share this code with \(childName):")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                            
-                            Text(inviteCode)
-                                .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                .foregroundColor(.blue)
-                                .padding()
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
-                            
-                            Text("This code expires in 24 hours")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            // Share buttons
-                            HStack(spacing: 16) {
-                                Button(action: {
-                                    // Copy to clipboard
-                                    UIPasteboard.general.string = inviteCode
-                                }) {
-                                    HStack {
-                                        Image(systemName: "doc.on.doc")
-                                        Text("Copy")
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(6)
-                                }
-                                
-                                Button(action: {
-                                    // Share invitation
-                                    let shareText = "Join my family on Located! Use this code: \(inviteCode)"
-                                    let activityVC = UIActivityViewController(
-                                        activityItems: [shareText],
-                                        applicationActivities: nil
-                                    )
-                                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                       let window = windowScene.windows.first {
-                                        window.rootViewController?.present(activityVC, animated: true)
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "square.and.arrow.up")
-                                        Text("Share")
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(12)
-                    }
-                    
-                    // Delete Child Button
-                    Button(action: {
-                        showingDeleteAlert = true
-                    }) {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Remove from Family")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.red)
-                        .cornerRadius(12)
-                    }
+                    .foregroundColor(.blue)
                 }
                 
                 Spacer()
+                
+                Text("Child Profile")
+                    .font(.system(size: 17, weight: .semibold))
+                
+                Spacer()
+                
+                // Invisible spacer to center the title
+                HStack(spacing: 8) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .medium))
+                        .opacity(0)
+                    Text("Back")
+                        .font(.system(size: 17))
+                        .opacity(0)
+                }
             }
-            .padding()
-            .navigationTitle("Child Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(UIColor.systemBackground))
+            .overlay(
+                Rectangle()
+                    .frame(height: 0.5)
+                    .foregroundColor(Color(UIColor.separator)),
+                alignment: .bottom
+            )
+            
+            // Main Content
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Profile Header
+                    VStack(spacing: 16) {
+                        // Profile Image Placeholder
+                        Circle()
+                            .fill(Color.blue.opacity(0.2))
+                            .frame(width: 120, height: 120)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.blue)
+                            )
+                        
+                        // Name Section
+                        VStack(spacing: 8) {
+                            if isEditingName {
+                                TextField("Child's Name", text: $childName)
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .multilineTextAlignment(.center)
+                            } else {
+                                Text(childName)
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                            }
+                            
+                            Button(isEditingName ? "Save" : "Edit Name") {
+                                if isEditingName {
+                                    // Save the name change
+                                    saveNameChange()
+                                }
+                                isEditingName.toggle()
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                        
+                        Text("Family Member")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
                     }
+                    .padding()
+                    .background(Color(UIColor.systemGray6))
+                    .cornerRadius(16)
+                    
+                    // Action Buttons
+                    VStack(spacing: 16) {
+                        // Reissue Invitation Button
+                        Button(action: {
+                            generateNewInviteCode()
+                        }) {
+                            HStack {
+                                Image(systemName: "envelope.badge")
+                                Text("Generate New Invitation Code")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                        }
+                        
+                        // New Invitation Code Display (Green Panel)
+                        if let inviteCode = newInviteCode {
+                            VStack(spacing: 16) {
+                                Text("New Invitation Code Created!")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.green)
+                                
+                                Text("Share this code with \(childName):")
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                
+                                Text(inviteCode)
+                                    .font(.system(size: 24, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.blue)
+                                    .padding()
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                                
+                                Text("This code expires in 24 hours")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                // Share buttons
+                                HStack(spacing: 16) {
+                                    Button(action: {
+                                        // Copy to clipboard
+                                        UIPasteboard.general.string = inviteCode
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "doc.on.doc")
+                                            Text("Copy")
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.blue.opacity(0.1))
+                                        .cornerRadius(6)
+                                    }
+                                    
+                                    Button(action: {
+                                        // Share invitation
+                                        let shareText = "Join my family on Located! Use this code: \(inviteCode)"
+                                        let activityVC = UIActivityViewController(
+                                            activityItems: [shareText],
+                                            applicationActivities: nil
+                                        )
+                                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                           let window = windowScene.windows.first {
+                                            window.rootViewController?.present(activityVC, animated: true)
+                                        }
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "square.and.arrow.up")
+                                            Text("Share")
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.blue.opacity(0.1))
+                                        .cornerRadius(6)
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(12)
+                        }
+                        
+                        // Delete Child Button
+                        Button(action: {
+                            showingDeleteAlert = true
+                        }) {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Remove from Family")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.red)
+                            .cornerRadius(12)
+                        }
+                    }
+                    
+                    Spacer(minLength: 50) // Bottom padding
                 }
+                .padding()
             }
-            .alert("Remove Child", isPresented: $showingDeleteAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Remove", role: .destructive) {
-                    removeChild()
-                }
-            } message: {
-                Text("Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
+        }
+        .alert("Remove Child", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Remove", role: .destructive) {
+                removeChild()
             }
+        } message: {
+            Text("Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
         }
     }
     
@@ -2529,7 +2700,7 @@ class ParentMapViewModel: ObservableObject {
         
         // Adjust southward shift based on actual distance between children
         let childrenDistance = maxLat - minLat
-        let southwardShift = max(childrenDistance * 2.0, 0.02) // Proportional shift, minimum 0.02 degrees
+        let southwardShift = max(childrenDistance * 2.0, 0.04) // Proportional shift, minimum 0.04 degrees (doubled)
         let centerLat = (minLat + maxLat) / 2 - southwardShift
         let center = CLLocationCoordinate2D(
             latitude: centerLat,
@@ -2553,6 +2724,37 @@ class ParentMapViewModel: ObservableObject {
                 self.region = self.region
             }
         }
+    }
+    
+    func centerOnChild(childId: String) {
+        guard let childLocation = childrenLocations.first(where: { $0.childId == childId }) else {
+            print("🔍 MapViewModel - Cannot center on child \(childId): child not found")
+            return
+        }
+        
+        print("🔍 MapViewModel - Centering map on child: \(childLocation.childName)")
+        
+        let coordinate = CLLocationCoordinate2D(
+            latitude: childLocation.location.lat,
+            longitude: childLocation.location.lng
+        )
+        
+        // Set a reasonable span for viewing a single child
+        let span = MKCoordinateSpan(
+            latitudeDelta: 0.01, // Smaller span for single child
+            longitudeDelta: 0.01
+        )
+        
+        // Center the map on the child with a slight southward shift to account for the panel
+        let centerLat = coordinate.latitude - 0.005 // Small southward shift
+        let center = CLLocationCoordinate2D(
+            latitude: centerLat,
+            longitude: coordinate.longitude
+        )
+        
+        region = MKCoordinateRegion(center: center, span: span)
+        
+        print("🔍 MapViewModel - Updated map region to center on child: \(center.latitude), \(center.longitude)")
     }
     
     func refreshChildrenLocations() {

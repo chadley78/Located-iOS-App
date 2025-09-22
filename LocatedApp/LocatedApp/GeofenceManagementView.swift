@@ -1,6 +1,9 @@
 import SwiftUI
 import MapKit
 
+// MARK: - Type Aliases
+typealias EditGeofenceView = CreateGeofenceView
+
 // MARK: - Geofence Management View
 struct GeofenceManagementView: View {
     @Environment(\.dismiss) private var dismiss
@@ -15,21 +18,10 @@ struct GeofenceManagementView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 8) {
-                    Text("Geofences")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Text("Family Geofences")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
                 
                 if geofenceService.isLoading {
                     Spacer()
-                    ProgressView("Loading geofences...")
+                    ProgressView("Loading location alerts...")
                     Spacer()
                 } else if geofenceService.geofences.isEmpty {
                     // Empty State
@@ -41,11 +33,11 @@ struct GeofenceManagementView: View {
                             .foregroundColor(.gray)
                         
                         VStack(spacing: 8) {
-                            Text("No Geofences Yet")
+                            Text("No Location Alerts Yet")
                                 .font(.title3)
                                 .fontWeight(.semibold)
                             
-                            Text("Create your first geofence to get notified when family members enter or leave specific areas.")
+                            Text("Create your first location alert to get notified when family members enter or leave specific areas.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -58,7 +50,7 @@ struct GeofenceManagementView: View {
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
-                                Text("Create First Geofence")
+                                Text("Create First Location Alert")
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -69,7 +61,7 @@ struct GeofenceManagementView: View {
                         .padding(.horizontal)
                     }
                 } else {
-                    // Geofences List
+                    // Location Alerts List
                     ScrollView {
                         LazyVStack(spacing: 12) {
                             ForEach(geofenceService.geofences) { geofence in
@@ -90,13 +82,13 @@ struct GeofenceManagementView: View {
                         .padding()
                     }
                     
-                    // Add Geofence Button
+                    // Add Location Alert Button
                     Button(action: {
                         showingCreateGeofence = true
                     }) {
                         HStack {
                             Image(systemName: "plus.circle.fill")
-                            Text("Add Geofence")
+                            Text("Add Location Alert")
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -107,15 +99,8 @@ struct GeofenceManagementView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Geofences")
+            .navigationTitle("Location Alerts")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Back") {
-                        dismiss()
-                    }
-                }
-            }
             .onAppear {
                 Task {
                     await geofenceService.fetchGeofences(for: familyId)
@@ -131,7 +116,12 @@ struct GeofenceManagementView: View {
             }
             .sheet(isPresented: $showingGeofenceDetails) {
                 if let geofence = selectedGeofence {
-                    GeofenceDetailsView(geofence: geofence)
+                    EditGeofenceView(familyId: familyId, existingGeofence: geofence)
+                        .onDisappear {
+                            Task {
+                                await geofenceService.fetchGeofences(for: familyId)
+                            }
+                        }
                 }
             }
         }
@@ -147,7 +137,8 @@ struct GeofenceCard: View {
     @State private var showingDeleteAlert = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -235,12 +226,14 @@ struct GeofenceCard: View {
                     .cornerRadius(6)
                 }
             }
+            }
         }
+        .buttonStyle(PlainButtonStyle())
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-        .alert("Delete Geofence", isPresented: $showingDeleteAlert) {
+        .alert("Delete Location Alert", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
                 onDelete()
@@ -266,7 +259,7 @@ struct GeofenceDetailsView: View {
                 VStack(spacing: 20) {
                     // Geofence Info
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Geofence Details")
+                        Text("Location Alert Details")
                             .font(.title2)
                             .fontWeight(.semibold)
                         
@@ -450,7 +443,7 @@ struct GeofenceEventsView: View {
                     }
                 }
             }
-            .navigationTitle("Geofence Events")
+            .navigationTitle("Location Alert Events")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

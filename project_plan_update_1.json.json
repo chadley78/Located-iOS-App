@@ -1,0 +1,32 @@
+{
+  "comment": "This file contains new tasks to fix the family creation architecture. These should be executed before resuming geofence work.",
+  "newTasks": [
+    {
+      "taskId": "BE-04",
+      "phaseId": 2,
+      "title": "Implement `createFamily` Cloud Function",
+      "description": "Using the provided `functions/index.js` code, create and deploy a new HTTPS Callable Cloud Function named `createFamily`. This function will be responsible for creating a new family document and assigning the caller as the first parent member. This moves family creation logic from the client to a secure backend environment.",
+      "dependencies": [
+        "BE-02"
+      ],
+      "deliverables": [
+        "The complete and deployed source code for the `createFamily` function within the `functions/index.js` file.",
+        "Confirmation that the function has been deployed successfully to the Firebase project."
+      ]
+    },
+    {
+      "taskId": "IOS-06",
+      "phaseId": 2,
+      "title": "Refactor iOS App to Use `createFamily` Cloud Function",
+      "description": "Modify the iOS application's onboarding or family creation flow. Remove any code that attempts to write directly to the `/families` collection in Firestore. Instead, implement a call to the new `createFamily` HTTPS Callable Function. On a successful response, the app should retrieve the returned `familyId` and update the local user state accordingly.",
+      "dependencies": [
+        "BE-04",
+        "IOS-01"
+      ],
+      "deliverables": [
+        "The updated Swift source code for the relevant view models or services that handle family creation.",
+        "A confirmation that the app no longer writes directly to the `/families` collection and now uses the Cloud Function."
+      ]
+    }
+  ]
+}

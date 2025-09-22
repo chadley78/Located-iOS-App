@@ -9,6 +9,7 @@ struct CreateGeofenceView: View {
     @StateObject private var locationManager = LocationManager()
     
     let familyId: String
+    let existingGeofence: Geofence?
     
     @State private var geofenceName = ""
     @State private var selectedRadius: Double = 100
@@ -19,24 +20,36 @@ struct CreateGeofenceView: View {
     
     private let radiusOptions: [Double] = [50, 100, 200, 500, 1000]
     
+    init(familyId: String, existingGeofence: Geofence? = nil) {
+        self.familyId = familyId
+        self.existingGeofence = existingGeofence
+        
+        // Initialize state with existing geofence data if editing
+        if let geofence = existingGeofence {
+            self._geofenceName = State(initialValue: geofence.name)
+            self._selectedRadius = State(initialValue: geofence.radius)
+            self._selectedCoordinate = State(initialValue: CLLocationCoordinate2D(latitude: geofence.latitude, longitude: geofence.longitude))
+        }
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 8) {
-                    Text("Create Geofence")
+                    Text(existingGeofence != nil ? "Edit Location Alert" : "Create Location Alert")
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    Text("Family Geofence")
+                    Text("Family Location Alert")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .padding(.top)
                 
-                // Geofence Name
+                // Location Alert Name
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Geofence Name")
+                    Text("Location Alert Name")
                         .font(.headline)
                     
                     TextField("e.g., School, Home, Park", text: $geofenceName)
@@ -129,7 +142,8 @@ struct CreateGeofenceView: View {
                     GeofencePreviewMap(
                         coordinate: coordinate,
                         radius: selectedRadius,
-                        geofenceName: geofenceName.isEmpty ? "New Geofence" : geofenceName
+                        geofenceName: geofenceName.isEmpty ? "New Location Alert" : geofenceName,
+                        isInteractive: existingGeofence == nil
                     )
                     .frame(height: 200)
                     .cornerRadius(12)
@@ -154,7 +168,7 @@ struct CreateGeofenceView: View {
                         } else {
                             Image(systemName: "plus.circle.fill")
                         }
-                        Text("Create Geofence")
+                        Text(existingGeofence != nil ? "Update Location Alert" : "Create Location Alert")
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -167,7 +181,7 @@ struct CreateGeofenceView: View {
                 .disabled(!canCreateGeofence || isLoading)
             }
             .padding()
-            .navigationTitle("New Geofence")
+            .navigationTitle("New Location Alert")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -195,13 +209,25 @@ struct CreateGeofenceView: View {
         
         Task {
             do {
-                try await geofenceService.createGeofence(
-                    familyId: familyId,
-                    name: geofenceName.trimmingCharacters(in: .whitespacesAndNewlines),
-                    latitude: coordinate.latitude,
-                    longitude: coordinate.longitude,
-                    radius: selectedRadius
-                )
+                if let existingGeofence = existingGeofence {
+                    // Update existing geofence
+                    try await geofenceService.updateGeofence(
+                        geofence: existingGeofence,
+                        name: geofenceName.trimmingCharacters(in: .whitespacesAndNewlines),
+                        latitude: coordinate.latitude,
+                        longitude: coordinate.longitude,
+                        radius: selectedRadius
+                    )
+                } else {
+                    // Create new geofence
+                    try await geofenceService.createGeofence(
+                        familyId: familyId,
+                        name: geofenceName.trimmingCharacters(in: .whitespacesAndNewlines),
+                        latitude: coordinate.latitude,
+                        longitude: coordinate.longitude,
+                        radius: selectedRadius
+                    )
+                }
                 
                 await MainActor.run {
                     isLoading = false
@@ -226,10 +252,18 @@ struct LocationPickerView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var searchDelegate = SearchCompleterDelegate()
     @State private var searchCompleter = MKLocalSearchCompleter()
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
-        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-    )
+    @State private var region: MKCoordinateRegion
+    
+    init(selectedCoordinate: Binding<CLLocationCoordinate2D?>) {
+        self._selectedCoordinate = selectedCoordinate
+        
+        // Initialize region with existing coordinate or default location
+        let center = selectedCoordinate.wrappedValue ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        self._region = State(initialValue: MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        ))
+    }
     @State private var searchText = ""
     @State private var searchResults: [MKLocalSearchCompletion] = []
     @State private var showingSearchResults = false
@@ -450,6 +484,14 @@ struct GeofencePreviewMap: View {
     let coordinate: CLLocationCoordinate2D
     let radius: Double
     let geofenceName: String
+    let isInteractive: Bool
+    
+    init(coordinate: CLLocationCoordinate2D, radius: Double, geofenceName: String, isInteractive: Bool = true) {
+        self.coordinate = coordinate
+        self.radius = radius
+        self.geofenceName = geofenceName
+        self.isInteractive = isInteractive
+    }
     
     var body: some View {
         Map(coordinateRegion: .constant(calculateRegion()), annotationItems: [GeofenceAnnotation(coordinate: coordinate, name: geofenceName)]) { annotation in
@@ -469,6 +511,7 @@ struct GeofencePreviewMap: View {
                 }
             }
         }
+        .allowsHitTesting(isInteractive)
     }
     
     private func calculateRegion() -> MKCoordinateRegion {
