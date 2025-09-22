@@ -1537,8 +1537,7 @@ struct ChildrenListView: View {
     @StateObject private var childProfileData = ChildProfileData()
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
+        VStack(spacing: 20) {
                 if let family = familyService.currentFamily {
                     // Family Header
                     VStack(spacing: 16) {
