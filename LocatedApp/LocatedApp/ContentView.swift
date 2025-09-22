@@ -2942,9 +2942,9 @@ class ParentMapViewModel: ObservableObject {
         )
         
         // Adjust southward shift based on actual distance between children
-        // Increased shift to account for larger 60px pins
+        // Minimal shift to account for larger 60px pins
         let childrenDistance = maxLat - minLat
-        let southwardShift = max(childrenDistance * 2.5, 0.06) // Increased to 2.5x with minimum 0.06 degrees for larger pins
+        let southwardShift = max(childrenDistance * 1.0, 0.02) // Reduced to 1.0x with minimum 0.02 degrees for larger pins
         let centerLat = (minLat + maxLat) / 2 - southwardShift
         let center = CLLocationCoordinate2D(
             latitude: centerLat,
@@ -2989,8 +2989,8 @@ class ParentMapViewModel: ObservableObject {
             longitudeDelta: 0.015
         )
         
-        // Center the map on the child with increased southward shift to account for larger 60px pins
-        let centerLat = coordinate.latitude - 0.012 // Increased southward shift for larger pins
+        // Center the map on the child with minimal southward shift to account for larger 60px pins
+        let centerLat = coordinate.latitude - 0.004 // Minimal southward shift for larger pins
         let center = CLLocationCoordinate2D(
             latitude: centerLat,
             longitude: coordinate.longitude
