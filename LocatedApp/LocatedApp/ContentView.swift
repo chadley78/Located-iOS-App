@@ -837,7 +837,9 @@ struct ParentHomeView: View {
             }
             
             // Register for push notifications when parent app loads
-            notificationService.registerFCMToken()
+            Task {
+                await notificationService.registerFCMToken()
+            }
         }
     }
     
@@ -1189,24 +1191,25 @@ struct ParentHomeView: View {
                 }
             }
         }
-    }
-            .sheet(isPresented: $showingFamilySetup) {
-                FamilySetupView()
-                    .environmentObject(authService)
+        .sheet(isPresented: $showingFamilySetup) {
+            FamilySetupView()
+                .environmentObject(authService)
+        }
+        .sheet(isPresented: $showingFamilyManagement) {
+            FamilyManagementView()
+                .environmentObject(authService)
+        }
+        .onAppear {
+            // Start listening for children locations when view appears
+            if let parentId = authService.currentUser?.id, !parentId.isEmpty {
+                mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
             }
-            .sheet(isPresented: $showingFamilyManagement) {
-                FamilyManagementView()
-                    .environmentObject(authService)
+            
+            // Register for push notifications when parent app loads
+            Task {
+                await notificationService.registerFCMToken()
             }
-            .onAppear {
-                // Start listening for children locations when view appears
-                if let parentId = authService.currentUser?.id, !parentId.isEmpty {
-                    mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
-                }
-                
-                // Register for push notifications when parent app loads
-                notificationService.registerFCMToken()
-            }
+        }
     }
 }
 

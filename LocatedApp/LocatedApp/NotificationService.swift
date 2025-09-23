@@ -10,6 +10,7 @@ class NotificationService: NSObject, ObservableObject {
     private let db = Firestore.firestore()
     private let fcmRestService = FCMRestService()
     @Published var isRegistered = false
+    @Published var isLoading = false
     @Published var errorMessage: String?
     
     override init() {
@@ -92,9 +93,15 @@ class NotificationService: NSObject, ObservableObject {
     
     /// Send a test notification with debug info to parent devices
     func sendTestNotification() async {
+        await MainActor.run {
+            self.isLoading = true
+            self.errorMessage = nil
+        }
+        
         guard let currentUser = Auth.auth().currentUser else {
             await MainActor.run {
                 self.errorMessage = "User not authenticated"
+                self.isLoading = false
             }
             return
         }
@@ -155,11 +162,13 @@ class NotificationService: NSObject, ObservableObject {
                     self.errorMessage = "Notification failed: \(response.message)"
                     print("❌ \(response.message)")
                 }
+                self.isLoading = false
             }
         } catch {
             await MainActor.run {
                 self.errorMessage = "Failed to send test notification: \(error.localizedDescription)"
                 print("❌ Failed to send test notification: \(error)")
+                self.isLoading = false
             }
         }
     }
