@@ -1161,7 +1161,9 @@ struct ParentHomeView: View {
                 
                 // Test Notification Button
                 Button(action: {
-                    notificationService.sendTestNotification()
+                    Task {
+                        await notificationService.sendTestNotification()
+                    }
                 }) {
                     HStack {
                         Image(systemName: "bell.fill")
