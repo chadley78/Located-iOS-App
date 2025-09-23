@@ -301,6 +301,17 @@ class AuthenticationService: ObservableObject {
         }
     }
     
+    /// Force refresh the user profile from Firestore
+    func refreshUserProfile() async {
+        guard let userId = auth.currentUser?.uid else {
+            print("❌ Cannot refresh user profile: no authenticated user")
+            return
+        }
+        
+        print("🔄 Force refreshing user profile for userId: \(userId)")
+        await fetchUserProfile(userId: userId)
+    }
+    
     func updateUserType(_ userType: User.UserType) async {
         guard var user = currentUser else { return }
         user.userType = userType

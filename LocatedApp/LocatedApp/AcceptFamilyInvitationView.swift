@@ -145,6 +145,7 @@ struct AcceptFamilyInvitationView: View {
 // MARK: - Child Welcome View
 struct ChildWelcomeView: View {
     let onNext: () -> Void
+    @State private var isSettingUp = true
     
     var body: some View {
         VStack(spacing: 40) {
@@ -164,40 +165,69 @@ struct ChildWelcomeView: View {
                 
                 // Welcome Text
                 VStack(spacing: 16) {
-                    Text("Welcome to Located!")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("You're all set to start sharing your location with your family")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.9))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
+                    if isSettingUp {
+                        Text("Setting up your account...")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                        
+                        Text("Please wait while we prepare everything for you")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                        
+                        // Loading indicator
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.2)
+                            .padding(.top, 20)
+                    } else {
+                        Text("Welcome to Located!")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                        
+                        Text("You're all set to start sharing your location with your family")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                    }
                 }
             }
             
             Spacer()
             
-            // Next Button
-            Button(action: onNext) {
-                HStack(spacing: 12) {
-                    Text("Next")
-                        .font(.system(size: 18, weight: .semibold))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
+            // Next Button (only show when not setting up)
+            if !isSettingUp {
+                Button(action: onNext) {
+                    HStack(spacing: 12) {
+                        Text("Next")
+                            .font(.system(size: 18, weight: .semibold))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.blue)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color.white)
+                    .cornerRadius(28)
+                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                 }
-                .foregroundColor(.blue)
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(Color.white)
-                .cornerRadius(28)
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 50)
             }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 50)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            // After a short delay, transition from "Setting up" to "Welcome"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    isSettingUp = false
+                }
+            }
+        }
         .background(
             LinearGradient(
                 gradient: Gradient(colors: [

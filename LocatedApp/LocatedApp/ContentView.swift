@@ -343,16 +343,17 @@ struct ChildSignUpView: View {
                 changeRequest.displayName = childName
                 try await changeRequest.commitChanges()
                 
-                // Update user profile with correct name
-                let updatedUser = User(
-                    id: authResult.user.uid,
-                    name: childName,
-                    email: tempEmail,
-                    userType: .child
-                )
+                // The Cloud Function will update the user document with familyId
+                // We just need to wait for it to complete and then refresh our local profile
+                print("🔍 Cloud Function completed, now setting up account...")
                 
-                try await authService.saveUserProfile(updatedUser)
-                print("🔍 Updated child user profile with correct name: \(childName)")
+                // Add a short delay to ensure Firestore write is visible
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                
+                // Force refresh the user profile to get the latest data from Firestore
+                // This will include the familyId that the Cloud Function added
+                await authService.refreshUserProfile()
+                print("🔍 Refreshed user profile after Cloud Function completion")
                 
                 // Check if this was for an existing child based on the Cloud Function response
                 let isExistingChildResponse = invitationResult["isExistingChild"] as? Bool ?? false
@@ -1362,12 +1363,70 @@ struct ChildLocationCard: View {
 struct ChildHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var locationService: LocationService
+    @EnvironmentObject var familyService: FamilyService
     @StateObject private var geofenceService = GeofenceService()
     @State private var showingLocationPermissionAlert = false
     
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
+                // Debug Information Card
+                VStack(spacing: 16) {
+                    Text("Debug Information")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.orange)
+                    
+                    VStack(spacing: 12) {
+                        // Child Name
+                        HStack {
+                            Text("Child Name:")
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                            Text(authService.currentUser?.name ?? "Not Available")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // Family Name
+                        HStack {
+                            Text("Family Name:")
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                            Text(familyService.currentFamily?.name ?? "Not Available")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // Family ID
+                        HStack {
+                            Text("Family ID:")
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                            Text(authService.currentUser?.familyId ?? "Not Available")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // User ID
+                        HStack {
+                            Text("User ID:")
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                            Text(authService.currentUser?.id ?? "Not Available")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+                
                 // Status Card
                 VStack(spacing: 16) {
                     Text("Your Status")

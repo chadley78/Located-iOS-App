@@ -477,13 +477,22 @@ exports.acceptInvitation = onCall(async (request) => {
               },
             });
 
-        // Update the new child's user document with the familyId
-        await admin.firestore()
-            .collection("users")
-            .doc(childId)
-            .update({
-              familyId: invitationData.familyId,
-            });
+        // Update the new child's user document with familyId and correct name
+        try {
+          await admin.firestore()
+              .collection("users")
+              .doc(childId)
+              .update({
+                familyId: invitationData.familyId,
+                name: invitationData.childName,
+              });
+          logger.info(`Successfully updated existing child user document: ${
+            invitationData.familyId} and name: ${invitationData.childName}`);
+        } catch (error) {
+          logger.error(`Failed to update existing child user document: ${
+            error.message}`);
+          throw error;
+        }
 
         // Mark invitation as used by the new child
         await admin.firestore()
@@ -526,13 +535,22 @@ exports.acceptInvitation = onCall(async (request) => {
             },
           });
 
-      // Update child's user document with familyId
-      await admin.firestore()
-          .collection("users")
-          .doc(childId)
-          .update({
-            familyId: invitationData.familyId,
-          });
+      // Update child's user document with familyId and correct name
+      try {
+        await admin.firestore()
+            .collection("users")
+            .doc(childId)
+            .update({
+              familyId: invitationData.familyId,
+              name: invitationData.childName,
+            });
+        logger.info(`Successfully updated user document: ${
+          invitationData.familyId} and name: ${invitationData.childName}`);
+      } catch (error) {
+        logger.error(`Failed to update user document with familyId: ${
+          error.message}`);
+        throw error;
+      }
 
       // Mark invitation as used
       await admin.firestore()
