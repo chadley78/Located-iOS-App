@@ -2800,60 +2800,36 @@ class ParentMapViewModel: ObservableObject {
         
         // Get children from family service and start listening to their locations
         Task { @MainActor in
-            let children = familyService.getChildren()
-            let childIds = children.map { $0.0 } // Extract child IDs
-            
-            print("🔍 MapViewModel - Found \(childIds.count) children to monitor")
-            print("🔍 MapViewModel - Child IDs: \(childIds)")
-            print("🔍 MapViewModel - Child details: \(children.map { "\($0.0): \($0.1.name)" })")
-            
-            // Start listening to each child's location
-            for childId in childIds {
-                print("🔍 MapViewModel - Starting to listen for child: \(childId)")
-                listenForChildLocation(childId: childId)
+            // Wait for family data to be loaded
+            var attempts = 0
+            while attempts < 10 { // Try for up to 5 seconds
+                let children = familyService.getChildren()
+                if !children.isEmpty {
+                    let childIds = children.map { $0.0 } // Extract child IDs
+                    
+                    print("🔍 MapViewModel - Found \(childIds.count) children to monitor")
+                    print("🔍 MapViewModel - Child IDs: \(childIds)")
+                    print("🔍 MapViewModel - Child details: \(children.map { "\($0.0): \($0.1.name)" })")
+                    
+                    // Start listening to each child's location
+                    for childId in childIds {
+                        print("🔍 MapViewModel - Starting to listen for child: \(childId)")
+                        print("🔍 MapViewModel - About to call listenForChildLocation for: \(childId)")
+                        listenForChildLocation(childId: childId)
+                        print("🔍 MapViewModel - Called listenForChildLocation for: \(childId)")
+                    }
+                    return
+                }
+                
+                print("🔍 MapViewModel - Family data not ready yet, waiting... (attempt \(attempts + 1))")
+                try? await Task.sleep(nanoseconds: 500_000_000) // Wait 0.5 seconds
+                attempts += 1
             }
             
-            // Listen for changes in family members to update children list
-            // This will be triggered when FamilyService updates
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                // Re-check for new children every few seconds
-                // This is a simple approach - in a more sophisticated implementation,
-                // we would observe FamilyService changes directly
-                self.refreshChildrenFromFamily(familyService: familyService)
-            }
+            print("🔍 MapViewModel - Family data still not ready after 5 seconds, proceeding with empty children list")
         }
     }
     
-    private func refreshChildrenFromFamily(familyService: FamilyService) {
-        Task { @MainActor in
-            let currentChildren = childrenLocations.map { $0.childId }
-            let familyChildren = familyService.getChildren().map { $0.0 }
-            
-            print("🔍 MapViewModel - Current children being monitored: \(currentChildren)")
-            print("🔍 MapViewModel - Family children from service: \(familyChildren)")
-            
-            // Find new children to start listening to
-            let newChildren = familyChildren.filter { !currentChildren.contains($0) }
-            
-            // Find children to stop listening to
-            let removedChildren = currentChildren.filter { !familyChildren.contains($0) }
-            
-                // Start listening to new children
-                for childId in newChildren {
-                    print("🔍 MapViewModel - Starting to listen for new child: \(childId)")
-                    listenForChildLocation(childId: childId)
-                }
-            
-            // Remove listeners for removed children
-            for childId in removedChildren {
-                if let index = childrenLocations.firstIndex(where: { $0.childId == childId }) {
-                    childrenLocations.remove(at: index)
-                }
-            }
-            
-            print("🔍 MapViewModel - Added \(newChildren.count) new children, removed \(removedChildren.count) children")
-        }
-    }
     
     private func listenForChildLocation(childId: String) {
         // Validate childId before making Firestore calls
@@ -2863,19 +2839,36 @@ class ParentMapViewModel: ObservableObject {
         }
         
         print("🔍 Listening for child location: \(childId)")
+        print("🔍 MapViewModel - Setting up Firestore listener for locations/\(childId)")
         
         let listener = db.collection("locations").document(childId)
             .addSnapshotListener { [weak self] documentSnapshot, error in
                 guard let self = self else { return }
                 
                 if let error = error {
-                    print("Error listening for child location: \(error)")
+                    print("❌ MapViewModel - Error listening for child location \(childId): \(error)")
                     return
                 }
                 
-                guard let document = documentSnapshot,
-                      let data = document.data(),
-                      let locationData = try? Firestore.Decoder().decode(LocationData.self, from: data) else {
+                guard let document = documentSnapshot else {
+                    print("🔍 MapViewModel - No document snapshot for child \(childId)")
+                    return
+                }
+                
+                if !document.exists {
+                    print("🔍 MapViewModel - Location document does not exist for child \(childId)")
+                    return
+                }
+                
+                guard let data = document.data() else {
+                    print("🔍 MapViewModel - No data in location document for child \(childId)")
+                    return
+                }
+                
+                print("🔍 MapViewModel - Received location data for child \(childId): \(data)")
+                
+                guard let locationData = try? Firestore.Decoder().decode(LocationData.self, from: data) else {
+                    print("❌ MapViewModel - Failed to decode location data for child \(childId)")
                     return
                 }
                 
@@ -2954,8 +2947,8 @@ class ParentMapViewModel: ObservableObject {
             
             print("🔍 MapViewModel - Checking if should center: \(childrenLocations.count) current, \(expectedChildrenCount) expected")
             
-            // Center if we have all expected children, or if we have some children and it's been a while since last center
-            if childrenLocations.count >= expectedChildrenCount || childrenLocations.count >= 2 {
+            // Center if we have all expected children, or if we have at least one child
+            if childrenLocations.count >= expectedChildrenCount || childrenLocations.count >= 1 {
                 print("🔍 MapViewModel - Centering map with \(childrenLocations.count) children")
                 centerOnChildren()
             }
@@ -3070,8 +3063,21 @@ class ParentMapViewModel: ObservableObject {
         
         // Restart listening if we have a family service
         if let familyService = familyService {
-            // Use the proper refresh logic that detects new children
-            refreshChildrenFromFamily(familyService: familyService)
+            // Get children from family service and start listening to their locations
+            Task { @MainActor in
+                let children = familyService.getChildren()
+                let childIds = children.map { $0.0 } // Extract child IDs
+                
+                print("🔍 MapViewModel - Found \(childIds.count) children to monitor")
+                print("🔍 MapViewModel - Child IDs: \(childIds)")
+                print("🔍 MapViewModel - Child details: \(children.map { "\($0.0): \($0.1.name)" })")
+                
+                // Start listening to each child's location
+                for childId in childIds {
+                    print("🔍 MapViewModel - Starting to listen for child: \(childId)")
+                    listenForChildLocation(childId: childId)
+                }
+            }
         }
     }
     
