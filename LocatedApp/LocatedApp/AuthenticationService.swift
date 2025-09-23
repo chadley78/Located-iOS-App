@@ -89,6 +89,7 @@ class AuthenticationService: ObservableObject {
     
     private let auth = Auth.auth()
     private let db = Firestore.firestore()
+    private var notificationService: NotificationService?
     
     init() {
         // Listen for authentication state changes
@@ -97,6 +98,10 @@ class AuthenticationService: ObservableObject {
                 await self?.handleAuthStateChange(user: user)
             }
         }
+    }
+    
+    func setNotificationService(_ notificationService: NotificationService) {
+        self.notificationService = notificationService
     }
     
     private func handleAuthStateChange(user: FirebaseAuth.User?) async {
@@ -162,6 +167,11 @@ class AuthenticationService: ObservableObject {
             let authResult = try await auth.signIn(withEmail: email, password: password)
             await fetchUserProfile(userId: authResult.user.uid)
             // isAuthenticated will be set by handleAuthStateChange after currentUser is loaded
+            
+            // Register FCM token after successful sign in
+            if let notificationService = notificationService {
+                await notificationService.registerFCMToken()
+            }
             
         } catch {
             errorMessage = error.localizedDescription

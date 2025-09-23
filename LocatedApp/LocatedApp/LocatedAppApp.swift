@@ -4,6 +4,7 @@ import FirebaseCore
 @main
 struct LocatedAppApp: App {
     @StateObject private var familyService = FamilyService()
+    @StateObject private var notificationService = NotificationService()
     @State private var deepLinkInvitationCode: String?
     
     // Initialize Firebase and background services when the app launches
@@ -20,8 +21,15 @@ struct LocatedAppApp: App {
         WindowGroup {
             ContentView(invitationCode: deepLinkInvitationCode)
                 .environmentObject(familyService)
+                .environmentObject(notificationService)
                 .onOpenURL { url in
                     handleDeepLink(url: url)
+                }
+                .onAppear {
+                    // Register for notifications when app appears
+                    Task {
+                        await notificationService.registerFCMToken()
+                    }
                 }
         }
     }

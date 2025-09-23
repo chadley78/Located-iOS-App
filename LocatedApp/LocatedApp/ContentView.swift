@@ -10,6 +10,7 @@ struct ContentView: View {
     @StateObject private var authService = AuthenticationService()
     @StateObject private var locationService = LocationService()
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var notificationService: NotificationService
     
     init(invitationCode: String? = nil) {
         self.invitationCode = invitationCode
@@ -42,6 +43,9 @@ struct ContentView: View {
         }
         .animation(.easeInOut, value: authService.isAuthenticated)
         .onAppear {
+            // Set notification service in auth service
+            authService.setNotificationService(notificationService)
+            
             // Start location service when app appears
             if authService.isAuthenticated {
                 locationService.requestLocationPermission()
@@ -1365,6 +1369,7 @@ struct ChildHomeView: View {
     @EnvironmentObject var locationService: LocationService
     @EnvironmentObject var familyService: FamilyService
     @StateObject private var geofenceService = GeofenceService()
+    @StateObject private var notificationService = NotificationService()
     @State private var showingLocationPermissionAlert = false
     
     var body: some View {
@@ -1502,6 +1507,24 @@ struct ChildHomeView: View {
                         .cornerRadius(25)
                     }
                     
+                    // Test Notification Button
+                    Button(action: {
+                        Task {
+                            await notificationService.sendTestNotification()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "bell.fill")
+                            Text("Send Test Notification to Parent")
+                        }
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.purple)
+                        .cornerRadius(25)
+                    }
+                    
                     if locationService.isUpdatingLocation {
                         HStack {
                             ProgressView()
@@ -1513,8 +1536,18 @@ struct ChildHomeView: View {
                     }
                 }
                 
-                // Error Message
+                // Error Messages
                 if let errorMessage = locationService.errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                
+                if let errorMessage = notificationService.errorMessage {
                     Text(errorMessage)
                         .font(.system(size: 14))
                         .foregroundColor(.red)
@@ -1550,12 +1583,18 @@ struct ChildHomeView: View {
                     }
                 }
                 
+                // Set current location in notification service
+                notificationService.setCurrentLocation(locationService.currentLocation)
             }
             .onDisappear {
                 // Stop geofence monitoring when view disappears
                 if let currentUser = authService.currentUser {
                     geofenceService.stopMonitoringAllGeofences()
                 }
+            }
+            .onChange(of: locationService.currentLocation) { newLocation in
+                // Update notification service when location changes
+                notificationService.setCurrentLocation(newLocation)
             }
         }
     }

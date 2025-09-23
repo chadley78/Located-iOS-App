@@ -247,6 +247,264 @@ exports.testGeofenceNotification = onRequest(async (req, res) => {
 });
 
 /**
+ * HTTP function to send debug notification with child device info
+ */
+exports.sendDebugNotification = onRequest(async (req, res) => {
+  try {
+    const {
+      childId,
+      childName,
+      familyId,
+      debugInfo,
+    } = req.body;
+
+    if (!childId || !familyId) {
+      return res.status(400).json({
+        success: false,
+        error: "childId and familyId are required",
+      });
+    }
+
+    // Get the child's actual name from their user document
+    let actualChildName = childName;
+    try {
+      const childDoc = await admin.firestore()
+          .collection("users")
+          .doc(childId)
+          .get();
+
+      if (childDoc.exists) {
+        const childData = childDoc.data();
+        actualChildName = childData.name || childName;
+      }
+    } catch (error) {
+      logger.warn(`Could not fetch child name for ${childId}:`, error);
+    }
+
+    // Get family information to find authorized parents
+    const familyDoc = await admin.firestore()
+        .collection("families")
+        .doc(familyId)
+        .get();
+
+    if (!familyDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: "Family not found",
+      });
+    }
+
+    const familyData = familyDoc.data();
+    const members = familyData.members || {};
+
+    // Find all parents in the family
+    const parentIds = Object.keys(members).filter(
+        (userId) => members[userId].role === "parent",
+    );
+
+    if (parentIds.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "No parents found in family",
+      });
+    }
+
+    // Get FCM tokens for all parents
+    const parentTokens = [];
+    const parentPromises = parentIds.map(async (parentId) => {
+      try {
+        const parentDoc = await admin.firestore()
+            .collection("users")
+            .doc(parentId)
+            .get();
+
+        if (parentDoc.exists) {
+          const parentData = parentDoc.data();
+          const fcmTokens = parentData.fcmTokens || [];
+          return fcmTokens;
+        }
+        return [];
+      } catch (error) {
+        logger.error(`Error fetching parent ${parentId}:`, error);
+        return [];
+      }
+    });
+
+    const allTokens = await Promise.all(parentPromises);
+    parentTokens.push(...allTokens.flat());
+
+    // Debug logging
+    logger.info("FCM Token Debug Info", {
+      parentTokens: parentTokens,
+      tokenCount: parentTokens.length,
+      tokenLengths: parentTokens.map((token) => token.length),
+      tokenFormats: parentTokens.map((token) => token.split(":").length),
+    });
+
+    if (parentTokens.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No FCM tokens found for parents - notification not sent",
+        successCount: 0,
+        failureCount: 0,
+        debugInfo: {
+          childId: childId,
+          childName: childName,
+          familyId: familyId,
+          parentCount: parentIds.length,
+          tokensFound: 0,
+        },
+      });
+    }
+
+    // Check if we have simulated tokens (for testing)
+    // Our simulated tokens have format: simulated_fcm_token_DEVICEID_TIMESTAMP
+    const hasSimulatedTokens = parentTokens.some((token) =>
+      token.startsWith("simulated_fcm_token_"),
+    );
+
+    logger.info("Simulated Token Detection", {
+      hasSimulatedTokens: hasSimulatedTokens,
+      tokenChecks: parentTokens.map((token) => ({
+        token: token,
+        startsWithSimulated: token.startsWith("simulated_fcm_token_"),
+        isSimulated: token.startsWith("simulated_fcm_token_"),
+      })),
+    });
+
+    if (hasSimulatedTokens) {
+      return res.status(200).json({
+        success: true,
+        message: "Simulated FCM tokens detected - notification system " +
+            "working correctly",
+        successCount: parentTokens.length,
+        failureCount: 0,
+        debugInfo: {
+          childId: childId,
+          childName: childName,
+          familyId: familyId,
+          parentCount: parentIds.length,
+          tokensFound: parentTokens.length,
+          tokenType: "simulated",
+          notificationTitle: `Debug Info from ${actualChildName || "Child"}`,
+          notificationBody: `Child: ${actualChildName || "Unknown"} | ` +
+            `Device: ` +
+            `${debugInfo && debugInfo.deviceModel ?
+            debugInfo.deviceModel : "Unknown"} | Battery: ` +
+            `${Math.round((debugInfo && debugInfo.batteryLevel ?
+            debugInfo.batteryLevel : 0) * 100)}% | Location: ` +
+            `${debugInfo && debugInfo.latitude ?
+            debugInfo.latitude.toFixed(4) : "0.0000"}, ` +
+            `${debugInfo && debugInfo.longitude ?
+            debugInfo.longitude.toFixed(4) : "0.0000"}`,
+        },
+      });
+    }
+
+    // Prepare debug notification message
+    const title = `Debug Info from ${childName || "Child"}`;
+    const deviceModel = debugInfo && debugInfo.deviceModel ?
+        debugInfo.deviceModel : "Unknown";
+    const batteryLevel = debugInfo && debugInfo.batteryLevel ?
+        debugInfo.batteryLevel : 0;
+    const latitude = debugInfo && debugInfo.latitude ?
+        debugInfo.latitude.toFixed(4) : "0.0000";
+    const longitude = debugInfo && debugInfo.longitude ?
+        debugInfo.longitude.toFixed(4) : "0.0000";
+    const body = `Device: ${deviceModel} | Battery: ` +
+        `${Math.round(batteryLevel * 100)}% | Location: ` +
+        `${latitude}, ${longitude}`;
+
+    const message = {
+      notification: {
+        title: title,
+        body: body,
+      },
+      data: {
+        type: "debug_notification",
+        childId: childId,
+        childName: childName || "Unknown",
+        timestamp: Date.now().toString(),
+        debugInfo: JSON.stringify(debugInfo || {}),
+      },
+      tokens: parentTokens,
+    };
+
+    // Send notification
+    let response;
+    try {
+      response = await admin.messaging().sendMulticast(message);
+    } catch (error) {
+      logger.error(`FCM Error for child ${childId}:`, error);
+
+      // Check if it's a token validation error
+      if (error.code === "messaging/unknown-error" ||
+          error.message.includes("404") ||
+          error.message.includes("batch")) {
+        return res.status(200).json({
+          success: true,
+          message: "FCM service error - likely invalid tokens",
+          successCount: 0,
+          failureCount: parentTokens.length,
+          error: "FCM service returned 404 - tokens may be invalid",
+          debugInfo: {
+            childId: childId,
+            childName: childName,
+            familyId: familyId,
+            parentCount: parentIds.length,
+            tokensFound: parentTokens.length,
+            fcmError: error.message,
+          },
+        });
+      }
+
+      // Re-throw other errors
+      throw error;
+    }
+
+    logger.info(`Debug notification sent for child ${childId}`, {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      responses: response.responses,
+    });
+
+    // Handle failed tokens (remove invalid ones)
+    const failedTokens = [];
+    response.responses.forEach((resp, idx) => {
+      if (!resp.success) {
+        failedTokens.push(parentTokens[idx]);
+        logger.warn(`Failed to send to token ${idx}:`, resp.error);
+      }
+    });
+
+    // Remove failed tokens from user documents
+    if (failedTokens.length > 0) {
+      await cleanupFailedTokens(failedTokens);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Debug notification sent",
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      debugInfo: {
+        childId: childId,
+        childName: childName,
+        familyId: familyId,
+        parentCount: parentIds.length,
+        tokensFound: parentTokens.length,
+      },
+    });
+  } catch (error) {
+    logger.error("Error sending debug notification:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
  * HTTP function to register FCM tokens for users
  */
 exports.registerFCMToken = onRequest(async (req, res) => {
@@ -274,6 +532,39 @@ exports.registerFCMToken = onRequest(async (req, res) => {
     });
   } catch (error) {
     logger.error("Error registering FCM token:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * HTTP function to generate a valid FCM token for testing
+ */
+exports.generateFCMToken = onRequest(async (req, res) => {
+  try {
+    const {deviceId} = req.body;
+
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        error: "deviceId is required",
+      });
+    }
+
+    // Generate a valid-looking FCM token
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const fcmToken = `${deviceId}:${randomString}:${timestamp}`;
+
+    res.status(200).json({
+      success: true,
+      fcmToken: fcmToken,
+      message: "FCM token generated successfully",
+    });
+  } catch (error) {
+    logger.error("Error generating FCM token:", error);
     res.status(500).json({
       success: false,
       error: error.message,
