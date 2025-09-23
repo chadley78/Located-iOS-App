@@ -1576,10 +1576,10 @@ struct ChildHomeView: View {
                 locationService.requestLocationPermission()
                 
                 // Start geofence monitoring for this child
-                if let currentUser = authService.currentUser, let userId = currentUser.id {
+                if let currentUser = authService.currentUser, let familyId = currentUser.familyId {
                     Task {
-                        await geofenceService.fetchGeofences(for: userId)
-                        geofenceService.startMonitoringGeofences(for: userId)
+                        await geofenceService.fetchGeofences(for: familyId)
+                        geofenceService.startMonitoringGeofences(for: familyId)
                     }
                 }
                 

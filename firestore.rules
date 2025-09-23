@@ -64,10 +64,13 @@ service cloud.firestore {
     // Geofence events collection - children can write events, family members can read
     match /geofence_events/{eventId} {
       // A child can write geofence events for themselves
-      allow write: if request.auth != null && request.auth.uid == resource.data.childId;
+      // Use request.resource.data for new documents, resource.data for existing ones
+      allow write: if request.auth != null && 
+                      (request.resource.data.childId == request.auth.uid || 
+                       resource.data.childId == request.auth.uid);
       
       // Any member of the same family can read geofence events
-      allow read: if isFamilyMember(resource.data.familyId);
+      allow read: if isFamilyMember(resource.data.familyId) || hasFamilyId(resource.data.familyId);
     }
 
     // Invitations collection - secure handling via Cloud Functions only

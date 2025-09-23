@@ -162,6 +162,7 @@ class GeofenceService: NSObject, ObservableObject {
     
     /// Fetch geofences for a specific family
     func fetchGeofences(for familyId: String) async {
+        print("🔍 Fetching geofences for familyId: \(familyId)")
         isLoading = true
         errorMessage = nil
         
@@ -171,8 +172,15 @@ class GeofenceService: NSObject, ObservableObject {
                 .whereField("isActive", isEqualTo: true)
                 .getDocuments()
             
+            print("📊 Found \(snapshot.documents.count) geofence documents")
+            
             let fetchedGeofences = snapshot.documents.compactMap { doc in
                 try? doc.data(as: Geofence.self)
+            }
+            
+            print("✅ Successfully parsed \(fetchedGeofences.count) geofences")
+            for geofence in fetchedGeofences {
+                print("📍 Geofence: \(geofence.name) at \(geofence.latitude), \(geofence.longitude) with radius \(geofence.radius)m")
             }
             
             await MainActor.run {
@@ -181,6 +189,7 @@ class GeofenceService: NSObject, ObservableObject {
             }
             
         } catch {
+            print("❌ Failed to fetch geofences: \(error.localizedDescription)")
             await MainActor.run {
                 self.errorMessage = "Failed to fetch geofences: \(error.localizedDescription)"
                 self.isLoading = false
@@ -251,15 +260,26 @@ class GeofenceService: NSObject, ObservableObject {
     
     /// Start monitoring all geofences for a family
     func startMonitoringGeofences(for familyId: String) {
+        print("🔍 Starting geofence monitoring for familyId: \(familyId)")
         let familyGeofences = geofences.filter { $0.familyId == familyId }
+        
+        print("📊 Found \(familyGeofences.count) geofences to monitor")
         
         for geofence in familyGeofences {
             startMonitoringGeofence(geofence)
+        }
+        
+        if familyGeofences.isEmpty {
+            print("⚠️ No geofences found to monitor for familyId: \(familyId)")
         }
     }
     
     /// Start monitoring a specific geofence
     private func startMonitoringGeofence(_ geofence: Geofence) {
+        print("🔍 Setting up monitoring for geofence: \(geofence.name)")
+        print("📍 Location: \(geofence.latitude), \(geofence.longitude)")
+        print("📏 Radius: \(geofence.radius)m")
+        
         let region = CLCircularRegion(
             center: CLLocationCoordinate2D(
                 latitude: geofence.latitude,
@@ -272,10 +292,23 @@ class GeofenceService: NSObject, ObservableObject {
         region.notifyOnEntry = true
         region.notifyOnExit = true
         
-        locationManager.startMonitoring(for: region)
-        monitoredRegions[geofence.id] = region
+        // Check if location services are available
+        guard CLLocationManager.locationServicesEnabled() else {
+            print("❌ Location services are not enabled")
+            return
+        }
         
-        print("📍 Started monitoring geofence: \(geofence.name)")
+        // Check authorization status
+        let authStatus = locationManager.authorizationStatus
+        print("🔐 Location authorization status: \(authStatus.rawValue)")
+        
+        if authStatus == .authorizedAlways || authStatus == .authorizedWhenInUse {
+            locationManager.startMonitoring(for: region)
+            monitoredRegions[geofence.id] = region
+            print("✅ Started monitoring geofence: \(geofence.name)")
+        } else {
+            print("❌ Location authorization not sufficient for geofence monitoring")
+        }
     }
     
     /// Stop monitoring a specific geofence
