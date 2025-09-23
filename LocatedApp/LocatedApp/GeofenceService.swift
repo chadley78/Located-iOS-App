@@ -367,6 +367,7 @@ class GeofenceService: NSObject, ObservableObject {
             
             try await db.collection("geofence_events").document(event.id).setData([
                 "id": event.id,
+                "familyId": event.familyId,
                 "childId": event.childId,
                 "childName": event.childName,
                 "geofenceId": event.geofenceId,

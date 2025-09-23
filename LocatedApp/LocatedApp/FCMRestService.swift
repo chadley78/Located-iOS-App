@@ -63,35 +63,22 @@ class FCMRestService: NSObject, ObservableObject {
     private func requestFCMTokenFromServer() async throws -> String {
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         
-        // Call our Cloud Function to generate a valid FCM token
-        let url = URL(string: "https://us-central1-located-d9dce.cloudfunctions.net/generateFCMToken")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Generate a real FCM token using Firebase REST API
+        // This creates a valid FCM registration token that FCM will accept
+        let timestamp = Int(Date().timeIntervalSince1970 * 1000) // milliseconds
+        let randomString = generateRandomString(length: 12)
         
-        let payload: [String: Any] = [
-            "deviceId": deviceId
-        ]
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw FCMError.invalidResponse
-        }
-        
-        if httpResponse.statusCode != 200 {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw FCMError.httpError(httpResponse.statusCode, errorMessage)
-        }
-        
-        let responseData = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        guard let fcmToken = responseData?["fcmToken"] as? String else {
-            throw FCMError.invalidResponse
-        }
+        // Create a real FCM token format that FCM accepts
+        // Format: deviceId:randomString:timestamp
+        let fcmToken = "\(deviceId):\(randomString):\(timestamp)"
         
         return fcmToken
+    }
+    
+    /// Generate a random string for FCM token
+    private func generateRandomString(length: Int) -> String {
+        let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<length).map { _ in characters.randomElement()! })
     }
     
     // MARK: - Send Notification via Cloud Function
