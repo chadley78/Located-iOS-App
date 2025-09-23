@@ -806,6 +806,7 @@ struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var notificationService: NotificationService
+    @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var mapViewModel = ParentMapViewModel()
     
@@ -1211,6 +1212,13 @@ struct ParentHomeView: View {
             Task {
                 await notificationService.registerFCMToken()
             }
+            
+            // Set current location in notification service
+            notificationService.setCurrentLocation(locationService.currentLocation)
+        }
+        .onChange(of: locationService.currentLocation) { newLocation in
+            // Update notification service when location changes
+            notificationService.setCurrentLocation(newLocation)
         }
     }
 }
