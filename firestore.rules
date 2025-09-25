@@ -79,6 +79,15 @@ service cloud.firestore {
       allow read, write: if false; // Disallow all client access
     }
 
+    // Pending children collection - family members can read pending children
+    match /pendingChildren/{pendingChildId} {
+      // Family members can read pending children for their family
+      allow read: if isFamilyMember(resource.data.familyId) || hasFamilyId(resource.data.familyId);
+      
+      // Only Cloud Functions can write pending children
+      allow write: if false; // Disallow all client access
+    }
+
     // Legacy collections - keeping for backward compatibility during migration
     // These will be removed once migration is complete
     

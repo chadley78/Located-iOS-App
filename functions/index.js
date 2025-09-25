@@ -214,24 +214,28 @@ async function cleanupFailedTokens(failedTokens) {
         .collection("users")
         .get();
 
-    const batch = admin.firestore().batch();
+    let batch = admin.firestore().batch();
     let batchCount = 0;
+    let totalRemoved = 0;
 
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
       const fcmTokens = userData.fcmTokens || [];
 
-      // Filter out failed tokens
+      // Filter out failed tokens and any remaining invalid old-format tokens
       const validTokens = fcmTokens.filter((token) =>
-        !failedTokens.includes(token),
+        !failedTokens.includes(token) &&
+        !token.includes(":"), // Old tokens contain colons
       );
 
       if (validTokens.length !== fcmTokens.length) {
+        totalRemoved += (fcmTokens.length - validTokens.length);
         batch.update(userDoc.ref, {fcmTokens: validTokens});
         batchCount++;
 
-        if (batchCount >= 500) { // Firestore batch limit
+        if (batchCount >= 499) { // Firestore batch limit is 500
           await batch.commit();
+          batch = admin.firestore().batch(); // Re-initialize batch
           batchCount = 0;
         }
       }
@@ -241,7 +245,9 @@ async function cleanupFailedTokens(failedTokens) {
       await batch.commit();
     }
 
-    logger.info(`Cleaned up ${failedTokens.length} failed FCM tokens`);
+    if (totalRemoved > 0) {
+      logger.info(`Cleaned up ${totalRemoved} invalid/simulated tokens.`);
+    }
   } catch (error) {
     logger.error("Error cleaning up failed tokens:", error);
   }
@@ -397,29 +403,25 @@ exports.sendDebugNotification = onRequest(async (req, res) => {
       });
     }
 
-    // Check if we have simulated tokens (for testing)
-    // Our simulated tokens have format: simulated_fcm_token_DEVICEID_TIMESTAMP
-    const hasSimulatedTokens = parentTokens.some((token) =>
-      token.startsWith("simulated_fcm_token_"),
-    );
+    // Check if we have invalid old-format tokens (for testing)
+    const invalidTokens = parentTokens.filter((token) => token.includes(":"));
 
     // For real FCM tokens, we'll try to send actual notifications
     // Real tokens have format: deviceId:randomString:timestamp
-
-    logger.info("Simulated Token Detection", {
-      hasSimulatedTokens: hasSimulatedTokens,
+    logger.info("Invalid Token Detection", {
+      hasInvalidTokens: invalidTokens.length > 0,
+      invalidTokens: invalidTokens, // Log which tokens are invalid
       tokenChecks: parentTokens.map((token) => ({
         token: token,
-        startsWithSimulated: token.startsWith("simulated_fcm_token_"),
-        isSimulated: token.startsWith("simulated_fcm_token_"),
+        includesColon: token.includes(":"),
+        isInvalid: token.includes(":"),
       })),
     });
 
-    if (hasSimulatedTokens) {
+    if (invalidTokens.length > 0) {
       return res.status(200).json({
         success: true,
-        message: "Simulated FCM tokens detected - notification system " +
-            "working correctly",
+        message: "Invalid (old-format) FCM tokens detected.",
         successCount: parentTokens.length,
         failureCount: 0,
         debugInfo: {
@@ -428,7 +430,8 @@ exports.sendDebugNotification = onRequest(async (req, res) => {
           familyId: familyId,
           parentCount: parentIds.length,
           tokensFound: parentTokens.length,
-          tokenType: "simulated",
+          tokenType: "invalid_format",
+          invalidTokens: invalidTokens, // Include in response
           notificationTitle: `Debug Info from ${actualChildName || "Child"}`,
           notificationBody: `Child: ${actualChildName || "Unknown"} | ` +
             `Device: ` +
@@ -500,6 +503,7 @@ exports.sendDebugNotification = onRequest(async (req, res) => {
             familyId: familyId,
             parentCount: parentIds.length,
             tokensFound: parentTokens.length,
+            tokensAttempted: parentTokens, // Include the invalid tokens
             fcmError: error.message,
           },
         });
@@ -628,6 +632,57 @@ exports.generateFCMToken = onRequest(async (req, res) => {
 });
 
 /**
+ * HTTP function to clear all invalid, old-format FCM tokens from all users.
+ * This is a utility function to be run manually for cleanup.
+ * It identifies invalid tokens by checking for the presence of a colon ":".
+ */
+exports.cleanupInvalidTokens = onRequest(async (req, res) => {
+  try {
+    logger.info("Starting cleanup of invalid FCM tokens...");
+
+    const usersSnapshot = await admin.firestore().collection("users").get();
+    const batch = admin.firestore().batch();
+    let cleanedUsersCount = 0;
+    let cleanedTokensCount = 0;
+
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      const fcmTokens = userData.fcmTokens || [];
+
+      // Filter out invalid tokens (any token containing a colon is old format)
+      const validTokens = fcmTokens.filter(
+          (token) => !token.includes(":"),
+      );
+
+      if (validTokens.length !== fcmTokens.length) {
+        const removedCount = fcmTokens.length - validTokens.length;
+        cleanedTokensCount += removedCount;
+        cleanedUsersCount++;
+
+        batch.update(userDoc.ref, {fcmTokens: validTokens});
+        logger.info(`User ${userDoc.id}: Removing ${removedCount} ` +
+          `invalid tokens.`);
+      }
+    }
+
+    if (cleanedUsersCount > 0) {
+      await batch.commit();
+      const message = `Cleanup complete. ` +
+        `Removed ${cleanedTokensCount} tokens from ${cleanedUsersCount} users.`;
+      logger.info(message);
+      res.status(200).json({success: true, message: message});
+    } else {
+      const message = "No invalid tokens found to clean up.";
+      logger.info(message);
+      res.status(200).json({success: true, message: message});
+    }
+  } catch (error) {
+    logger.error("Error clearing invalid FCM tokens:", error);
+    res.status(500).json({success: false, error: error.message});
+  }
+});
+
+/**
  * Callable Cloud Function to create a family invitation
  * Parent calls this to generate an invite code for their child
  */
@@ -706,15 +761,40 @@ exports.createInvitation = onCall(async (request) => {
       isForExistingChild: !!existingChild, // Flag for existing child
     };
 
-    await admin.firestore()
-        .collection("invitations")
-        .doc(inviteCode)
-        .set(invitationData);
+    // Create pending child document
+    const pendingChildId = uuidv4();
+    const pendingChildData = {
+      id: pendingChildId,
+      invitationCode: inviteCode,
+      name: childName,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      imageBase64: null,
+      status: "pending",
+      familyId: familyId,
+    };
 
-    logger.info(`Invitation created: ${inviteCode}`, {
+    // Use batch to create both documents atomically
+    const batch = admin.firestore().batch();
+
+    // Add invitation document
+    batch.set(
+        admin.firestore().collection("invitations").doc(inviteCode),
+        invitationData,
+    );
+
+    // Add pending child document
+    batch.set(
+        admin.firestore().collection("pendingChildren").doc(pendingChildId),
+        pendingChildData,
+    );
+
+    await batch.commit();
+
+    logger.info(`Invitation and pending child created: ${inviteCode}`, {
       familyId: familyId,
       createdBy: parentId,
       childName: childName,
+      pendingChildId: pendingChildId,
       isForExistingChild: !!existingChild,
     });
 
@@ -840,14 +920,29 @@ exports.acceptInvitation = onCall(async (request) => {
           throw error;
         }
 
-        // Mark invitation as used by the new child
-        await admin.firestore()
-            .collection("invitations")
-            .doc(inviteCode)
-            .update({
+        // Mark invitation as used by the new child and remove pending child
+        const batch = admin.firestore().batch();
+
+        // Mark invitation as used
+        batch.update(
+            admin.firestore().collection("invitations").doc(inviteCode),
+            {
               usedBy: childId,
               usedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
+            },
+        );
+
+        // Remove pending child document
+        const pendingChildrenQuery = await admin.firestore()
+            .collection("pendingChildren")
+            .where("invitationCode", "==", inviteCode)
+            .get();
+
+        pendingChildrenQuery.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
 
         logger.info(`Invitation accepted for existing child: ${inviteCode}`, {
           existingChildId: existingChildId,
@@ -898,14 +993,29 @@ exports.acceptInvitation = onCall(async (request) => {
         throw error;
       }
 
+      // Mark invitation as used and remove pending child
+      const batch = admin.firestore().batch();
+
       // Mark invitation as used
-      await admin.firestore()
-          .collection("invitations")
-          .doc(inviteCode)
-          .update({
+      batch.update(
+          admin.firestore().collection("invitations").doc(inviteCode),
+          {
             usedBy: childId,
             usedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
+          },
+      );
+
+      // Remove pending child document
+      const pendingChildrenQuery = await admin.firestore()
+          .collection("pendingChildren")
+          .where("invitationCode", "==", inviteCode)
+          .get();
+
+      pendingChildrenQuery.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
 
       logger.info(`Invitation accepted for new child: ${inviteCode}`, {
         childId: childId,

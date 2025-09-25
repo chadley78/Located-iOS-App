@@ -5,80 +5,10 @@ import UIKit
 // MARK: - FCM REST Service
 @MainActor
 class FCMRestService: NSObject, ObservableObject {
-    @Published var fcmToken: String?
-    @Published var isRegistered = false
-    @Published var errorMessage: String?
-    
     private let cloudFunctionEndpoint = "https://us-central1-located-d9dce.cloudfunctions.net/sendDebugNotification"
     
     override init() {
         super.init()
-    }
-    
-    // MARK: - FCM Token Generation
-    
-    /// Generate a valid FCM token using the REST API
-    func generateFCMToken() async -> String? {
-        do {
-            // Request notification permission first
-            let hasPermission = await requestNotificationPermission()
-            guard hasPermission else {
-                await MainActor.run {
-                    self.errorMessage = "Notification permission required"
-                }
-                return nil
-            }
-            
-            // Generate a valid FCM token using the REST API
-            let token = try await requestFCMTokenFromServer()
-            await MainActor.run {
-                self.fcmToken = token
-                self.isRegistered = true
-                self.errorMessage = nil
-            }
-            return token
-            
-        } catch {
-            await MainActor.run {
-                self.errorMessage = "Failed to generate FCM token: \(error.localizedDescription)"
-            }
-            return nil
-        }
-    }
-    
-    /// Request notification permissions
-    private func requestNotificationPermission() async -> Bool {
-        do {
-            let granted = try await UNUserNotificationCenter.current().requestAuthorization(
-                options: [.alert, .badge, .sound]
-            )
-            return granted
-        } catch {
-            print("❌ Failed to request notification permission: \(error)")
-            return false
-        }
-    }
-    
-    /// Request FCM token from Firebase using REST API
-    private func requestFCMTokenFromServer() async throws -> String {
-        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        
-        // Generate a real FCM token using Firebase REST API
-        // This creates a valid FCM registration token that FCM will accept
-        let timestamp = Int(Date().timeIntervalSince1970 * 1000) // milliseconds
-        let randomString = generateRandomString(length: 12)
-        
-        // Create a real FCM token format that FCM accepts
-        // Format: deviceId:randomString:timestamp
-        let fcmToken = "\(deviceId):\(randomString):\(timestamp)"
-        
-        return fcmToken
-    }
-    
-    /// Generate a random string for FCM token
-    private func generateRandomString(length: Int) -> String {
-        let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return String((0..<length).map { _ in characters.randomElement()! })
     }
     
     // MARK: - Send Notification via Cloud Function

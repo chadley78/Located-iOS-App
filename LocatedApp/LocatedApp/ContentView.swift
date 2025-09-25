@@ -4,13 +4,13 @@ import FirebaseFirestore
 import UIKit
 import MapKit
 import PhotosUI
+import Combine
 
 struct ContentView: View {
     let invitationCode: String?
     @StateObject private var authService = AuthenticationService()
     @StateObject private var locationService = LocationService()
     @EnvironmentObject var familyService: FamilyService
-    @EnvironmentObject var notificationService: NotificationService
     
     init(invitationCode: String? = nil) {
         self.invitationCode = invitationCode
@@ -43,9 +43,6 @@ struct ContentView: View {
         }
         .animation(.easeInOut, value: authService.isAuthenticated)
         .onAppear {
-            // Set notification service in auth service
-            authService.setNotificationService(notificationService)
-            
             // Start location service when app appears
             if authService.isAuthenticated {
                 locationService.requestLocationPermission()
@@ -805,8 +802,6 @@ struct MainTabView: View {
 struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
-    @EnvironmentObject var notificationService: NotificationService
-    @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var mapViewModel = ParentMapViewModel()
     
@@ -818,408 +813,334 @@ struct ParentHomeView: View {
     
     var body: some View {
         ZStack {
-            mapSection
-            overlayPanel
-        }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.large)
-        .sheet(isPresented: $showingFamilySetup) {
-            FamilySetupView()
-                .environmentObject(authService)
-        }
-        .sheet(isPresented: $showingFamilyManagement) {
-            FamilyManagementView()
-                .environmentObject(authService)
-        }
-        .onAppear {
-            // Start listening for children locations when view appears
-            if let parentId = authService.currentUser?.id, !parentId.isEmpty {
-                mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
-            }
-            
-            // Register for push notifications when parent app loads
-            Task {
-                await notificationService.registerFCMToken()
-            }
-        }
-    }
-    
-    // MARK: - Map Section
-    private var mapSection: some View {
-        ZStack {
-            MapViewRepresentable(
-                childrenLocations: mapViewModel.childrenLocations,
-                region: $mapViewModel.region,
-                mapViewModel: mapViewModel,
-                familyService: familyService
-            )
-            .ignoresSafeArea()
-            .padding(.bottom, 50)
-            
-            // White background to fill the gap
-            VStack {
-                Spacer()
-                Rectangle()
-                    .fill(Color(UIColor.systemBackground))
-                    .frame(height: 50)
-                    .ignoresSafeArea(.all, edges: .bottom)
-            }
-            
-            // Map Controls Overlay
-            VStack {
-                HStack {
-                    Spacer()
-                    
-                    VStack(spacing: 12) {
-                        // Center on children button
-                        Button(action: {
-                            mapViewModel.centerOnChildren()
-                        }) {
-                            Image(systemName: "location.fill")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                        
-                        // Refresh button
-                        Button(action: {
-                            mapViewModel.refreshChildrenLocations()
-                        }) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.green)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                    }
-                }
-                .padding(.trailing, 20)
-                .padding(.top, 20)
-                
-                Spacer()
-            }
-        }
-    }
-    
-    // MARK: - Overlay Panel
-    private var overlayPanel: some View {
-        VStack {
-            Spacer()
-            
-            VStack(spacing: 0) {
-                dragHandle
-                panelContent
-            }
-            .background(
-                Color(UIColor.systemBackground)
-                    .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
-            )
-            .frame(height: UIScreen.main.bounds.height * panelHeight + dragOffset)
-            .offset(y: max(0, -scrollOffset * 0.3))
-        }
-    }
-    
-    // MARK: - Drag Handle
-    private var dragHandle: some View {
-        RoundedRectangle(cornerRadius: 2.5)
-            .fill(Color.secondary)
-            .frame(width: 40, height: 5)
-            .padding(.vertical, 8)
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        let screenHeight = UIScreen.main.bounds.height
-                        let newHeight = panelHeight - (value.translation.height / screenHeight)
-                        let clampedHeight = max(0.15, min(0.8, newHeight))
-                        dragOffset = (clampedHeight - panelHeight) * screenHeight
-                    }
-                    .onEnded { value in
-                        let screenHeight = UIScreen.main.bounds.height
-                        let newHeight = panelHeight - (value.translation.height / screenHeight)
-                        let clampedHeight = max(0.15, min(0.8, newHeight))
-                        
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            panelHeight = clampedHeight
-                            dragOffset = 0
-                        }
-                    }
-            )
-    }
-    
-    // MARK: - Panel Content
-    private var panelContent: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 20) {
-                    familyOverviewSection
-                    quickActionsSection
-                    Color.clear.frame(height: 50) // Bottom padding for safe area
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .background(
-                    GeometryReader { geometry in
-                        Color.clear
-                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
-                    }
+            // Map Section (Full Screen)
+            ZStack {
+                MapViewRepresentable(
+                    childrenLocations: mapViewModel.childrenLocations,
+                    region: $mapViewModel.region,
+                    mapViewModel: mapViewModel,
+                    familyService: familyService
                 )
-            }
-            .coordinateSpace(name: "scroll")
-            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                scrollOffset = value
-            }
-        }
-    }
-    
-    // MARK: - Family Overview Section
-    private var familyOverviewSection: some View {
-        VStack(spacing: 16) {
-            Text("Family Overview")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            if let family = familyService.currentFamily {
-                let children = familyService.getChildren()
-                if children.isEmpty {
-                    noChildrenState
-                } else {
-                    childrenList(children: children)
-                }
-            } else {
-                noFamilyState
-            }
-        }
-    }
-    
-    // MARK: - No Children State
-    private var noChildrenState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "person.2")
-                .font(.system(size: 40))
-                .foregroundColor(.gray)
-            
-            Text("No Children Added")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            Text("Add children to your family to start tracking their locations.")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button("Add Child") {
-                showingFamilyManagement = true
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(Color.blue)
-            .cornerRadius(12)
-            .padding(.horizontal)
-        }
-        .padding()
-        .background(Color(UIColor.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    // MARK: - Children List
-    private func childrenList(children: [(String, FamilyMember)]) -> some View {
-        VStack(spacing: 8) {
-            ForEach(children, id: \.0) { childId, child in
-                Button(action: {
-                    mapViewModel.centerOnChild(childId: childId)
-                }) {
-                    HStack {
-                        // Child pin with color
-                        Circle()
-                            .fill(Color(mapViewModel.getColorForChild(childId: childId)))
-                            .frame(width: 12, height: 12)
-                        
-                        Text(child.name)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color(UIColor.systemGray6))
-                    .cornerRadius(8)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-        }
-    }
-    
-    // MARK: - No Family State
-    private var noFamilyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "house")
-                .font(.system(size: 40))
-                .foregroundColor(.gray)
-            
-            Text("No Family Created")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            Text("Create a family to start tracking your children and setting up geofences.")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button("Create Family") {
-                showingFamilySetup = true
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(Color.blue)
-            .cornerRadius(12)
-            .padding(.horizontal)
-        }
-        .padding()
-        .background(Color(UIColor.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    // MARK: - Quick Actions Section
-    private var quickActionsSection: some View {
-        VStack(spacing: 16) {
-            Text("Quick Actions")
-                .font(.headline)
-            
-            VStack(spacing: 12) {
-                // Family Management Button
-                NavigationLink(destination: ChildrenListView()) {
-                    HStack {
-                        Image(systemName: "person.2.fill")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                        Text("My Family")
-                            .font(.headline)
-                            .foregroundColor(.blue)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                    }
-                    .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(12)
+                .ignoresSafeArea()
+                .padding(.bottom, 50)
+                
+                // White background to fill the gap
+                VStack {
+                    Spacer()
+                    Rectangle()
+                        .fill(Color(UIColor.systemBackground))
+                        .frame(height: 50)
+                        .ignoresSafeArea(.all, edges: .bottom)
                 }
                 
-                // Location Alerts Button
-                NavigationLink(destination: GeofenceManagementView(familyId: familyService.currentFamily?.id ?? "")) {
+                // Map Controls Overlay
+                VStack {
                     HStack {
-                        Image(systemName: "location.circle")
-                            .font(.title2)
-                            .foregroundColor(.orange)
-                        Text("Location Alerts")
-                            .font(.headline)
-                            .foregroundColor(.orange)
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    }
-                    .padding()
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(12)
-                }
-                .disabled(familyService.currentFamily == nil)
-                
-                // Settings Button
-                NavigationLink(destination: SettingsView()) {
-                    HStack {
-                        Image(systemName: "gear")
-                            .font(.title2)
-                            .foregroundColor(.gray)
-                        Text("Settings")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(12)
-                }
-                
-                // Test Notification Button
-                Button(action: {
-                    Task {
-                        await notificationService.sendTestNotification()
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "bell.fill")
-                            .font(.title2)
-                            .foregroundColor(.purple)
-                        Text("Test Notification")
-                            .font(.headline)
-                            .foregroundColor(.purple)
-                        Spacer()
-                        if let errorMessage = notificationService.errorMessage {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption)
-                                .foregroundColor(.red)
+                        
+                        VStack(spacing: 12) {
+                            // Center on children button
+                            Button(action: {
+                                mapViewModel.centerOnChildren()
+                            }) {
+                                Image(systemName: "location.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.blue)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
+                            }
+                            
+                            // Refresh button
+                            Button(action: {
+                                mapViewModel.refreshChildrenLocations()
+                            }) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.green)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
+                            }
                         }
                     }
-                    .padding()
-                    .background(Color.purple.opacity(0.1))
-                    .cornerRadius(12)
+                    .padding(.trailing, 20)
+                    .padding(.top, 20)
+                    
+                    Spacer()
                 }
-                .disabled(notificationService.isLoading)
+            }
+            
+            // Overlay Panel (Higher Z-Index with Drag)
+            VStack {
+                Spacer()
                 
-                if let errorMessage = notificationService.errorMessage {
-                    Text("⚠️ \(errorMessage)")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
+                VStack(spacing: 0) {
+                    // Drag Handle
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(Color.secondary)
+                        .frame(width: 40, height: 5)
+                        .padding(.vertical, 8)
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    let screenHeight = UIScreen.main.bounds.height
+                                    // Invert the translation: dragging up (negative height) should increase panel size
+                                    let newHeight = panelHeight - (value.translation.height / screenHeight)
+                                    let clampedHeight = max(0.15, min(0.8, newHeight)) // Between 15% and 80%
+                                    dragOffset = (clampedHeight - panelHeight) * screenHeight
+                                }
+                                .onEnded { value in
+                                    let screenHeight = UIScreen.main.bounds.height
+                                    // Invert the translation: dragging up (negative height) should increase panel size
+                                    let newHeight = panelHeight - (value.translation.height / screenHeight)
+                                    let clampedHeight = max(0.15, min(0.8, newHeight))
+                                    
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        panelHeight = clampedHeight
+                                        dragOffset = 0
+                                    }
+                                }
+                        )
+                    
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(spacing: 20) {
+                            // Children List Section
+                            VStack(spacing: 16) {
+                                Text("Family Overview")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                            
+                            if let family = familyService.currentFamily {
+                                let allChildren = familyService.getAllChildren()
+                                if allChildren.isEmpty {
+                                    // No children state
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "person.2")
+                                            .font(.system(size: 40))
+                                            .foregroundColor(.gray)
+                                        
+                                        Text("No Children Added")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Text("Add children to your family to start tracking their locations.")
+                                            .font(.body)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal)
+                                        
+                                        Button("Add Child") {
+                                            showingFamilyManagement = true
+                                        }
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 50)
+                                        .background(Color.blue)
+                                        .cornerRadius(12)
+                                        .padding(.horizontal)
+                                    }
+                                    .padding()
+                                    .background(Color(UIColor.systemGray6))
+                                    .cornerRadius(12)
+                                } else {
+                                    // Children list (pending + accepted)
+                                    VStack(spacing: 8) {
+                                        ForEach(allChildren, id: \.id) { child in
+                                            Button(action: {
+                                                if !child.isPending {
+                                                    mapViewModel.centerOnChild(childId: child.id)
+                                                }
+                                            }) {
+                                                HStack {
+                                                    // Child pin with color or pending indicator
+                                                    if child.isPending {
+                                                        Circle()
+                                                            .fill(Color.orange)
+                                                            .frame(width: 12, height: 12)
+                                                    } else {
+                                                        Circle()
+                                                            .fill(Color(mapViewModel.getColorForChild(childId: child.id)))
+                                                            .frame(width: 12, height: 12)
+                                                    }
+                                                    
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        Text(child.name)
+                                                            .font(.headline)
+                                                            .foregroundColor(.primary)
+                                                        
+                                                        if child.isPending {
+                                                            Text("• \(child.status.displayName)")
+                                                                .font(.caption)
+                                                                .foregroundColor(.orange)
+                                                                .fontWeight(.medium)
+                                                        }
+                                                    }
+                                                    
+                                                    Spacer()
+                                                    
+                                                    if !child.isPending {
+                                                        Image(systemName: "chevron.right")
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                    }
+                                                }
+                                                .padding()
+                                                .background(Color(UIColor.systemGray6))
+                                                .cornerRadius(8)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                            .disabled(child.isPending)
+                                        }
+                                    }
+                                }
+                            } else {
+                                // No family state
+                                VStack(spacing: 16) {
+                                    Image(systemName: "house")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.gray)
+                                    
+                                    Text("No Family Created")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text("Create a family to start tracking your children and setting up geofences.")
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal)
+                                    
+                                    Button("Create Family") {
+                                        showingFamilySetup = true
+                                    }
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 50)
+                                    .background(Color.blue)
+                                    .cornerRadius(12)
+                                    .padding(.horizontal)
+                                }
+                                .padding()
+                                .background(Color(UIColor.systemGray6))
+                                .cornerRadius(12)
+                            }
+                        }
+                        
+                        // Quick Actions Section
+                        VStack(spacing: 16) {
+                            Text("Quick Actions")
+                                .font(.headline)
+                            
+                            VStack(spacing: 12) {
+                                // Family Management Button
+                                NavigationLink(destination: ChildrenListView()) {
+                                    HStack {
+                                        Image(systemName: "person.2.fill")
+                                            .font(.title2)
+                                            .foregroundColor(.blue)
+                                        Text("My Family")
+                                            .font(.headline)
+                                            .foregroundColor(.blue)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.blue)
+                                    }
+                                    .padding()
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(12)
+                                }
+                                
+                                // Location Alerts Button
+                                NavigationLink(destination: GeofenceManagementView(familyId: familyService.currentFamily?.id ?? "")) {
+                                    HStack {
+                                        Image(systemName: "location.circle")
+                                            .font(.title2)
+                                            .foregroundColor(.orange)
+                                        Text("Location Alerts")
+                                            .font(.headline)
+                                            .foregroundColor(.orange)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.orange)
+                                    }
+                                    .padding()
+                                    .background(Color.orange.opacity(0.1))
+                                    .cornerRadius(12)
+                                }
+                                .disabled(familyService.currentFamily == nil)
+                                
+                                // Settings Button
+                                NavigationLink(destination: SettingsView()) {
+                                    HStack {
+                                        Image(systemName: "gear")
+                                            .font(.title2)
+                                            .foregroundColor(.gray)
+                                        Text("Settings")
+                                            .font(.headline)
+                                            .foregroundColor(.gray)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding()
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(12)
+                                }
+                            }
+                        }
+                        
+                                // Bottom padding for safe area
+                                Color.clear.frame(height: 50)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
+                            .background(
+                                GeometryReader { geometry in
+                                    Color.clear
+                                        .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                                }
+                            )
+                        }
+                        .coordinateSpace(name: "scroll")
+                        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                            scrollOffset = value
+                        }
+                    }
+                }
+                .background(
+                    Color(UIColor.systemBackground)
+                        .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
+                )
+                .frame(height: UIScreen.main.bounds.height * panelHeight + dragOffset)
+                .offset(y: max(0, -scrollOffset * 0.3)) // Reduced parallax effect
+            }
+        }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showingFamilySetup) {
+                FamilySetupView()
+                    .environmentObject(authService)
+            }
+            .sheet(isPresented: $showingFamilyManagement) {
+                FamilyManagementView()
+                    .environmentObject(authService)
+            }
+            .onAppear {
+                // Start listening for children locations when view appears
+                if let parentId = authService.currentUser?.id, !parentId.isEmpty {
+                    mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
                 }
             }
-        }
-        .sheet(isPresented: $showingFamilySetup) {
-            FamilySetupView()
-                .environmentObject(authService)
-        }
-        .sheet(isPresented: $showingFamilyManagement) {
-            FamilyManagementView()
-                .environmentObject(authService)
-        }
-        .onAppear {
-            // Start listening for children locations when view appears
-            if let parentId = authService.currentUser?.id, !parentId.isEmpty {
-                mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
-            }
-            
-            // Register for push notifications when parent app loads
-            Task {
-                await notificationService.registerFCMToken()
-            }
-            
-            // Set current location in notification service
-            notificationService.setCurrentLocation(locationService.currentLocation)
-        }
-        .onChange(of: locationService.currentLocation) { newLocation in
-            // Update notification service when location changes
-            notificationService.setCurrentLocation(newLocation)
-        }
     }
 }
 
@@ -1465,7 +1386,6 @@ struct ChildHomeView: View {
     @EnvironmentObject var locationService: LocationService
     @EnvironmentObject var familyService: FamilyService
     @StateObject private var geofenceService = GeofenceService()
-    @StateObject private var notificationService = NotificationService()
     @State private var showingLocationPermissionAlert = false
     
     var body: some View {
@@ -1603,24 +1523,6 @@ struct ChildHomeView: View {
                         .cornerRadius(25)
                     }
                     
-                    // Test Notification Button
-                    Button(action: {
-                        Task {
-                            await notificationService.sendTestNotification()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "bell.fill")
-                            Text("Send Test Notification to Parent")
-                        }
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.purple)
-                        .cornerRadius(25)
-                    }
-                    
                     if locationService.isUpdatingLocation {
                         HStack {
                             ProgressView()
@@ -1632,18 +1534,8 @@ struct ChildHomeView: View {
                     }
                 }
                 
-                // Error Messages
+                // Error Message
                 if let errorMessage = locationService.errorMessage {
-                    Text(errorMessage)
-                        .font(.system(size: 14))
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                
-                if let errorMessage = notificationService.errorMessage {
                     Text(errorMessage)
                         .font(.system(size: 14))
                         .foregroundColor(.red)
@@ -1672,15 +1564,13 @@ struct ChildHomeView: View {
                 locationService.requestLocationPermission()
                 
                 // Start geofence monitoring for this child
-                if let currentUser = authService.currentUser, let familyId = currentUser.familyId {
+                if let currentUser = authService.currentUser, let userId = currentUser.id {
                     Task {
-                        await geofenceService.fetchGeofences(for: familyId)
-                        geofenceService.startMonitoringGeofences(for: familyId)
+                        await geofenceService.fetchGeofences(for: userId)
+                        geofenceService.startMonitoringGeofences(for: userId)
                     }
                 }
                 
-                // Set current location in notification service
-                notificationService.setCurrentLocation(locationService.currentLocation)
             }
             .onDisappear {
                 // Stop geofence monitoring when view disappears
@@ -1688,10 +1578,13 @@ struct ChildHomeView: View {
                     geofenceService.stopMonitoringAllGeofences()
                 }
             }
-            .onChange(of: locationService.currentLocation) { newLocation in
-                // Update notification service when location changes
-                notificationService.setCurrentLocation(newLocation)
-            }
+        }
+        .onAppear {
+            // Debug logging for ParentHomeView
+            print("🔍 ParentHomeView - Family members: \(familyService.getFamilyMembers().count)")
+            print("🔍 ParentHomeView - All children: \(familyService.getAllChildren().count)")
+            print("🔍 ParentHomeView - Pending children: \(familyService.pendingChildren.count)")
+            print("🔍 ParentHomeView - Pending children data: \(familyService.pendingChildren)")
         }
     }
     
@@ -1745,7 +1638,7 @@ struct ChildrenListView: View {
                             .font(.title2)
                             .fontWeight(.semibold)
                         
-                        Text("\(familyService.getFamilyMembers().count) members")
+                        Text("\(familyService.getFamilyMembers().count + familyService.pendingChildren.count) members")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -1760,47 +1653,14 @@ struct ChildrenListView: View {
                             .padding(.horizontal)
                         
                         let sortedMembers = getSortedFamilyMembers()
+                        let allChildren = familyService.getAllChildren()
                         
-                        if sortedMembers.count <= 5 {
+                        if sortedMembers.count + allChildren.count <= 5 {
                             // Show as VStack for small lists (no scroll needed)
                             VStack(spacing: 8) {
+                                // Show parents first
                                 ForEach(sortedMembers, id: \.0) { userId, member in
-                                    if member.role == .child {
-                                        Button(action: {
-                                            childProfileData.setChild(id: userId, name: member.name)
-                                        }) {
-                                            HStack {
-                                                Image(systemName: "person.fill")
-                                                    .foregroundColor(.green)
-                                                    .frame(width: 24)
-                                                
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(member.name)
-                                                        .font(.headline)
-                                                    
-                                                    Text("Child")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
-                                                }
-                                                
-                                                Spacer()
-                                                
-                                                Circle()
-                                                    .fill(Color.green)
-                                                    .frame(width: 8, height: 8)
-                                                
-                                                Image(systemName: "chevron.right")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            .padding(.vertical, 4)
-                                            .padding(.horizontal, 12)
-                                            .background(Color(UIColor.systemBackground))
-                                            .cornerRadius(8)
-                                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                    } else {
+                                    if member.role == .parent {
                                         HStack {
                                             Image(systemName: "person.fill")
                                                 .foregroundColor(.blue)
@@ -1828,48 +1688,66 @@ struct ChildrenListView: View {
                                         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                     }
                                 }
+                                
+                                // Show all children (pending + accepted)
+                                ForEach(allChildren, id: \.id) { child in
+                                    Button(action: {
+                                        if !child.isPending {
+                                            childProfileData.setChild(id: child.id, name: child.name)
+                                        }
+                                    }) {
+                                        HStack {
+                                            Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
+                                                .foregroundColor(child.isPending ? .orange : .green)
+                                                .frame(width: 24)
+                                            
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(child.name)
+                                                    .font(.headline)
+                                                
+                                                HStack(spacing: 4) {
+                                                    Text("Child")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                    
+                                                    if child.isPending {
+                                                        Text("• \(child.status.displayName)")
+                                                            .font(.caption)
+                                                            .foregroundColor(.orange)
+                                                            .fontWeight(.medium)
+                                                    }
+                                                }
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Circle()
+                                                .fill(child.isPending ? .orange : .green)
+                                                .frame(width: 8, height: 8)
+                                            
+                                            if !child.isPending {
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        .padding(.vertical, 4)
+                                        .padding(.horizontal, 12)
+                                        .background(Color(UIColor.systemBackground))
+                                        .cornerRadius(8)
+                                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .disabled(child.isPending)
+                                }
                             }
                         } else {
                             // Show as ScrollView for larger lists
                             ScrollView {
                                 LazyVStack(spacing: 8) {
+                                    // Show parents first
                                     ForEach(sortedMembers, id: \.0) { userId, member in
-                                        if member.role == .child {
-                                            Button(action: {
-                                                childProfileData.setChild(id: userId, name: member.name)
-                                            }) {
-                                                HStack {
-                                                    Image(systemName: "person.fill")
-                                                        .foregroundColor(.green)
-                                                        .frame(width: 24)
-                                                    
-                                                    VStack(alignment: .leading, spacing: 2) {
-                                                        Text(member.name)
-                                                            .font(.headline)
-                                                        
-                                                        Text("Child")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                    
-                                                    Spacer()
-                                                    
-                                                    Circle()
-                                                        .fill(Color.green)
-                                                        .frame(width: 8, height: 8)
-                                                    
-                                                    Image(systemName: "chevron.right")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
-                                                }
-                                                .padding(.vertical, 4)
-                                                .padding(.horizontal, 12)
-                                                .background(Color(UIColor.systemBackground))
-                                                .cornerRadius(8)
-                                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                                            }
-                                            .buttonStyle(PlainButtonStyle())
-                                        } else {
+                                        if member.role == .parent {
                                             HStack {
                                                 Image(systemName: "person.fill")
                                                     .foregroundColor(.blue)
@@ -1896,6 +1774,58 @@ struct ChildrenListView: View {
                                             .cornerRadius(8)
                                             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                         }
+                                    }
+                                    
+                                    // Show all children (pending + accepted)
+                                    ForEach(allChildren, id: \.id) { child in
+                                        Button(action: {
+                                            if !child.isPending {
+                                                childProfileData.setChild(id: child.id, name: child.name)
+                                            }
+                                        }) {
+                                            HStack {
+                                                Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
+                                                    .foregroundColor(child.isPending ? .orange : .green)
+                                                    .frame(width: 24)
+                                                
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(child.name)
+                                                        .font(.headline)
+                                                    
+                                                    HStack(spacing: 4) {
+                                                        Text("Child")
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                        
+                                                        if child.isPending {
+                                                            Text("• \(child.status.displayName)")
+                                                                .font(.caption)
+                                                                .foregroundColor(.orange)
+                                                                .fontWeight(.medium)
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                Circle()
+                                                    .fill(child.isPending ? .orange : .green)
+                                                    .frame(width: 8, height: 8)
+                                                
+                                                if !child.isPending {
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                            .padding(.vertical, 4)
+                                            .padding(.horizontal, 12)
+                                            .background(Color(UIColor.systemBackground))
+                                            .cornerRadius(8)
+                                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .disabled(child.isPending)
                                     }
                                 }
                                 .padding(.horizontal, 16)
@@ -1965,6 +1895,13 @@ struct ChildrenListView: View {
                     ChildProfileView(childId: childProfileData.childId, child: child)
                         .environmentObject(familyService)
                 }
+            }
+            .onAppear {
+                // Debug logging
+                print("🔍 ChildrenListView - Family members: \(familyService.getFamilyMembers().count)")
+                print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
+                print("🔍 ChildrenListView - Pending children: \(familyService.pendingChildren.count)")
+                print("🔍 ChildrenListView - Pending children data: \(familyService.pendingChildren)")
             }
         }
     }
@@ -2906,6 +2843,13 @@ class ParentMapViewModel: ObservableObject {
     private let db = Firestore.firestore()
     private var listeners: [ListenerRegistration] = []
     private weak var familyService: FamilyService?
+    private var cancellables = Set<AnyCancellable>()
+    
+    deinit {
+        listeners.forEach { $0.remove() }
+        cancellables.removeAll()
+        print("🛑 ParentMapViewModel deallocated")
+    }
     
     // Get a consistent color for a child based on their ID
     func getColorForChild(childId: String) -> UIColor {
@@ -2928,23 +2872,31 @@ class ParentMapViewModel: ObservableObject {
         // Store reference to family service
         self.familyService = familyService
         
+        // Listen to family service changes to automatically refresh when children are added/removed
+        Task { @MainActor in
+            familyService.$familyMembers
+                .combineLatest(familyService.$pendingChildren)
+                .sink { [weak self] _ in
+                    print("🔍 MapViewModel - Family membership changed, refreshing listeners")
+                    self?.refreshChildrenLocations()
+                }
+                .store(in: &cancellables)
+        }
+        
         // Stop existing listeners
         listeners.forEach { $0.remove() }
         listeners.removeAll()
         childrenLocations.removeAll()
         
-        // Get children from family service and start listening to their locations
+        // Get all children (pending + accepted) from family service and start listening to their locations
         Task { @MainActor in
             // Wait for family data to be loaded
             var attempts = 0
             while attempts < 10 { // Try for up to 5 seconds
-                let children = familyService.getChildren()
-                if !children.isEmpty {
-                    let childIds = children.map { $0.0 } // Extract child IDs
-                    
-                    print("🔍 MapViewModel - Found \(childIds.count) children to monitor")
+                let childIds = familyService.getAllChildrenIds()
+                if !childIds.isEmpty {
+                    print("🔍 MapViewModel - Found \(childIds.count) children to monitor (pending + accepted)")
                     print("🔍 MapViewModel - Child IDs: \(childIds)")
-                    print("🔍 MapViewModel - Child details: \(children.map { "\($0.0): \($0.1.name)" })")
                     
                     // Start listening to each child's location
                     for childId in childIds {
@@ -3078,7 +3030,7 @@ class ParentMapViewModel: ObservableObject {
         
         // Get expected number of children from family service
         Task { @MainActor in
-            let expectedChildrenCount = familyService?.getChildren().count ?? 0
+            let expectedChildrenCount = familyService?.getAllChildrenIds().count ?? 0
             
             print("🔍 MapViewModel - Checking if should center: \(childrenLocations.count) current, \(expectedChildrenCount) expected")
             
@@ -3198,14 +3150,12 @@ class ParentMapViewModel: ObservableObject {
         
         // Restart listening if we have a family service
         if let familyService = familyService {
-            // Get children from family service and start listening to their locations
+            // Get all children (pending + accepted) from family service and start listening to their locations
             Task { @MainActor in
-                let children = familyService.getChildren()
-                let childIds = children.map { $0.0 } // Extract child IDs
+                let childIds = familyService.getAllChildrenIds()
                 
-                print("🔍 MapViewModel - Found \(childIds.count) children to monitor")
+                print("🔍 MapViewModel - Found \(childIds.count) children to monitor (pending + accepted)")
                 print("🔍 MapViewModel - Child IDs: \(childIds)")
-                print("🔍 MapViewModel - Child details: \(children.map { "\($0.0): \($0.1.name)" })")
                 
                 // Start listening to each child's location
                 for childId in childIds {
@@ -3235,10 +3185,6 @@ class ParentMapViewModel: ObservableObject {
     
     private func isListeningToChild(childId: String) -> Bool {
         return childrenLocations.contains { $0.childId == childId }
-    }
-    
-    deinit {
-        listeners.forEach { $0.remove() }
     }
 }
 

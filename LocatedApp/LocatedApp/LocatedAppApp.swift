@@ -1,5 +1,7 @@
 import SwiftUI
 import FirebaseCore
+import FirebaseMessaging
+import UserNotifications
 
 @main
 struct LocatedAppApp: App {
@@ -13,6 +15,10 @@ struct LocatedAppApp: App {
         FirebaseApp.configure()
         print("✅ Firebase configured successfully")
         
+        // Configure Firebase Messaging
+        Messaging.messaging().delegate = FirebaseMessagingDelegate.shared
+        print("✅ Firebase Messaging configured")
+        
         // Initialize background location manager
         _ = BackgroundLocationManager.shared
     }
@@ -24,12 +30,6 @@ struct LocatedAppApp: App {
                 .environmentObject(notificationService)
                 .onOpenURL { url in
                     handleDeepLink(url: url)
-                }
-                .onAppear {
-                    // Register for notifications when app appears
-                    Task {
-                        await notificationService.registerFCMToken()
-                    }
                 }
         }
     }

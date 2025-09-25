@@ -1,15 +1,16 @@
-# Uncomment the next line to define a global platform for your project
+# platform :ios, '15.0'
 platform :ios, '15.0'
 
 target 'LocatedApp' do
-  # Comment the next line if you don't want to use dynamic frameworks
+  # Use static frameworks
   use_frameworks! :linkage => :static
 
-  # Firebase pods
+  # Firebase Pods
   pod 'Firebase/Auth'
+  pod 'Firebase/Core' # Core is often a dependency, good to have it explicit
   pod 'Firebase/Firestore'
-  pod 'Firebase/Core'
   pod 'Firebase/Functions'
+  pod 'Firebase/Messaging' # The new pod for notifications
 
   target 'LocatedAppTests' do
     inherit! :search_paths
@@ -21,3 +22,16 @@ target 'LocatedApp' do
   end
 
 end
+
+# This script is essential to fix the rsync build errors with gRPC
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    if target.name == 'gRPC-Core'
+      target.build_configurations.each do |config|
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'GRPC_CFSTREAM=0'
+      end
+    end
+  end
+end
+

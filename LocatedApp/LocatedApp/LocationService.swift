@@ -40,6 +40,8 @@ class LocationService: NSObject, ObservableObject {
     @Published var errorMessage: String?
     @Published var isUpdatingLocation = false
     
+    var authenticationService: AuthenticationService?
+    
     private let locationManager = CLLocationManager()
     private let geocoder = CLGeocoder()
     private var cancellables = Set<AnyCancellable>()

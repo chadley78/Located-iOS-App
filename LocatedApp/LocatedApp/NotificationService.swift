@@ -3,6 +3,7 @@ import FirebaseFirestore
 import FirebaseAuth
 import UserNotifications
 import UIKit
+import FirebaseMessaging
 
 // MARK: - Notification Service
 @MainActor
@@ -55,6 +56,22 @@ class NotificationService: NSObject, ObservableObject {
     
     /// Register FCM token with Firebase
     func registerFCMToken() async {
+        // First, ensure we have notification permissions and register for remote notifications
+        let hasPermission = await requestNotificationPermission()
+        guard hasPermission else {
+            await MainActor.run {
+                // Optionally set an error message for the UI
+                self.errorMessage = "Notification permission is required to receive alerts."
+                print("⚠️ Notification permission denied. Cannot register FCM token.")
+            }
+            return
+        }
+
+        // Register for remote notifications (this is crucial for FCM to work)
+        await MainActor.run {
+            FirebaseMessagingDelegate.shared.registerForRemoteNotifications()
+        }
+
         guard let currentUser = Auth.auth().currentUser else {
             await MainActor.run {
                 self.errorMessage = "User not authenticated"
@@ -62,10 +79,19 @@ class NotificationService: NSObject, ObservableObject {
             return
         }
         
-        // Generate a valid FCM token using the REST service
-        guard let fcmToken = await fcmRestService.generateFCMToken() else {
+        // Get the actual FCM token from Firebase Messaging
+        var fcmToken: String?
+        do {
+            fcmToken = try await Messaging.messaging().token()
+            guard let fcmToken = fcmToken else {
+                await MainActor.run {
+                    self.errorMessage = "Failed to get FCM token"
+                }
+                return
+            }
+        } catch {
             await MainActor.run {
-                self.errorMessage = "Failed to generate FCM token"
+                self.errorMessage = "Failed to get FCM token: \(error.localizedDescription)"
             }
             return
         }
@@ -155,8 +181,15 @@ class NotificationService: NSObject, ObservableObject {
                             }
                         }
                     } else {
-                        self.errorMessage = "No parents received notification: \(response.message)"
-                        print("⚠️ \(response.message)")
+                        var detailedMessage = response.message
+                        // Check for detailed token error information
+                        if let debugInfo = response.debugInfo,
+                           let attemptedTokens = debugInfo["tokensAttempted"] as? [String] {
+                            let tokensString = attemptedTokens.joined(separator: "\n")
+                            detailedMessage += "\n\nInvalid Tokens Found:\n\(tokensString)"
+                        }
+                        self.errorMessage = "No parents received notification: \(detailedMessage)"
+                        print("⚠️ \(detailedMessage)")
                     }
                 } else {
                     self.errorMessage = "Notification failed: \(response.message)"

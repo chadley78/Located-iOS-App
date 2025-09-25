@@ -81,6 +81,66 @@ struct FamilyInvitation: Codable, Identifiable {
     }
 }
 
+/// Represents a child in pending state (invitation sent but not accepted)
+struct PendingFamilyChild: Codable, Identifiable {
+    let id: String // Unique ID for the pending child
+    let invitationCode: String // The invitation code
+    let name: String
+    let createdAt: Date
+    let imageBase64: String? // Optional profile image
+    let status: InvitationStatus
+    
+    enum CodingKeys: String, CodingKey {
+        case id, invitationCode, name, createdAt, imageBase64, status
+    }
+}
+
+/// Status of an invitation
+enum InvitationStatus: String, Codable, CaseIterable {
+    case pending = "pending"
+    case accepted = "accepted"
+    case cancelled = "cancelled"
+    
+    var displayName: String {
+        switch self {
+        case .pending: return "Invite not accepted"
+        case .accepted: return "Accepted"
+        case .cancelled: return "Cancelled"
+        }
+    }
+}
+
+/// Combined child display item for UI
+struct ChildDisplayItem: Identifiable {
+    let id: String
+    let name: String
+    let role: FamilyRole
+    let joinedAt: Date
+    let imageBase64: String?
+    let status: InvitationStatus
+    let isPending: Bool
+    
+    init(from familyMember: FamilyMember, id: String) {
+        self.id = id
+        self.name = familyMember.name
+        self.role = familyMember.role
+        self.joinedAt = familyMember.joinedAt
+        self.imageBase64 = familyMember.imageBase64
+        self.status = .accepted
+        self.isPending = false
+    }
+    
+    init(from pendingChild: PendingFamilyChild) {
+        self.id = pendingChild.id
+        self.name = pendingChild.name
+        self.role = .child
+        self.joinedAt = pendingChild.createdAt
+        self.imageBase64 = pendingChild.imageBase64
+        self.status = pendingChild.status
+        self.isPending = true
+    }
+}
+
 // MARK: - Family Service
 
 /// Service for managing family-related operations
@@ -88,6 +148,7 @@ struct FamilyInvitation: Codable, Identifiable {
 class FamilyService: ObservableObject {
     @Published var currentFamily: Family?
     @Published var familyMembers: [String: FamilyMember] = [:]
+    @Published var pendingChildren: [PendingFamilyChild] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -95,6 +156,7 @@ class FamilyService: ObservableObject {
     private let auth = Auth.auth()
     private var userListener: ListenerRegistration?
     private var familyListener: ListenerRegistration?
+    private var pendingChildrenListener: ListenerRegistration?
     
     init() {
         // Don't start listening immediately - wait for user authentication
@@ -110,6 +172,7 @@ class FamilyService: ObservableObject {
             // Force stop existing listeners before starting new ones
             userListener?.remove()
             familyListener?.remove()
+            pendingChildrenListener?.remove()
             
             // Small delay to ensure listeners are fully stopped
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -119,8 +182,10 @@ class FamilyService: ObservableObject {
             print("🔍 User not authenticated, stopping family listener")
             userListener?.remove()
             familyListener?.remove()
+            pendingChildrenListener?.remove()
             currentFamily = nil
             familyMembers = [:]
+            pendingChildren = []
         }
     }
     
@@ -383,6 +448,7 @@ class FamilyService: ObservableObject {
         // Stop existing listeners
         userListener?.remove()
         familyListener?.remove()
+        pendingChildrenListener?.remove()
         
         print("🔍 Starting to listen for family changes for user: \(userId)")
         
@@ -401,15 +467,18 @@ class FamilyService: ObservableObject {
                     print("ℹ️ User document data: \(data)")
                 }
                 self?.familyListener?.remove()
+                self?.pendingChildrenListener?.remove()
                 self?.currentFamily = nil
                 self?.familyMembers = [:]
+                self?.pendingChildren = []
                 return
             }
             
             print("🔍 User has familyId: \(familyId)")
             
-            // Stop old family listener
+            // Stop old listeners
             self?.familyListener?.remove()
+            self?.pendingChildrenListener?.remove()
             
             // Listen to family document
             self?.familyListener = self?.db.collection("families").document(familyId).addSnapshotListener { familySnapshot, familyError in
@@ -436,6 +505,42 @@ class FamilyService: ObservableObject {
                     print("❌ Error decoding family: \(error)")
                 }
             }
+            
+            // Listen to pending children for this family
+            print("🔍 Setting up pending children listener for familyId: \(familyId)")
+            self?.pendingChildrenListener = self?.db.collection("pendingChildren")
+                .whereField("familyId", isEqualTo: familyId)
+                .addSnapshotListener { pendingSnapshot, pendingError in
+                    if let pendingError = pendingError {
+                        print("❌ Error listening to pending children: \(pendingError)")
+                        return
+                    }
+                    
+                    guard let documents = pendingSnapshot?.documents else {
+                        print("ℹ️ No pending children documents found")
+                        self?.pendingChildren = []
+                        return
+                    }
+                    
+                    print("🔍 Received \(documents.count) pending children documents")
+                    for doc in documents {
+                        print("🔍 Document ID: \(doc.documentID), Data: \(doc.data())")
+                    }
+                    
+                    var loadedPendingChildren: [PendingFamilyChild] = []
+                    for document in documents {
+                        do {
+                            let pendingChild = try Firestore.Decoder().decode(PendingFamilyChild.self, from: document.data())
+                            loadedPendingChildren.append(pendingChild)
+                        } catch {
+                            print("❌ Error decoding pending child: \(error)")
+                        }
+                    }
+                    
+                    print("✅ Successfully loaded \(loadedPendingChildren.count) pending children")
+                    print("🔍 Pending children details: \(loadedPendingChildren.map { "\($0.name) (\($0.status.rawValue))" })")
+                    self?.pendingChildren = loadedPendingChildren
+                }
         }
     }
     
@@ -444,9 +549,39 @@ class FamilyService: ObservableObject {
         return Array(familyMembers)
     }
     
-    /// Get children in the family
+    /// Get children in the family (accepted only)
     func getChildren() -> [(String, FamilyMember)] {
         return familyMembers.filter { $0.value.role == .child }
+    }
+    
+    /// Get all children (pending + accepted) as display items
+    func getAllChildren() -> [ChildDisplayItem] {
+        var children: [ChildDisplayItem] = []
+        
+        // Add accepted children
+        for (id, member) in familyMembers where member.role == .child {
+            children.append(ChildDisplayItem(from: member, id: id))
+        }
+        
+        // Add pending children
+        for pendingChild in pendingChildren {
+            children.append(ChildDisplayItem(from: pendingChild))
+        }
+        
+        return children.sorted { $0.joinedAt < $1.joinedAt }
+    }
+    
+    /// Get all children IDs (pending + accepted) for map listening
+    func getAllChildrenIds() -> [String] {
+        var childIds: [String] = []
+        
+        // Add accepted children IDs
+        childIds.append(contentsOf: familyMembers.filter { $0.value.role == .child }.map { $0.key })
+        
+        // Add pending children IDs
+        childIds.append(contentsOf: pendingChildren.map { $0.id })
+        
+        return childIds
     }
     
     /// Get parents in the family
@@ -512,6 +647,7 @@ class FamilyService: ObservableObject {
     deinit {
         userListener?.remove()
         familyListener?.remove()
+        pendingChildrenListener?.remove()
         print("🛑 FamilyService deallocated")
     }
 }

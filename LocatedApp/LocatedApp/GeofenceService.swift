@@ -52,13 +52,15 @@ enum GeofenceEventType: String, Codable, CaseIterable {
 // MARK: - Geofence Service
 @MainActor
 class GeofenceService: NSObject, ObservableObject {
+    @Published var geofences: [Geofence] = []
+    @Published var geofenceEvents: [GeofenceEvent] = [] // Add this line back
+    @Published var errorMessage: String?
+    @Published var isLoading = false
+    
+    var authenticationService: AuthenticationService?
+    
     private let db = Firestore.firestore()
     private let locationManager = CLLocationManager()
-    
-    @Published var geofences: [Geofence] = []
-    @Published var geofenceEvents: [GeofenceEvent] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
     
     // Monitored regions for Core Location
     private var monitoredRegions: [String: CLCircularRegion] = [:]
