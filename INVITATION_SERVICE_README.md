@@ -26,9 +26,10 @@ Parent App → FamilyInvitationService.createInvitation() → Cloud Function (cr
 #### 2. Accepting an Invitation
 ```
 Child App → AcceptFamilyInvitationView → Cloud Function (acceptInvitation) → Updates:
-  - Family document (changes child status from "pending" to "accepted")
-  - User document (sets familyId and correct name)
-  - Invitation document (marks as used)
+  - For pending children: Replaces pending child UUID with authenticated user ID
+  - For accepted children: Deletes old child and creates new with authenticated user ID
+  - Updates user document (sets familyId and correct name)
+  - Marks invitation as used
 ```
 
 #### 3. Reissuing an Invitation
@@ -54,12 +55,15 @@ Parent App → ChildProfileView → FamilyInvitationService.createInvitation() �
 - **Full management** - Parents can delete, reissue invitations, and add photos
 - **Map integration** - Map starts listening for pending children immediately
 - **No expiry** - Pending invitations never expire
+- **ID continuity** - Map connection preserved when child accepts invitation
+- **Debug logging** - Comprehensive logs for troubleshooting ID replacement
 
 ### Invitation Acceptance
 - Validates invite code and expiration
 - Handles both new and existing child accounts
+- **For pending children**: Replaces pending child UUID with authenticated user ID (preserves map connection)
+- **For accepted children**: Deletes old child and creates new with authenticated user ID
 - Updates child's name in user document
-- Changes child status from "pending" to "accepted" in family
 - Marks invitation as used
 
 ### Invitation Reissuing
@@ -109,7 +113,8 @@ exports.createInvitation = onCall(async (data, context) => {
 // acceptInvitation - Processes invitation acceptance
 exports.acceptInvitation = onCall(async (data, context) => {
   // Validates invitation
-  // Updates child status from "pending" to "accepted"
+  // For pending children: Replaces UUID with authenticated user ID
+  // For accepted children: Deletes old child and creates new with authenticated user ID
   // Updates family and user documents
   // Handles both new and existing children
 });
@@ -253,6 +258,7 @@ The child app includes debug UI showing:
 5. **Pending children not appearing** - Check family listener and getAllChildren() method
 6. **Duplicate pending children** - Verify reissue logic in createInvitation Cloud Function
 7. **"Cannot access 'inviteCode' before initialization"** - Check variable declaration order in Cloud Function
+8. **Map not showing accepted children** - Verify ID replacement in acceptInvitation Cloud Function
 
 ### Debug Steps
 1. Check Cloud Function logs: `firebase functions:log --only createInvitation`
@@ -262,6 +268,8 @@ The child app includes debug UI showing:
 5. Validate invitation code format and expiration
 6. Check family.members for pending children with status: "pending"
 7. Verify ChildDisplayItem.isPending logic in FamilyModels.swift
+8. **For map issues**: Verify that map listens to authenticated user ID, not pending UUID
+9. **For ID replacement**: Check logs for "Replacing pending child ID with authenticated user ID"
 
 ## Pending Invitations Implementation
 
