@@ -1,7 +1,7 @@
 # Family Invitation Service
 
 ## Overview
-The Family Invitation Service handles the complete flow of inviting children to join a family and managing the invitation acceptance process. This includes creating invitations, accepting them, and updating both the family and user documents in Firestore.
+The Family Invitation Service handles the complete flow of inviting children to join a family and managing the invitation acceptance process. This includes creating invitations, accepting them, and updating both the family and user documents in Firestore. The system now supports **pending invitations** where children appear in family lists immediately with "Invite not accepted" status, allowing parents to manage them before acceptance.
 
 ## Architecture
 
@@ -10,36 +10,63 @@ The Family Invitation Service handles the complete flow of inviting children to 
 - **AcceptFamilyInvitationView** - UI for accepting invitations
 - **Cloud Function: acceptInvitation** - Backend logic for processing invitations
 - **Cloud Function: createFamily** - Creates new families with parent members
+- **Cloud Function: createInvitation** - Creates invitations and pending children
+- **FamilyService** - Manages family members including pending children
+- **ChildProfileView** - UI for managing both accepted and pending children
 
 ### Data Flow
 
-#### 1. Creating an Invitation
+#### 1. Creating an Invitation (with Pending Child)
 ```
-Parent App → FamilyInvitationService.createInvitation() → Firestore (invitations collection)
+Parent App → FamilyInvitationService.createInvitation() → Cloud Function (createInvitation) → Creates:
+  - Invitation document (invitations collection)
+  - Pending child as FamilyMember with status: "pending" (families.members)
 ```
 
 #### 2. Accepting an Invitation
 ```
 Child App → AcceptFamilyInvitationView → Cloud Function (acceptInvitation) → Updates:
-  - Family document (adds child to members)
+  - Family document (changes child status from "pending" to "accepted")
   - User document (sets familyId and correct name)
   - Invitation document (marks as used)
+```
+
+#### 3. Reissuing an Invitation
+```
+Parent App → ChildProfileView → FamilyInvitationService.createInvitation() → Cloud Function (createInvitation) → Updates:
+  - Invalidates old invitation documents
+  - Creates new invitation document
+  - Keeps existing pending child (no duplicate creation)
 ```
 
 ## Key Features
 
 ### Invitation Creation
 - Generates unique 6-character invite codes
-- Sets expiration time (7 days)
+- Sets expiration time (24 hours)
 - Stores child name for later use
 - Only parents can create invitations
+- **Creates pending child immediately** - Child appears in family lists with "Invite not accepted" status
+
+### Pending Children Management
+- **Immediate visibility** - Pending children appear in all family lists instantly
+- **Status indicators** - Shows "Invite not accepted" status in UI
+- **Full management** - Parents can delete, reissue invitations, and add photos
+- **Map integration** - Map starts listening for pending children immediately
+- **No expiry** - Pending invitations never expire
 
 ### Invitation Acceptance
 - Validates invite code and expiration
 - Handles both new and existing child accounts
 - Updates child's name in user document
-- Adds child to family members
+- Changes child status from "pending" to "accepted" in family
 - Marks invitation as used
+
+### Invitation Reissuing
+- **Smart duplicate prevention** - Updates existing pending child instead of creating duplicates
+- **Invalidates old invitations** - Marks previous invitation codes as used
+- **Generates new codes** - Creates fresh invitation codes for pending children
+- **Maintains child data** - Preserves photos, names, and other child information
 
 ### Welcome Flow
 - Shows "Setting up account..." message during processing
@@ -70,9 +97,19 @@ struct AcceptFamilyInvitationView: View {
 
 ### Cloud Functions (functions/index.js)
 ```javascript
+// createInvitation - Creates invitations and pending children
+exports.createInvitation = onCall(async (data, context) => {
+  // Validates parent permissions
+  // Checks for existing pending children (prevents duplicates)
+  // Creates invitation document
+  // Creates pending child as FamilyMember with status: "pending"
+  // Handles reissuing for existing pending children
+});
+
 // acceptInvitation - Processes invitation acceptance
 exports.acceptInvitation = onCall(async (data, context) => {
   // Validates invitation
+  // Updates child status from "pending" to "accepted"
   // Updates family and user documents
   // Handles both new and existing children
 });
@@ -112,12 +149,23 @@ exports.createFamily = onCall(async (data, context) => {
     "parentUserId": {
       role: "parent",
       name: "Darragh Flood",
-      joinedAt: timestamp
+      joinedAt: timestamp,
+      status: "accepted" // Default for existing members
     },
     "childUserId": {
       role: "child", 
       name: "Emma",
-      joinedAt: timestamp
+      joinedAt: timestamp,
+      status: "accepted" // Accepted child
+    },
+    "pendingChildId": {
+      role: "child",
+      name: "Dracula",
+      joinedAt: timestamp,
+      status: "pending", // Pending child - appears in lists immediately
+      imageURL: null,
+      imageBase64: null,
+      hasImage: false
     }
   }
 }
@@ -186,6 +234,8 @@ The child app includes debug UI showing:
 3. **Email Notifications** - Send invitation links via email
 4. **QR Codes** - Generate QR codes for invitations
 5. **Invitation History** - Track all invitation activity
+6. **Pending Child Analytics** - Track invitation acceptance rates
+7. **Auto-cleanup** - Remove old pending children after extended periods
 
 ### Performance Optimizations
 1. **Caching** - Cache family data locally
@@ -200,9 +250,86 @@ The child app includes debug UI showing:
 2. **Family not found** - Check familyId in user document
 3. **Permission denied** - Verify Firestore security rules
 4. **Cloud Function timeout** - Check function logs for errors
+5. **Pending children not appearing** - Check family listener and getAllChildren() method
+6. **Duplicate pending children** - Verify reissue logic in createInvitation Cloud Function
+7. **"Cannot access 'inviteCode' before initialization"** - Check variable declaration order in Cloud Function
 
 ### Debug Steps
-1. Check Cloud Function logs: `firebase functions:log --only acceptInvitation`
-2. Verify Firestore documents exist and have correct data
-3. Check user authentication status
-4. Validate invitation code format and expiration
+1. Check Cloud Function logs: `firebase functions:log --only createInvitation`
+2. Check Cloud Function logs: `firebase functions:log --only acceptInvitation`
+3. Verify Firestore documents exist and have correct data
+4. Check user authentication status
+5. Validate invitation code format and expiration
+6. Check family.members for pending children with status: "pending"
+7. Verify ChildDisplayItem.isPending logic in FamilyModels.swift
+
+## Pending Invitations Implementation
+
+### Overview
+The pending invitations feature allows parents to create invitations that immediately create a "pending child" in the family. This child appears in all family lists with "Invite not accepted" status, allowing parents to manage them (delete, reissue invitations, add photos) before the child accepts the invitation.
+
+### Key Implementation Details
+
+#### 1. FamilyMember Model Enhancement
+```swift
+struct FamilyMember: Codable, Equatable {
+    let role: FamilyRole
+    let name: String
+    let joinedAt: Date
+    let imageURL: String?
+    let imageBase64: String?
+    let hasImage: Bool?
+    let status: InvitationStatus // New field: "pending" or "accepted"
+    
+    // Custom decoder for backward compatibility
+    init(from decoder: Decoder) throws {
+        // ... existing fields ...
+        status = try container.decodeIfPresent(InvitationStatus.self, forKey: .status) ?? .accepted
+    }
+}
+```
+
+#### 2. ChildDisplayItem Integration
+```swift
+struct ChildDisplayItem: Identifiable {
+    let id: String
+    let name: String
+    let role: FamilyRole
+    let joinedAt: Date
+    let imageBase64: String?
+    let status: InvitationStatus
+    let isPending: Bool // Derived from status
+    
+    init(from familyMember: FamilyMember, id: String) {
+        // ... existing fields ...
+        self.status = familyMember.status
+        self.isPending = familyMember.status == .pending
+    }
+}
+```
+
+#### 3. Cloud Function Logic
+The `createInvitation` Cloud Function now:
+- Checks for existing pending children with the same name
+- If found, reissues invitation (invalidates old, creates new) without creating duplicates
+- If not found, creates new pending child as FamilyMember with status: "pending"
+- Uses batch operations for atomicity
+
+#### 4. UI Integration
+- `ChildProfileView` handles both pending and accepted children
+- Dynamic button labels: "Reissue Invitation" vs "Generate New Invitation Code"
+- Status indicators show "Invite not accepted" for pending children
+- All existing functionality (delete, photos, etc.) works for pending children
+
+#### 5. Map Integration
+- `ParentMapViewModel` listens for all children (pending and accepted)
+- Pending children are included in `getAllChildrenIds()` for location monitoring
+- Map starts listening immediately when pending child is created
+
+### Benefits
+1. **Immediate Feedback** - Parents see pending children instantly
+2. **Full Management** - Can manage pending children like accepted ones
+3. **No Duplicates** - Smart reissue logic prevents duplicate pending children
+4. **Consistent UI** - Same interface for pending and accepted children
+5. **Map Ready** - Location tracking starts immediately for pending children
+6. **Backward Compatible** - Existing children default to "accepted" status
