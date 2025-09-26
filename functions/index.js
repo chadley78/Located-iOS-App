@@ -967,73 +967,186 @@ exports.acceptInvitation = onCall(async (request) => {
 
       if (existingChild) {
         const [existingChildId] = existingChild;
+        const existingChildData = existingChild[1];
 
-        // Remove the old child from the family (since we're replacing them)
-        await admin.firestore()
-            .collection("families")
-            .doc(invitationData.familyId)
-            .update({
-              [`members.${existingChildId}`]:
-                admin.firestore.FieldValue.delete(),
-            });
-
-        // Add the new child to the family (using the new authenticated user ID)
-        await admin.firestore()
-            .collection("families")
-            .doc(invitationData.familyId)
-            .update({
-              [`members.${childId}`]: {
-                role: "child",
-                name: invitationData.childName,
-                joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-                imageURL: null,
-                imageBase64: null,
-                hasImage: false,
-                status: "accepted",
-              },
-            });
-
-        // Update the new child's user document with familyId and correct name
-        try {
-          await admin.firestore()
-              .collection("users")
-              .doc(childId)
-              .update({
-                familyId: invitationData.familyId,
-                name: invitationData.childName,
-              });
-          logger.info(`Successfully updated existing child user document: ${
-            invitationData.familyId} and name: ${invitationData.childName}`);
-        } catch (error) {
-          logger.error(`Failed to update existing child user document: ${
-            error.message}`);
-          throw error;
-        }
-
-        // Mark invitation as used
-        await admin.firestore()
-            .collection("invitations")
-            .doc(inviteCode)
-            .update({
-              usedBy: childId,
-              usedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-        logger.info(`Invitation accepted for existing child: ${inviteCode}`, {
+        logger.info(`Found existing child for invitation: ${inviteCode}`, {
           existingChildId: existingChildId,
-          newChildId: childId,
-          familyId: invitationData.familyId,
+          existingChildStatus: existingChildData.status,
           childName: invitationData.childName,
+          newChildId: childId,
         });
 
-        return {
-          success: true,
-          familyId: invitationData.familyId,
-          familyName: invitationData.familyName || "Your Family",
-          childName: invitationData.childName,
-          isExistingChild: true,
-          existingChildId: existingChildId,
-        };
+        // Check if this is a pending child
+        if (existingChildData.status === "pending") {
+          logger.info(`Updating pending child: ${existingChildId}`, {
+            oldStatus: "pending",
+            newStatus: "accepted",
+            childId: childId,
+            pendingChildId: existingChildId,
+            authenticatedUserId: childId,
+          });
+
+          logger.info(`Replacing pending child ID with authenticated user ID`, {
+            oldChildId: existingChildId,
+            newChildId: childId,
+            reason: "Map listens to authenticated user ID, not pending UUID",
+          });
+
+          // Remove the pending child with UUID
+          await admin.firestore()
+              .collection("families")
+              .doc(invitationData.familyId)
+              .update({
+                [`members.${existingChildId}`]:
+                  admin.firestore.FieldValue.delete(),
+              });
+
+          logger.info(`Deleted pending child with UUID: ${existingChildId}`);
+
+          // Add the child with authenticated user ID and accepted status
+          await admin.firestore()
+              .collection("families")
+              .doc(invitationData.familyId)
+              .update({
+                [`members.${childId}`]: {
+                  role: "child",
+                  name: invitationData.childName,
+                  joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  imageURL: null,
+                  imageBase64: null,
+                  hasImage: false,
+                  status: "accepted",
+                },
+              });
+
+          logger.info(`Created accepted child with user ID: ${childId}`);
+
+          // Update the child's user document with familyId and correct name
+          try {
+            await admin.firestore()
+                .collection("users")
+                .doc(childId)
+                .update({
+                  familyId: invitationData.familyId,
+                  name: invitationData.childName,
+                });
+            logger.info(`Successfully updated pending child user document: ${
+              invitationData.familyId} and name: ${invitationData.childName}`);
+          } catch (error) {
+            logger.error(`Failed to update pending child user document: ${
+              error.message}`);
+            throw error;
+          }
+
+          // Mark invitation as used
+          await admin.firestore()
+              .collection("invitations")
+              .doc(inviteCode)
+              .update({
+                usedBy: childId,
+                usedAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+
+          logger.info(`Invitation accepted for pending child: ${inviteCode}`, {
+            oldPendingChildId: existingChildId,
+            newAuthenticatedChildId: childId,
+            familyId: invitationData.familyId,
+            childName: invitationData.childName,
+            statusChanged: "pending → accepted",
+            idReplaced: "UUID → Authenticated User ID",
+            mapWillListenTo: childId,
+            childWillWriteTo: childId,
+          });
+
+          return {
+            success: true,
+            familyId: invitationData.familyId,
+            familyName: invitationData.familyName || "Your Family",
+            childName: invitationData.childName,
+            isExistingChild: true,
+            existingChildId: existingChildId,
+            newChildId: childId,
+            statusChanged: "pending → accepted",
+            idReplaced: "UUID → Authenticated User ID",
+          };
+        } else {
+          // This is an accepted child - use the old logic (delete and recreate)
+          logger.info(`Replacing accepted child: ${existingChildId}`, {
+            oldChildId: existingChildId,
+            newChildId: childId,
+            childName: invitationData.childName,
+          });
+
+          // Remove the old child from the family (since we're replacing them)
+          await admin.firestore()
+              .collection("families")
+              .doc(invitationData.familyId)
+              .update({
+                [`members.${existingChildId}`]:
+                  admin.firestore.FieldValue.delete(),
+              });
+
+          // Add new child to family (using new authenticated user ID)
+          await admin.firestore()
+              .collection("families")
+              .doc(invitationData.familyId)
+              .update({
+                [`members.${childId}`]: {
+                  role: "child",
+                  name: invitationData.childName,
+                  joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  imageURL: null,
+                  imageBase64: null,
+                  hasImage: false,
+                  status: "accepted",
+                },
+              });
+
+          // Update the new child's user document with familyId and correct name
+          try {
+            await admin.firestore()
+                .collection("users")
+                .doc(childId)
+                .update({
+                  familyId: invitationData.familyId,
+                  name: invitationData.childName,
+                });
+            logger.info(`Successfully updated existing child user document: ${
+              invitationData.familyId} and name: ${invitationData.childName}`);
+          } catch (error) {
+            logger.error(`Failed to update existing child user document: ${
+              error.message}`);
+            throw error;
+          }
+
+          // Mark invitation as used
+          await admin.firestore()
+              .collection("invitations")
+              .doc(inviteCode)
+              .update({
+                usedBy: childId,
+                usedAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+
+          logger.info(`Invitation accepted for existing child: ${inviteCode}`, {
+            existingChildId: existingChildId,
+            newChildId: childId,
+            familyId: invitationData.familyId,
+            childName: invitationData.childName,
+            isExistingChild: true,
+            statusChanged: "accepted → accepted (replaced)",
+          });
+
+          return {
+            success: true,
+            familyId: invitationData.familyId,
+            familyName: invitationData.familyName || "Your Family",
+            childName: invitationData.childName,
+            isExistingChild: true,
+            existingChildId: existingChildId,
+            statusChanged: "accepted → accepted (replaced)",
+          };
+        }
       } else {
         throw new Error("Existing child not found in family");
       }
