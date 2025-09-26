@@ -701,7 +701,13 @@ exports.createInvitation = onCall(async (request) => {
         .doc(familyId)
         .get();
 
+    logger.info(`Looking up family document: ${familyId}`, {
+      exists: familyDoc.exists,
+      hasData: !!familyDoc.data(),
+    });
+
     if (!familyDoc.exists) {
+      logger.error(`Family document not found: ${familyId}`);
       throw new Error("Family not found");
     }
 
@@ -712,12 +718,83 @@ exports.createInvitation = onCall(async (request) => {
       throw new Error("Only parents can create invitations");
     }
 
-    // Check if there's an existing child with this name
+    // Check if there's an existing child with this name (accepted or pending)
     const existingChild = Object.entries(familyData.members || {})
         .find(([userId, memberData]) =>
           memberData.role === "child" && memberData.name === childName);
 
-    // Invalidate all existing invitations for this child
+    // Check if there's an existing pending child with this name
+    const existingPendingChild = Object.entries(familyData.members || {})
+        .find(([userId, memberData]) =>
+          memberData.role === "child" &&
+          memberData.name === childName &&
+          memberData.status === "pending");
+
+    // If existing pending child, update it instead of creating new
+    if (existingPendingChild) {
+      const [existingPendingChildId] = existingPendingChild;
+
+      // Generate a unique 6-character alphanumeric invite code
+      const inviteCode = generateInviteCode();
+
+      // Invalidate all existing invitations for this child
+      const existingInvitations = await admin.firestore()
+          .collection("invitations")
+          .where("familyId", "==", familyId)
+          .where("childName", "==", childName)
+          .where("usedBy", "==", null)
+          .get();
+
+      const batch = admin.firestore().batch();
+
+      // Mark old invitations as used
+      existingInvitations.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          usedBy: existingPendingChildId,
+          usedAt: admin.firestore.FieldValue.serverTimestamp(),
+          invalidatedBy: "reissued_invitation",
+        });
+      });
+
+      // Create new invitation document
+      const invitationData = {
+        familyId: familyId,
+        createdBy: parentId,
+        childName: childName,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        usedBy: null,
+        isForExistingChild: true, // This is a reissue
+      };
+
+      // Add new invitation document
+      batch.set(
+          admin.firestore().collection("invitations").doc(inviteCode),
+          invitationData,
+      );
+
+      await batch.commit();
+
+      logger.info(`Reissued invitation for pending child: ${inviteCode}`, {
+        familyId: familyId,
+        childName: childName,
+        existingPendingChildId: existingPendingChildId,
+        invalidatedInvitations: existingInvitations.docs.length,
+      });
+
+      return {
+        success: true,
+        inviteCode: inviteCode,
+        expiresAt: invitationData.expiresAt,
+        isForExistingChild: true,
+        isReissue: true,
+      };
+    }
+
+    // Generate a unique 6-character alphanumeric invite code
+    const inviteCode = generateInviteCode();
+
+    // Invalidate existing invitations for accepted child
     if (existingChild) {
       const [existingChildId] = existingChild;
 
@@ -746,9 +823,6 @@ exports.createInvitation = onCall(async (request) => {
         logger.info(message);
       }
     }
-
-    // Generate a unique 6-character alphanumeric invite code
-    const inviteCode = generateInviteCode();
 
     // Create invitation document
     const invitationData = {
@@ -790,7 +864,17 @@ exports.createInvitation = onCall(async (request) => {
         },
     );
 
+    logger.info(`About to commit batch with pending child: ${pendingChildId}`, {
+      familyId: familyId,
+      pendingChildData: pendingChildData,
+    });
+
     await batch.commit();
+
+    logger.info(`Batch committed successfully for invitation: ${inviteCode}`, {
+      familyId: familyId,
+      pendingChildId: pendingChildId,
+    });
 
     logger.info(`Invitation and pending child created: ${inviteCode}`, {
       familyId: familyId,
