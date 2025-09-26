@@ -483,6 +483,12 @@ class FamilyService: ObservableObject {
                     
                     let family = try Firestore.Decoder().decode(Family.self, from: familyDataWithId)
                     print("✅ Successfully loaded family: \(family.name) with \(family.members.count) members")
+                    
+                    // Debug: Print all members and their status
+                    for (id, member) in family.members {
+                        print("🔍 Family member: \(member.name) (role: \(member.role.rawValue), status: \(member.status.rawValue))")
+                    }
+                    
                     self?.currentFamily = family
                     self?.familyMembers = family.members
                 } catch {
@@ -506,11 +512,15 @@ class FamilyService: ObservableObject {
     func getAllChildren() -> [ChildDisplayItem] {
         var children: [ChildDisplayItem] = []
         
+        print("🔍 getAllChildren - Total family members: \(familyMembers.count)")
+        
         // Add all children (pending and accepted)
         for (id, member) in familyMembers where member.role == .child {
+            print("🔍 getAllChildren - Found child: \(member.name), status: \(member.status.rawValue), isPending: \(member.status == .pending)")
             children.append(ChildDisplayItem(from: member, id: id))
         }
         
+        print("🔍 getAllChildren - Returning \(children.count) children")
         return children.sorted { $0.joinedAt < $1.joinedAt }
     }
     
