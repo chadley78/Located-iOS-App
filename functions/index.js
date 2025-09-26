@@ -761,16 +761,16 @@ exports.createInvitation = onCall(async (request) => {
       isForExistingChild: !!existingChild, // Flag for existing child
     };
 
-    // Create pending child document
+    // Create pending child as FamilyMember with status: "pending"
     const pendingChildId = uuidv4();
     const pendingChildData = {
-      id: pendingChildId,
-      invitationCode: inviteCode,
+      role: "child",
       name: childName,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+      imageURL: null,
       imageBase64: null,
+      hasImage: false,
       status: "pending",
-      familyId: familyId,
     };
 
     // Use batch to create both documents atomically
@@ -782,10 +782,12 @@ exports.createInvitation = onCall(async (request) => {
         invitationData,
     );
 
-    // Add pending child document
-    batch.set(
-        admin.firestore().collection("pendingChildren").doc(pendingChildId),
-        pendingChildData,
+    // Add pending child as FamilyMember in the family
+    batch.update(
+        admin.firestore().collection("families").doc(familyId),
+        {
+          [`members.${pendingChildId}`]: pendingChildData,
+        },
     );
 
     await batch.commit();
@@ -900,6 +902,10 @@ exports.acceptInvitation = onCall(async (request) => {
                 role: "child",
                 name: invitationData.childName,
                 joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+                imageURL: null,
+                imageBase64: null,
+                hasImage: false,
+                status: "accepted",
               },
             });
 
@@ -920,29 +926,14 @@ exports.acceptInvitation = onCall(async (request) => {
           throw error;
         }
 
-        // Mark invitation as used by the new child and remove pending child
-        const batch = admin.firestore().batch();
-
         // Mark invitation as used
-        batch.update(
-            admin.firestore().collection("invitations").doc(inviteCode),
-            {
+        await admin.firestore()
+            .collection("invitations")
+            .doc(inviteCode)
+            .update({
               usedBy: childId,
               usedAt: admin.firestore.FieldValue.serverTimestamp(),
-            },
-        );
-
-        // Remove pending child document
-        const pendingChildrenQuery = await admin.firestore()
-            .collection("pendingChildren")
-            .where("invitationCode", "==", inviteCode)
-            .get();
-
-        pendingChildrenQuery.docs.forEach((doc) => {
-          batch.delete(doc.ref);
-        });
-
-        await batch.commit();
+            });
 
         logger.info(`Invitation accepted for existing child: ${inviteCode}`, {
           existingChildId: existingChildId,
@@ -973,6 +964,10 @@ exports.acceptInvitation = onCall(async (request) => {
               // Use the name from the invitation, not the user document
               name: invitationData.childName,
               joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+              imageURL: null,
+              imageBase64: null,
+              hasImage: false,
+              status: "accepted",
             },
           });
 
@@ -993,29 +988,14 @@ exports.acceptInvitation = onCall(async (request) => {
         throw error;
       }
 
-      // Mark invitation as used and remove pending child
-      const batch = admin.firestore().batch();
-
       // Mark invitation as used
-      batch.update(
-          admin.firestore().collection("invitations").doc(inviteCode),
-          {
+      await admin.firestore()
+          .collection("invitations")
+          .doc(inviteCode)
+          .update({
             usedBy: childId,
             usedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
-      );
-
-      // Remove pending child document
-      const pendingChildrenQuery = await admin.firestore()
-          .collection("pendingChildren")
-          .where("invitationCode", "==", inviteCode)
-          .get();
-
-      pendingChildrenQuery.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-
-      await batch.commit();
+          });
 
       logger.info(`Invitation accepted for new child: ${inviteCode}`, {
         childId: childId,

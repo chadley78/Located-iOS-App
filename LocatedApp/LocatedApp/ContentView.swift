@@ -10,6 +10,7 @@ struct ContentView: View {
     let invitationCode: String?
     @StateObject private var authService = AuthenticationService()
     @StateObject private var locationService = LocationService()
+    @StateObject private var invitationService = FamilyInvitationService()
     @EnvironmentObject var familyService: FamilyService
     
     init(invitationCode: String? = nil) {
@@ -24,6 +25,7 @@ struct ContentView: View {
                         .environmentObject(authService)
                         .environmentObject(locationService)
                         .environmentObject(familyService)
+                        .environmentObject(invitationService)
                 } else {
                     // Show loading while user data is being fetched
                     VStack {
@@ -955,6 +957,7 @@ struct ParentHomeView: View {
                                                 if !child.isPending {
                                                     mapViewModel.centerOnChild(childId: child.id)
                                                 }
+                                                // For pending children, we don't do anything on tap in the home view
                                             }) {
                                                 HStack {
                                                     // Child pin with color or pending indicator
@@ -994,7 +997,6 @@ struct ParentHomeView: View {
                                                 .cornerRadius(8)
                                             }
                                             .buttonStyle(PlainButtonStyle())
-                                            .disabled(child.isPending)
                                         }
                                     }
                                 }
@@ -1583,8 +1585,7 @@ struct ChildHomeView: View {
             // Debug logging for ParentHomeView
             print("🔍 ParentHomeView - Family members: \(familyService.getFamilyMembers().count)")
             print("🔍 ParentHomeView - All children: \(familyService.getAllChildren().count)")
-            print("🔍 ParentHomeView - Pending children: \(familyService.pendingChildren.count)")
-            print("🔍 ParentHomeView - Pending children data: \(familyService.pendingChildren)")
+            print("🔍 ParentHomeView - All children: \(familyService.getAllChildren().count)")
         }
     }
     
@@ -1621,8 +1622,10 @@ class ChildProfileData: ObservableObject {
 struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var invitationService: FamilyInvitationService
     @State private var showingInviteChild = false
     @StateObject private var childProfileData = ChildProfileData()
+    @State private var selectedPendingChild: ChildDisplayItem?
     
     var body: some View {
         NavigationView {
@@ -1638,7 +1641,7 @@ struct ChildrenListView: View {
                             .font(.title2)
                             .fontWeight(.semibold)
                         
-                        Text("\(familyService.getFamilyMembers().count + familyService.pendingChildren.count) members")
+                        Text("\(familyService.getFamilyMembers().count) members")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -1694,6 +1697,11 @@ struct ChildrenListView: View {
                                     Button(action: {
                                         if !child.isPending {
                                             childProfileData.setChild(id: child.id, name: child.name)
+                                        } else {
+                                            // Show pending child management options
+                                            print("🔍 ChildrenListView - Tapping pending child: \(child.name)")
+                                            selectedPendingChild = child
+                                            print("🔍 ChildrenListView - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
                                         }
                                     }) {
                                         HStack {
@@ -1738,7 +1746,6 @@ struct ChildrenListView: View {
                                         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                     }
                                     .buttonStyle(PlainButtonStyle())
-                                    .disabled(child.isPending)
                                 }
                             }
                         } else {
@@ -1781,6 +1788,11 @@ struct ChildrenListView: View {
                                         Button(action: {
                                             if !child.isPending {
                                                 childProfileData.setChild(id: child.id, name: child.name)
+                                            } else {
+                                                // Show pending child management options
+                                                print("🔍 ChildrenListView (ScrollView) - Tapping pending child: \(child.name)")
+                                                selectedPendingChild = child
+                                                print("🔍 ChildrenListView (ScrollView) - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
                                             }
                                         }) {
                                             HStack {
@@ -1825,7 +1837,6 @@ struct ChildrenListView: View {
                                             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                         }
                                         .buttonStyle(PlainButtonStyle())
-                                        .disabled(child.isPending)
                                     }
                                 }
                                 .padding(.horizontal, 16)
@@ -1886,22 +1897,32 @@ struct ChildrenListView: View {
             }
             .fullScreenCover(isPresented: $childProfileData.isPresented) {
                 if !childProfileData.childId.isEmpty && !childProfileData.childName.isEmpty {
-                    // Create a simple child object for the profile view
-                    let child = FamilyMember(
-                        role: .child,
-                        name: childProfileData.childName,
-                        joinedAt: Date()
+                    // Create a simple child display item for the profile view
+                    let child = ChildDisplayItem(
+                        from: FamilyMember(
+                            role: .child,
+                            name: childProfileData.childName,
+                            joinedAt: Date()
+                        ),
+                        id: childProfileData.childId
                     )
                     ChildProfileView(childId: childProfileData.childId, child: child)
                         .environmentObject(familyService)
                 }
             }
+            .sheet(item: $selectedPendingChild) { pendingChild in
+                // Use existing child management - show profile for pending children too
+                ChildProfileView(childId: pendingChild.id, child: pendingChild)
+                    .environmentObject(familyService)
+                    .onAppear {
+                        print("🔍 ChildrenListView - Presenting child profile for pending child: \(pendingChild.name)")
+                    }
+            }
             .onAppear {
                 // Debug logging
                 print("🔍 ChildrenListView - Family members: \(familyService.getFamilyMembers().count)")
                 print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
-                print("🔍 ChildrenListView - Pending children: \(familyService.pendingChildren.count)")
-                print("🔍 ChildrenListView - Pending children data: \(familyService.pendingChildren)")
+                print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
             }
         }
     }
@@ -1929,7 +1950,7 @@ struct ChildrenListView: View {
 // MARK: - Child Profile View
 struct ChildProfileView: View {
     let childId: String
-    let child: FamilyMember
+    let child: ChildDisplayItem
     @EnvironmentObject var familyService: FamilyService
     @Environment(\.dismiss) private var dismiss
     
@@ -1943,7 +1964,7 @@ struct ChildProfileView: View {
     @State private var childImageURL: String?
     @State private var selectedPhotoItem: PhotosPickerItem?
     
-    init(childId: String, child: FamilyMember) {
+    init(childId: String, child: ChildDisplayItem) {
         self.childId = childId
         self.child = child
         self._childName = State(initialValue: child.name)
@@ -2064,6 +2085,17 @@ struct ChildProfileView: View {
                             .foregroundColor(.blue)
                         }
                         
+                        // Status indicator for pending children
+                        if child.isPending {
+                            Text(child.status.displayName)
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                        
                         Text("Family Member")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -2078,20 +2110,38 @@ struct ChildProfileView: View {
                     
                     // Action Buttons
                     VStack(spacing: 16) {
-                        // Reissue Invitation Button
-                        Button(action: {
-                            generateNewInviteCode()
-                        }) {
-                            HStack {
-                                Image(systemName: "envelope.badge")
-                                Text("Generate New Invitation Code")
+                        // Reissue Invitation Button (for pending children)
+                        if child.isPending {
+                            Button(action: {
+                                generateNewInviteCode()
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.clockwise")
+                                    Text("Reissue Invitation")
+                                }
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(Color.blue)
+                                .cornerRadius(12)
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.blue)
-                            .cornerRadius(12)
+                        } else {
+                            // Generate New Invitation Button (for accepted children)
+                            Button(action: {
+                                generateNewInviteCode()
+                            }) {
+                                HStack {
+                                    Image(systemName: "envelope.badge")
+                                    Text("Generate New Invitation Code")
+                                }
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(Color.blue)
+                                .cornerRadius(12)
+                            }
                         }
                         
                         // New Invitation Code Display (Green Panel)
@@ -2171,7 +2221,7 @@ struct ChildProfileView: View {
                         }) {
                             HStack {
                                 Image(systemName: "trash")
-                                Text("Remove from Family")
+                                Text(child.isPending ? "Remove Pending Child" : "Remove from Family")
                             }
                             .font(.headline)
                             .foregroundColor(.white)
@@ -2187,13 +2237,15 @@ struct ChildProfileView: View {
                 .padding()
             }
         }
-        .alert("Remove Child", isPresented: $showingDeleteAlert) {
+        .alert(child.isPending ? "Remove Pending Child" : "Remove Child", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Remove", role: .destructive) {
                 removeChild()
             }
         } message: {
-            Text("Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
+            Text(child.isPending ? 
+                 "Are you sure you want to remove \(childName) from your pending children? This will cancel their invitation." :
+                 "Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
         }
         .photosPicker(isPresented: $showingImagePicker, selection: $selectedPhotoItem, photoLibrary: .shared())
         .onChange(of: showingImagePicker) {
@@ -2427,7 +2479,13 @@ struct ChildProfileView: View {
         Task {
             do {
                 if let familyId = familyService.currentFamily?.id {
-                    try await familyService.removeChildFromFamily(childId: childId, familyId: familyId)
+                    if child.isPending {
+                        // For pending children, just remove them from the family members
+                        try await familyService.removeChildFromFamily(childId: childId, familyId: familyId)
+                    } else {
+                        // For accepted children, use the existing logic
+                        try await familyService.removeChildFromFamily(childId: childId, familyId: familyId)
+                    }
                     await MainActor.run {
                         dismiss()
                     }
@@ -2875,7 +2933,6 @@ class ParentMapViewModel: ObservableObject {
         // Listen to family service changes to automatically refresh when children are added/removed
         Task { @MainActor in
             familyService.$familyMembers
-                .combineLatest(familyService.$pendingChildren)
                 .sink { [weak self] _ in
                     print("🔍 MapViewModel - Family membership changed, refreshing listeners")
                     self?.refreshChildrenLocations()
