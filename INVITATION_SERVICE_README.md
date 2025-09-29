@@ -76,6 +76,7 @@ Parent App → ChildProfileView → FamilyInvitationService.createInvitation() �
 - Shows "Setting up account..." message during processing
 - Transitions to welcome message after 2.5 seconds
 - Provides smooth user experience during Cloud Function execution
+- **Forces immediate location update** - Child appears on parent map immediately after tapping "Next"
 
 ## Code Structure
 
@@ -96,6 +97,18 @@ struct AcceptFamilyInvitationView: View {
     // Handles invitation code input
     // Shows welcome screens
     // Manages loading states
+    // Triggers forceLocationUpdate after invitation acceptance
+}
+```
+
+### LocationService.swift
+```swift
+class LocationService: ObservableObject {
+    // Forces immediate location update to Firestore
+    func forceLocationUpdate() {
+        // Uses current location if available, otherwise requests fresh location
+        // Writes to Firestore immediately so parent map shows child instantly
+    }
 }
 ```
 
@@ -259,6 +272,8 @@ The child app includes debug UI showing:
 6. **Duplicate pending children** - Verify reissue logic in createInvitation Cloud Function
 7. **"Cannot access 'inviteCode' before initialization"** - Check variable declaration order in Cloud Function
 8. **Map not showing accepted children** - Verify ID replacement in acceptInvitation Cloud Function
+9. **New children don't appear on parent map immediately** - Check forceLocationUpdate() is called after invitation acceptance
+10. **"No ObservableObject of type LocationService found"** - Verify LocationService is injected throughout view hierarchy
 
 ### Debug Steps
 1. Check Cloud Function logs: `firebase functions:log --only createInvitation`
@@ -270,6 +285,8 @@ The child app includes debug UI showing:
 7. Verify ChildDisplayItem.isPending logic in FamilyModels.swift
 8. **For map issues**: Verify that map listens to authenticated user ID, not pending UUID
 9. **For ID replacement**: Check logs for "Replacing pending child ID with authenticated user ID"
+10. **For immediate map visibility**: Check console for "📍 Force location update requested" after invitation acceptance
+11. **For environment object issues**: Verify LocationService is injected in WelcomeView, AuthenticationView, and ChildSignUpView
 
 ## Pending Invitations Implementation
 
@@ -341,3 +358,5 @@ The `createInvitation` Cloud Function now:
 4. **Consistent UI** - Same interface for pending and accepted children
 5. **Map Ready** - Location tracking starts immediately for pending children
 6. **Backward Compatible** - Existing children default to "accepted" status
+7. **Immediate Map Visibility** - New children appear on parent map instantly after invitation acceptance
+8. **Data Preservation** - Profile photos and other data preserved when reissuing invitations
