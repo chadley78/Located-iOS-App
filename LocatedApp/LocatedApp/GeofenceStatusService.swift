@@ -69,12 +69,6 @@ class GeofenceStatusService: ObservableObject {
                     }
                     
                     print("🔍 GeofenceStatusService - Received \(snapshot.documentChanges.count) geofence event changes")
-                    print("🔍 GeofenceStatusService - Total documents in snapshot: \(snapshot.documents.count)")
-                    
-                    // Debug: Print all document IDs in the snapshot
-                    for doc in snapshot.documents {
-                        print("🔍 GeofenceStatusService - Document ID: \(doc.documentID), data: \(doc.data())")
-                    }
                     
                     // Process document changes
                     for change in snapshot.documentChanges {
@@ -110,8 +104,6 @@ class GeofenceStatusService: ObservableObject {
     // MARK: - Private Methods
     
     private func processGeofenceEvent(_ eventData: [String: Any]) {
-        print("🔍 GeofenceStatusService - Processing event data: \(eventData)")
-        
         guard let childId = eventData["childId"] as? String,
               let childName = eventData["childName"] as? String,
               let geofenceName = eventData["geofenceName"] as? String,
@@ -120,8 +112,6 @@ class GeofenceStatusService: ObservableObject {
             print("❌ GeofenceStatusService - Invalid event data: \(eventData)")
             return
         }
-        
-        print("🔍 GeofenceStatusService - Parsed event: childId=\(childId), childName=\(childName), geofenceName=\(geofenceName), eventType=\(eventTypeString)")
         
         // Parse event type
         let eventType: GeofenceEventType
@@ -148,8 +138,7 @@ class GeofenceStatusService: ObservableObject {
         // Update the status for this child (keep only the most recent event)
         childGeofenceStatus[childId] = status
         
-        print("🔍 GeofenceStatusService - Updated status for \(childName) (ID: \(childId)): \(status.displayText)")
-        print("🔍 GeofenceStatusService - Current statuses: \(childGeofenceStatus.keys)")
+        print("🔍 GeofenceStatusService - Updated status for \(childName): \(status.displayText)")
     }
     
     /// Clear all geofence status data
