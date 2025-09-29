@@ -163,11 +163,17 @@ class LocationService: NSObject, ObservableObject {
     
     // MARK: - Location Data Processing
     private func processLocationUpdate(_ location: CLLocation) {
+        print("📍 Location update received: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        print("📍 Location accuracy: \(location.horizontalAccuracy)m")
+        print("📍 Location timestamp: \(location.timestamp)")
+        
         // Check if this is a significant location change
         guard isSignificantLocationChange(location) else {
+            print("📍 Location change not significant - ignoring")
             return
         }
         
+        print("📍 Significant location change detected - processing")
         currentLocation = location
         lastLocationUpdate = Date()
         
@@ -183,16 +189,23 @@ class LocationService: NSObject, ObservableObject {
     
     private func isSignificantLocationChange(_ location: CLLocation) -> Bool {
         guard let lastLocation = lastSignificantLocation else {
+            print("📍 First location update - treating as significant")
             return true // First location update
         }
         
         let distance = location.distance(from: lastLocation)
         let timeInterval = location.timestamp.timeIntervalSince(lastLocation.timestamp)
         
+        print("📍 Distance from last location: \(distance)m (threshold: \(significantLocationChangeThreshold)m)")
+        print("📍 Time since last location: \(timeInterval)s (threshold: \(locationUpdateInterval)s)")
+        
         // Consider it significant if:
         // 1. Distance is greater than threshold, OR
         // 2. Time interval is greater than update interval
-        return distance >= significantLocationChangeThreshold || timeInterval >= locationUpdateInterval
+        let isSignificant = distance >= significantLocationChangeThreshold || timeInterval >= locationUpdateInterval
+        print("📍 Location change significant: \(isSignificant)")
+        
+        return isSignificant
     }
     
     private func reverseGeocodeLocation(_ location: CLLocation, completion: @escaping (String?) -> Void) {
@@ -310,6 +323,7 @@ class LocationService: NSObject, ObservableObject {
         if let currentLocation = currentLocation {
             print("📍 Using current location for immediate update")
             // Force save current location immediately
+            lastLocationUpdate = Date()
             Task {
                 await saveLocationToFirestore(location: currentLocation, address: nil)
             }
@@ -324,10 +338,18 @@ class LocationService: NSObject, ObservableObject {
 // MARK: - CLLocationManagerDelegate
 extension LocationService: @preconcurrency CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
+        guard let location = locations.last else { 
+            print("📍 No location in update")
+            return 
+        }
+        
+        print("📍 CLLocationManager didUpdateLocations: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        print("📍 Location age: \(location.timestamp.timeIntervalSinceNow)s")
+        print("📍 Location accuracy: \(location.horizontalAccuracy)m")
         
         // Filter out old or inaccurate locations
         guard location.timestamp.timeIntervalSinceNow > -30 && location.horizontalAccuracy < 100 else {
+            print("📍 Location filtered out - too old or inaccurate")
             return
         }
         
