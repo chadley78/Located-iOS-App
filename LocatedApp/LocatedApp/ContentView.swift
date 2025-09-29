@@ -155,6 +155,7 @@ struct AuthenticationView: View {
                 ChildSignUpView(invitationCode: invitationCode)
                     .environmentObject(authService)
                     .environmentObject(familyService)
+                    .environmentObject(locationService)
             } else {
                 // Parent flow (existing)
                 if isSignUp {
