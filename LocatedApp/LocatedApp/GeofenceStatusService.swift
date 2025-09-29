@@ -46,6 +46,7 @@ class GeofenceStatusService: ObservableObject {
         errorMessage = nil
         
         // Listen to geofence events for this family
+        print("🔍 GeofenceStatusService - Setting up Firestore listener for familyId: \(familyId)")
         listener = db.collection("geofence_events")
             .whereField("familyId", isEqualTo: familyId)
             .order(by: "timestamp", descending: true)
@@ -68,6 +69,12 @@ class GeofenceStatusService: ObservableObject {
                     }
                     
                     print("🔍 GeofenceStatusService - Received \(snapshot.documentChanges.count) geofence event changes")
+                    print("🔍 GeofenceStatusService - Total documents in snapshot: \(snapshot.documents.count)")
+                    
+                    // Debug: Print all document IDs in the snapshot
+                    for doc in snapshot.documents {
+                        print("🔍 GeofenceStatusService - Document ID: \(doc.documentID), data: \(doc.data())")
+                    }
                     
                     // Process document changes
                     for change in snapshot.documentChanges {
