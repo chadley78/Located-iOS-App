@@ -1003,6 +1003,11 @@ struct ParentHomeView: View {
                                                             Text(geofenceStatus.displayText)
                                                                 .font(.caption)
                                                                 .foregroundColor(.secondary)
+                                                        } else {
+                                                            // Debug: Show if no geofence status is available
+                                                            Text("No geofence status")
+                                                                .font(.caption)
+                                                                .foregroundColor(.gray)
                                                         }
                                                     }
                                                     
@@ -1190,7 +1195,10 @@ struct ParentHomeView: View {
                 
                 // Start listening to geofence events for this family
                 if let familyId = familyService.currentFamily?.id {
+                    print("🔍 ParentHomeView - Starting geofence status listener for family: \(familyId)")
                     geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
+                } else {
+                    print("❌ ParentHomeView - No family ID available for geofence status listening")
                 }
             }
             .onDisappear {
