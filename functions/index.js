@@ -718,12 +718,14 @@ exports.createInvitation = onCall(async (request) => {
       throw new Error("Only parents can create invitations");
     }
 
-    // Check if there's an existing child with this name (accepted or pending)
-    const existingChild = Object.entries(familyData.members || {})
+    // Check if there's an existing ACCEPTED child with this name
+    const existingAcceptedChild = Object.entries(familyData.members || {})
         .find(([userId, memberData]) =>
-          memberData.role === "child" && memberData.name === childName);
+          memberData.role === "child" &&
+          memberData.name === childName &&
+          memberData.status === "accepted");
 
-    // Check if there's an existing pending child with this name
+    // Check if there's an existing PENDING child with this name
     const existingPendingChild = Object.entries(familyData.members || {})
         .find(([userId, memberData]) =>
           memberData.role === "child" &&
@@ -795,8 +797,8 @@ exports.createInvitation = onCall(async (request) => {
     const inviteCode = generateInviteCode();
 
     // Invalidate existing invitations for accepted child
-    if (existingChild) {
-      const [existingChildId] = existingChild;
+    if (existingAcceptedChild) {
+      const [existingChildId] = existingAcceptedChild;
 
       // Mark all existing invitations for this child as used
       const existingInvitations = await admin.firestore()
@@ -832,7 +834,7 @@ exports.createInvitation = onCall(async (request) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       usedBy: null,
-      isForExistingChild: !!existingChild, // Flag for existing child
+      isForExistingChild: !!existingAcceptedChild,
     };
 
     // Create pending child as FamilyMember with status: "pending"
@@ -881,14 +883,14 @@ exports.createInvitation = onCall(async (request) => {
       createdBy: parentId,
       childName: childName,
       pendingChildId: pendingChildId,
-      isForExistingChild: !!existingChild,
+      isForExistingChild: !!existingAcceptedChild,
     });
 
     return {
       success: true,
       inviteCode: inviteCode,
       expiresAt: invitationData.expiresAt,
-      isForExistingChild: !!existingChild,
+      isForExistingChild: !!existingAcceptedChild,
     };
   } catch (error) {
     logger.error("Error creating invitation:", error);
@@ -1152,6 +1154,41 @@ exports.acceptInvitation = onCall(async (request) => {
       }
     } else {
       // This is for a new child - create new family member
+      // First, get family data to find and delete any pending child
+      const familyDoc = await admin.firestore()
+          .collection("families")
+          .doc(invitationData.familyId)
+          .get();
+
+      if (familyDoc.exists) {
+        const familyData = familyDoc.data();
+
+        // Find and delete the pending child for this name
+        const pendingChild = Object.entries(familyData.members || {})
+            .find(([userId, memberData]) =>
+              memberData.role === "child" &&
+              memberData.name === invitationData.childName &&
+              memberData.status === "pending");
+
+        if (pendingChild) {
+          const [pendingChildId] = pendingChild;
+          await admin.firestore()
+              .collection("families")
+              .doc(invitationData.familyId)
+              .update({
+                [`members.${pendingChildId}`]:
+                  admin.firestore.FieldValue.delete(),
+              });
+
+          logger.info(`Deleted pending child for new: ${pendingChildId}`, {
+            childName: invitationData.childName,
+            pendingChildId: pendingChildId,
+            newChildId: childId,
+          });
+        }
+      }
+
+      // Then create the accepted child
       await admin.firestore()
           .collection("families")
           .doc(invitationData.familyId)
