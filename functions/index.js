@@ -837,54 +837,70 @@ exports.createInvitation = onCall(async (request) => {
       isForExistingChild: !!existingAcceptedChild,
     };
 
-    // Create pending child as FamilyMember with status: "pending"
-    const pendingChildId = uuidv4();
-    const pendingChildData = {
-      role: "child",
-      name: childName,
-      joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-      imageURL: null,
-      imageBase64: null,
-      hasImage: false,
-      status: "pending",
-    };
+    // Only create pending child for new children, not existing ones
+    if (!existingAcceptedChild) {
+      // Create pending child as FamilyMember with status: "pending"
+      const pendingChildId = uuidv4();
+      const pendingChildData = {
+        role: "child",
+        name: childName,
+        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        imageURL: null,
+        imageBase64: null,
+        hasImage: false,
+        status: "pending",
+      };
 
-    // Use batch to create both documents atomically
-    const batch = admin.firestore().batch();
+      // Use batch to create both documents atomically
+      const batch = admin.firestore().batch();
 
-    // Add invitation document
-    batch.set(
-        admin.firestore().collection("invitations").doc(inviteCode),
-        invitationData,
-    );
+      // Add invitation document
+      batch.set(
+          admin.firestore().collection("invitations").doc(inviteCode),
+          invitationData,
+      );
 
-    // Add pending child as FamilyMember in the family
-    batch.update(
-        admin.firestore().collection("families").doc(familyId),
-        {
-          [`members.${pendingChildId}`]: pendingChildData,
-        },
-    );
+      // Add pending child as FamilyMember in the family
+      batch.update(
+          admin.firestore().collection("families").doc(familyId),
+          {
+            [`members.${pendingChildId}`]: pendingChildData,
+          },
+      );
 
-    logger.info(`About to commit batch with pending child: ${pendingChildId}`, {
-      familyId: familyId,
-      pendingChildData: pendingChildData,
-    });
+      logger.info(`About to commit batch with pending: ${pendingChildId}`, {
+        familyId: familyId,
+        pendingChildData: pendingChildData,
+      });
 
-    await batch.commit();
+      await batch.commit();
 
-    logger.info(`Batch committed successfully for invitation: ${inviteCode}`, {
-      familyId: familyId,
-      pendingChildId: pendingChildId,
-    });
+      logger.info(`Batch committed successfully for: ${inviteCode}`, {
+        familyId: familyId,
+        pendingChildId: pendingChildId,
+      });
 
-    logger.info(`Invitation and pending child created: ${inviteCode}`, {
-      familyId: familyId,
-      createdBy: parentId,
-      childName: childName,
-      pendingChildId: pendingChildId,
-      isForExistingChild: !!existingAcceptedChild,
-    });
+      logger.info(`Invitation and pending child created: ${inviteCode}`, {
+        familyId: familyId,
+        createdBy: parentId,
+        childName: childName,
+        pendingChildId: pendingChildId,
+        isForExistingChild: false,
+      });
+    } else {
+      // For existing children, only create the invitation document
+      await admin.firestore()
+          .collection("invitations")
+          .doc(inviteCode)
+          .set(invitationData);
+
+      logger.info(`Invitation created for existing child: ${inviteCode}`, {
+        familyId: familyId,
+        createdBy: parentId,
+        childName: childName,
+        isForExistingChild: true,
+      });
+    }
 
     return {
       success: true,
