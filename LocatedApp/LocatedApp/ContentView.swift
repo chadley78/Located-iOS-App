@@ -1002,10 +1002,11 @@ struct ParentHomeView: View {
                                                                 .font(.caption)
                                                                 .foregroundColor(.secondary)
                                                         } else {
-                                                            // Debug: Show if no geofence status is available
-                                                            Text("No geofence status (ID: \(child.id))")
+                                                            // Show "Located" if child has recent location, "Offline" if not
+                                                            let hasRecentLocation = mapViewModel.childrenLocations.contains { $0.childId == child.id && isLocationRecent($0.lastSeen) }
+                                                            Text(hasRecentLocation ? "Located" : "Offline")
                                                                 .font(.caption)
-                                                                .foregroundColor(.gray)
+                                                                .foregroundColor(hasRecentLocation ? .green : .red)
                                                         }
                                                     }
                                                     
