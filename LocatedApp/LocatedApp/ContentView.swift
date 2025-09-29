@@ -1187,6 +1187,15 @@ struct ParentHomeView: View {
                 if let parentId = authService.currentUser?.id, !parentId.isEmpty {
                     mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
                 }
+                
+                // Start listening to geofence events for this family
+                if let familyId = familyService.currentFamily?.id {
+                    geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
+                }
+            }
+            .onDisappear {
+                // Stop listening to geofence events when view disappears
+                geofenceStatusService.stopListening()
             }
     }
 }
@@ -1625,21 +1634,6 @@ struct ChildHomeView: View {
                     geofenceService.stopMonitoringAllGeofences()
                 }
             }
-        }
-        .onAppear {
-            // Debug logging for ParentHomeView
-            print("🔍 ParentHomeView - Family members: \(familyService.getFamilyMembers().count)")
-            print("🔍 ParentHomeView - All children: \(familyService.getAllChildren().count)")
-            print("🔍 ParentHomeView - All children: \(familyService.getAllChildren().count)")
-            
-            // Start listening to geofence events for this family
-            if let familyId = familyService.currentFamily?.id {
-                geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
-            }
-        }
-        .onDisappear {
-            // Stop listening to geofence events when view disappears
-            geofenceStatusService.stopListening()
         }
     }
     
