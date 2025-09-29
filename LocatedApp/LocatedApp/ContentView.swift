@@ -1003,7 +1003,8 @@ struct ParentHomeView: View {
                                                                 .foregroundColor(.secondary)
                                                         } else {
                                                             // Show "Located" if child has recent location, "Offline" if not
-                                                            let hasRecentLocation = mapViewModel.childrenLocations.contains { $0.childId == child.id && isLocationRecent($0.lastSeen) }
+                                                            let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+                                                            let hasRecentLocation = childLocation != nil && isLocationRecent(childLocation!.lastSeen)
                                                             Text(hasRecentLocation ? "Located" : "Offline")
                                                                 .font(.caption)
                                                                 .foregroundColor(hasRecentLocation ? .green : .red)
