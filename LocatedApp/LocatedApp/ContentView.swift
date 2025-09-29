@@ -721,7 +721,6 @@ struct MainTabView: View {
                 Group {
                     if authService.currentUser?.userType == .parent {
                         // Debug logging
-                        let _ = print("🔍 MainTabView: Showing PARENT UI for user: \(authService.currentUser?.name ?? "Unknown"), userType: \(authService.currentUser?.userType.rawValue ?? "nil")")
                         
                         switch selectedTab {
                         case .home:
@@ -734,7 +733,6 @@ struct MainTabView: View {
                         }
                     } else {
                         // Debug logging
-                        let _ = print("🔍 MainTabView: Showing CHILD UI for user: \(authService.currentUser?.name ?? "Unknown"), userType: \(authService.currentUser?.userType.rawValue ?? "nil")")
                         
                         switch selectedTab {
                         case .home:
@@ -1195,7 +1193,6 @@ struct ParentHomeView: View {
                 
                 // Start listening to geofence events for this family
                 if let familyId = familyService.currentFamily?.id {
-                    print("🔍 ParentHomeView - Starting geofence status listener for family: \(familyId)")
                     geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
                 } else {
                     print("❌ ParentHomeView - No family ID available for geofence status listening")
@@ -1204,10 +1201,8 @@ struct ParentHomeView: View {
             .onChange(of: familyService.currentFamily?.id) { familyId in
                 // Start geofence status listening when family becomes available
                 if let familyId = familyId {
-                    print("🔍 ParentHomeView - Family became available, starting geofence status listener for: \(familyId)")
                     geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
                 } else {
-                    print("🔍 ParentHomeView - Family became unavailable, stopping geofence status listener")
                     geofenceStatusService.stopListening()
                 }
             }
@@ -1299,7 +1294,6 @@ class ChildLocationService: ObservableObject {
             return
         }
         
-        print("🔍 Listening for child location: \(childId)")
         
         let listener = db.collection("locations").document(childId)
             .addSnapshotListener { [weak self] documentSnapshot, error in
@@ -2980,7 +2974,6 @@ class ParentMapViewModel: ObservableObject {
         let hash = childId.hashValue
         let index = abs(hash) % childColors.count
         let color = childColors[index]
-        print("🔍 MapViewModel - Color for child \(childId): \(color) (index: \(index))")
         return color
     }
     
@@ -2991,7 +2984,6 @@ class ParentMapViewModel: ObservableObject {
             return
         }
         
-        print("🔍 MapViewModel starting to listen for children locations for parent: \(parentId)")
         
         // Store reference to family service
         self.familyService = familyService
@@ -3000,7 +2992,6 @@ class ParentMapViewModel: ObservableObject {
         Task { @MainActor in
             familyService.$familyMembers
                 .sink { [weak self] _ in
-                    print("🔍 MapViewModel - Family membership changed, refreshing listeners")
                     self?.refreshChildrenLocations()
                 }
                 .store(in: &cancellables)
@@ -3018,25 +3009,17 @@ class ParentMapViewModel: ObservableObject {
             while attempts < 10 { // Try for up to 5 seconds
                 let childIds = familyService.getAllChildrenIds()
                 if !childIds.isEmpty {
-                    print("🔍 MapViewModel - Found \(childIds.count) children to monitor (pending + accepted)")
-                    print("🔍 MapViewModel - Child IDs: \(childIds)")
                     
                     // Start listening to each child's location
                     for childId in childIds {
-                        print("🔍 MapViewModel - Starting to listen for child: \(childId)")
-                        print("🔍 MapViewModel - About to call listenForChildLocation for: \(childId)")
                         listenForChildLocation(childId: childId)
-                        print("🔍 MapViewModel - Called listenForChildLocation for: \(childId)")
                     }
                     return
                 }
                 
-                print("🔍 MapViewModel - Family data not ready yet, waiting... (attempt \(attempts + 1))")
                 try? await Task.sleep(nanoseconds: 500_000_000) // Wait 0.5 seconds
                 attempts += 1
             }
-            
-            print("🔍 MapViewModel - Family data still not ready after 5 seconds, proceeding with empty children list")
         }
     }
     
@@ -3048,8 +3031,6 @@ class ParentMapViewModel: ObservableObject {
             return
         }
         
-        print("🔍 Listening for child location: \(childId)")
-        print("🔍 MapViewModel - Setting up Firestore listener for locations/\(childId)")
         
         let listener = db.collection("locations").document(childId)
             .addSnapshotListener { [weak self] documentSnapshot, error in
@@ -3061,21 +3042,17 @@ class ParentMapViewModel: ObservableObject {
                 }
                 
                 guard let document = documentSnapshot else {
-                    print("🔍 MapViewModel - No document snapshot for child \(childId)")
                     return
                 }
                 
                 if !document.exists {
-                    print("🔍 MapViewModel - Location document does not exist for child \(childId)")
                     return
                 }
                 
                 guard let data = document.data() else {
-                    print("🔍 MapViewModel - No data in location document for child \(childId)")
                     return
                 }
                 
-                print("🔍 MapViewModel - Received location data for child \(childId): \(data)")
                 
                 guard let locationData = try? Firestore.Decoder().decode(LocationData.self, from: data) else {
                     print("❌ MapViewModel - Failed to decode location data for child \(childId)")
@@ -3095,14 +3072,10 @@ class ParentMapViewModel: ObservableObject {
                     DispatchQueue.main.async {
                         let wasEmpty = self.childrenLocations.isEmpty
                         
-                        print("🔍 MapViewModel - Updating child location for \(childId): \(childLocation.childName)")
-                        print("🔍 MapViewModel - Location: lat=\(childLocation.location.lat), lng=\(childLocation.location.lng)")
                         
                         if let index = self.childrenLocations.firstIndex(where: { $0.childId == childId }) {
-                            print("🔍 MapViewModel - Updating existing child location at index \(index)")
                             self.childrenLocations[index] = childLocation
                         } else {
-                            print("🔍 MapViewModel - Adding new child location (total children: \(self.childrenLocations.count + 1))")
                             self.childrenLocations.append(childLocation)
                         }
                         
@@ -3155,11 +3128,9 @@ class ParentMapViewModel: ObservableObject {
         Task { @MainActor in
             let expectedChildrenCount = familyService?.getAllChildrenIds().count ?? 0
             
-            print("🔍 MapViewModel - Checking if should center: \(childrenLocations.count) current, \(expectedChildrenCount) expected")
             
             // Center if we have all expected children, or if we have at least one child
             if childrenLocations.count >= expectedChildrenCount || childrenLocations.count >= 1 {
-                print("🔍 MapViewModel - Centering map with \(childrenLocations.count) children")
                 centerOnChildren()
             }
         }
@@ -3167,18 +3138,15 @@ class ParentMapViewModel: ObservableObject {
     
     func centerOnChildren() {
         guard !childrenLocations.isEmpty else { 
-            print("🔍 MapViewModel - Cannot center on children: no children locations")
             return 
         }
         
-        print("🔍 MapViewModel - Centering map on \(childrenLocations.count) children")
         
         let coordinates = childrenLocations.map { CLLocationCoordinate2D(
             latitude: $0.location.lat,
             longitude: $0.location.lng
         )}
         
-        print("🔍 MapViewModel - Child coordinates: \(coordinates.map { "\($0.latitude), \($0.longitude)" })")
         
         let minLat = coordinates.map { $0.latitude }.min() ?? 0
         let maxLat = coordinates.map { $0.latitude }.max() ?? 0
@@ -3215,8 +3183,6 @@ class ParentMapViewModel: ObservableObject {
         
         region = MKCoordinateRegion(center: center, span: span)
         
-        print("🔍 MapViewModel - Updated map region to center: \(center.latitude), \(center.longitude)")
-        print("🔍 MapViewModel - Span: \(span.latitudeDelta) x \(span.longitudeDelta)")
         
         // Force a small delay to ensure map renders properly
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -3234,11 +3200,9 @@ class ParentMapViewModel: ObservableObject {
     
     func centerOnChild(childId: String) {
         guard let childLocation = childrenLocations.first(where: { $0.childId == childId }) else {
-            print("🔍 MapViewModel - Cannot center on child \(childId): child not found")
             return
         }
         
-        print("🔍 MapViewModel - Centering map on child: \(childLocation.childName)")
         
         let coordinate = CLLocationCoordinate2D(
             latitude: childLocation.location.lat,
@@ -3260,11 +3224,9 @@ class ParentMapViewModel: ObservableObject {
         
         region = MKCoordinateRegion(center: center, span: span)
         
-        print("🔍 MapViewModel - Updated map region to center on child: \(center.latitude), \(center.longitude)")
     }
     
     func refreshChildrenLocations() {
-        print("🔄 MapViewModel - Manual refresh triggered")
         
         // Force refresh by restarting listeners
         listeners.forEach { $0.remove() }
@@ -3277,12 +3239,9 @@ class ParentMapViewModel: ObservableObject {
             Task { @MainActor in
                 let childIds = familyService.getAllChildrenIds()
                 
-                print("🔍 MapViewModel - Found \(childIds.count) children to monitor (pending + accepted)")
-                print("🔍 MapViewModel - Child IDs: \(childIds)")
                 
                 // Start listening to each child's location
                 for childId in childIds {
-                    print("🔍 MapViewModel - Starting to listen for child: \(childId)")
                     listenForChildLocation(childId: childId)
                 }
             }
@@ -3303,7 +3262,6 @@ class ParentMapViewModel: ObservableObject {
             }
         }
         
-        print("🔍 MapViewModel - Removed \(removedChildren.count) children from listening")
     }
     
     private func isListeningToChild(childId: String) -> Bool {
@@ -3349,11 +3307,9 @@ struct MapViewRepresentable: UIViewRepresentable {
                 pinColor: mapViewModel.getColorForChild(childId: childLocation.childId),
                 imageBase64: childImageBase64
             )
-            print("🔍 MapView - Adding annotation for \(childLocation.childName) at \(childLocation.location.lat), \(childLocation.location.lng)")
             mapView.addAnnotation(annotation)
         }
         
-        print("🔍 MapView - Total annotations on map: \(mapView.annotations.count)")
     }
     
     func makeCoordinator() -> Coordinator {
@@ -3369,11 +3325,9 @@ struct MapViewRepresentable: UIViewRepresentable {
         
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             guard let childAnnotation = annotation as? ChildLocationAnnotation else {
-                print("🔍 MapView - Annotation is not a ChildLocationAnnotation: \(type(of: annotation))")
                 return nil
             }
             
-            print("🔍 MapView - Creating view for annotation: \(childAnnotation.childName) at \(childAnnotation.coordinate.latitude), \(childAnnotation.coordinate.longitude)")
             
             let identifier = "ChildLocation"
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
@@ -3397,7 +3351,6 @@ struct MapViewRepresentable: UIViewRepresentable {
                 let isRecent = isLocationRecent(childAnnotation.lastSeen)
                 let pinColor = isRecent ? baseColor : .systemRed
                 
-                print("🔍 MapView - Pin color for \(childAnnotation.childName): \(isRecent ? "recent (colored)" : "old (red)"), lastSeen: \(childAnnotation.lastSeen), baseColor: \(baseColor)")
                 
                 // Clear any existing subviews to prevent overlapping
                 customView.subviews.forEach { $0.removeFromSuperview() }
@@ -3480,7 +3433,6 @@ struct MapViewRepresentable: UIViewRepresentable {
                 
                 if let imageData = Data(base64Encoded: imageBase64!), let childImage = UIImage(data: imageData) {
                     photoImageView.image = childImage
-                    print("🔍 MapView - Using child photo for \(childName)")
                 }
                 
                 pinView.addSubview(photoImageView)
@@ -3500,7 +3452,6 @@ struct MapViewRepresentable: UIViewRepresentable {
                 iconImageView.tintColor = .white
                 iconImageView.contentMode = .scaleAspectFit
                 
-                print("🔍 MapView - Using unique color \(color) with person icon for \(childName) (no photo available)")
                 
                 pinView.addSubview(iconImageView)
             }
@@ -3541,19 +3492,16 @@ struct MapViewRepresentable: UIViewRepresentable {
                 // Green checkmark for locations within 5 minutes
                 indicatorView.backgroundColor = UIColor.systemGreen
                 iconImageView.image = UIImage(systemName: "checkmark")
-                print("🔍 MapView - Added green checkmark for very recent location")
                 
             case .recent:
                 // Yellow clock for locations 5-30 minutes old
                 indicatorView.backgroundColor = UIColor.systemYellow
                 iconImageView.image = UIImage(systemName: "clock")
-                print("🔍 MapView - Added yellow clock for recent location")
                 
             case .old:
                 // Red error for locations older than 30 minutes
                 indicatorView.backgroundColor = UIColor.systemRed
                 iconImageView.image = UIImage(systemName: "exclamationmark")
-                print("🔍 MapView - Added red error for old location")
             }
             
             indicatorView.addSubview(iconImageView)
