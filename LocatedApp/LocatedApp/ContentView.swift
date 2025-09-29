@@ -1005,7 +1005,7 @@ struct ParentHomeView: View {
                                                                 .foregroundColor(.secondary)
                                                         } else {
                                                             // Debug: Show if no geofence status is available
-                                                            Text("No geofence status")
+                                                            Text("No geofence status (ID: \(child.id))")
                                                                 .font(.caption)
                                                                 .foregroundColor(.gray)
                                                         }
