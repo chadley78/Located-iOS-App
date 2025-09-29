@@ -184,6 +184,7 @@ struct ChildSignUpView: View {
     let invitationCode: String?
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var locationService: LocationService
     @StateObject private var invitationService = FamilyInvitationService()
     
     @State private var inviteCode = ""
