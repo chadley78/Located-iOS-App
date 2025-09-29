@@ -46,7 +46,6 @@ class GeofenceStatusService: ObservableObject {
         errorMessage = nil
         
         // Listen to geofence events for this family
-        print("🔍 GeofenceStatusService - Setting up Firestore listener for familyId: \(familyId)")
         listener = db.collection("geofence_events")
             .whereField("familyId", isEqualTo: familyId)
             .order(by: "timestamp", descending: true)
@@ -69,6 +68,11 @@ class GeofenceStatusService: ObservableObject {
                     }
                     
                     print("🔍 GeofenceStatusService - Received \(snapshot.documentChanges.count) geofence event changes")
+                    
+                    // Debug: Print all document IDs in the snapshot
+                    for doc in snapshot.documents {
+                        print("🔍 GeofenceStatusService - Document ID: \(doc.documentID), data: \(doc.data())")
+                    }
                     
                     // Process document changes
                     for change in snapshot.documentChanges {
@@ -104,6 +108,8 @@ class GeofenceStatusService: ObservableObject {
     // MARK: - Private Methods
     
     private func processGeofenceEvent(_ eventData: [String: Any]) {
+        print("🔍 GeofenceStatusService - Processing event data: \(eventData)")
+        
         guard let childId = eventData["childId"] as? String,
               let childName = eventData["childName"] as? String,
               let geofenceName = eventData["geofenceName"] as? String,
@@ -112,6 +118,8 @@ class GeofenceStatusService: ObservableObject {
             print("❌ GeofenceStatusService - Invalid event data: \(eventData)")
             return
         }
+        
+        print("🔍 GeofenceStatusService - Parsed event: childId=\(childId), childName=\(childName), geofenceName=\(geofenceName), eventType=\(eventTypeString)")
         
         // Parse event type
         let eventType: GeofenceEventType
@@ -139,6 +147,7 @@ class GeofenceStatusService: ObservableObject {
         childGeofenceStatus[childId] = status
         
         print("🔍 GeofenceStatusService - Updated status for \(childName): \(status.displayText)")
+        print("🔍 GeofenceStatusService - Current statuses: \(childGeofenceStatus.keys)")
     }
     
     /// Clear all geofence status data
