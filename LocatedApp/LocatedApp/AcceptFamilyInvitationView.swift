@@ -6,6 +6,7 @@ import FirebaseFirestore
 struct AcceptFamilyInvitationView: View {
     @StateObject private var invitationService = FamilyInvitationService()
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var locationService: LocationService
     @Environment(\.dismiss) private var dismiss
     
     @State private var inviteCode = ""
@@ -17,9 +18,11 @@ struct AcceptFamilyInvitationView: View {
         Group {
             if showingWelcome {
                 ChildWelcomeView {
-                    // Refresh family listener before dismissing
+                    // Refresh family listener and force location update before dismissing
                     Task {
                         await familyService.forceRefreshFamilyListener()
+                        // Force location update so parent map shows child immediately
+                        locationService.forceLocationUpdate()
                         dismiss()
                     }
                 }

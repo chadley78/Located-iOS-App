@@ -302,6 +302,23 @@ class LocationService: NSObject, ObservableObject {
             return "Unknown"
         }
     }
+    
+    // MARK: - Force Location Update
+    func forceLocationUpdate() {
+        print("📍 Force location update requested")
+        
+        if let currentLocation = currentLocation {
+            print("📍 Using current location for immediate update")
+            // Force save current location immediately
+            Task {
+                await saveLocationToFirestore(location: currentLocation, address: nil)
+            }
+        } else {
+            print("📍 No current location, requesting fresh location")
+            // Request a fresh location update
+            locationManager.requestLocation()
+        }
+    }
 }
 
 // MARK: - CLLocationManagerDelegate
