@@ -1095,6 +1095,9 @@ exports.acceptInvitation = onCall(async (request) => {
             childName: invitationData.childName,
           });
 
+          // Get existing child data before deletion to preserve all data
+          const existingChildData = existingChild[1];
+
           // Remove the old child from the family (since we're replacing them)
           await admin.firestore()
               .collection("families")
@@ -1104,18 +1107,17 @@ exports.acceptInvitation = onCall(async (request) => {
                   admin.firestore.FieldValue.delete(),
               });
 
-          // Add new child to family (using new authenticated user ID)
+          // Add new child to family with preserved data
+          // (using new authenticated user ID)
           await admin.firestore()
               .collection("families")
               .doc(invitationData.familyId)
               .update({
                 [`members.${childId}`]: {
+                  ...existingChildData, // Preserve ALL existing data
                   role: "child",
                   name: invitationData.childName,
                   joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-                  imageURL: null,
-                  imageBase64: null,
-                  hasImage: false,
                   status: "accepted",
                 },
               });
