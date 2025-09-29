@@ -41,6 +41,8 @@ struct ContentView: View {
             } else {
                 WelcomeView(invitationCode: invitationCode)
                     .environmentObject(authService)
+                    .environmentObject(familyService)
+                    .environmentObject(locationService)
             }
         }
         .animation(.easeInOut, value: authService.isAuthenticated)
