@@ -46,10 +46,9 @@ class GeofenceStatusService: ObservableObject {
         errorMessage = nil
         
         // Listen to geofence events for this family
+        // Try a simpler query first to see if there are any events at all
         listener = db.collection("geofence_events")
             .whereField("familyId", isEqualTo: familyId)
-            .order(by: "timestamp", descending: true)
-            .limit(toLast: 100) // Keep last 100 events to ensure we have recent data
             .addSnapshotListener { [weak self] snapshot, error in
                 Task { @MainActor in
                     guard let self = self else { return }
@@ -68,6 +67,7 @@ class GeofenceStatusService: ObservableObject {
                     }
                     
                     print("🔍 GeofenceStatusService - Received \(snapshot.documentChanges.count) geofence event changes")
+                    print("🔍 GeofenceStatusService - Total documents in snapshot: \(snapshot.documents.count)")
                     
                     // Debug: Print all document IDs in the snapshot
                     for doc in snapshot.documents {
