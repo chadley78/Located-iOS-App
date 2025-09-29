@@ -1201,6 +1201,16 @@ struct ParentHomeView: View {
                     print("❌ ParentHomeView - No family ID available for geofence status listening")
                 }
             }
+            .onChange(of: familyService.currentFamily?.id) { familyId in
+                // Start geofence status listening when family becomes available
+                if let familyId = familyId {
+                    print("🔍 ParentHomeView - Family became available, starting geofence status listener for: \(familyId)")
+                    geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
+                } else {
+                    print("🔍 ParentHomeView - Family became unavailable, stopping geofence status listener")
+                    geofenceStatusService.stopListening()
+                }
+            }
             .onDisappear {
                 // Stop listening to geofence events when view disappears
                 geofenceStatusService.stopListening()
