@@ -146,6 +146,7 @@ struct AuthenticationView: View {
     let invitationCode: String?
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var locationService: LocationService
     @State private var isSignUp = false
     
     var body: some View {
