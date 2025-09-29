@@ -71,6 +71,8 @@ struct ContentView: View {
 struct WelcomeView: View {
     let invitationCode: String?
     @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var locationService: LocationService
     
     init(invitationCode: String? = nil) {
         self.invitationCode = invitationCode
@@ -110,7 +112,10 @@ struct WelcomeView: View {
                 
                 // Role Selection Buttons
                 VStack(spacing: 16) {
-                    NavigationLink(destination: AuthenticationView(userType: .parent, invitationCode: invitationCode)) {
+                    NavigationLink(destination: AuthenticationView(userType: .parent, invitationCode: invitationCode)
+                        .environmentObject(authService)
+                        .environmentObject(familyService)
+                        .environmentObject(locationService)) {
                         Text("I'm a Parent")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
@@ -120,7 +125,10 @@ struct WelcomeView: View {
                             .cornerRadius(25)
                     }
                     
-                    NavigationLink(destination: AuthenticationView(userType: .child, invitationCode: invitationCode)) {
+                    NavigationLink(destination: AuthenticationView(userType: .child, invitationCode: invitationCode)
+                        .environmentObject(authService)
+                        .environmentObject(familyService)
+                        .environmentObject(locationService)) {
                         Text("I'm a Child")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
