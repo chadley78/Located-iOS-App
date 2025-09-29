@@ -688,6 +688,7 @@ struct ForgotPasswordView: View {
 // MARK: - Main View
 struct MainTabView: View {
     @EnvironmentObject var authService: AuthenticationService
+    @StateObject private var geofenceStatusService = GeofenceStatusService()
     @State private var selectedTab: TabOption = .home
     @State private var showingMenu = false
     
@@ -725,6 +726,7 @@ struct MainTabView: View {
                         switch selectedTab {
                         case .home:
                             ParentHomeView()
+                                .environmentObject(geofenceStatusService)
                         case .children:
                             ChildrenListView()
                         case .settings:
@@ -819,6 +821,7 @@ struct MainTabView: View {
 struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var geofenceStatusService: GeofenceStatusService
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var mapViewModel = ParentMapViewModel()
     
@@ -996,6 +999,10 @@ struct ParentHomeView: View {
                                                                 .font(.caption)
                                                                 .foregroundColor(.orange)
                                                                 .fontWeight(.medium)
+                                                        } else if let geofenceStatus = geofenceStatusService.getStatusForChild(childId: child.id) {
+                                                            Text(geofenceStatus.displayText)
+                                                                .font(.caption)
+                                                                .foregroundColor(.secondary)
                                                         }
                                                     }
                                                     
@@ -1624,6 +1631,15 @@ struct ChildHomeView: View {
             print("🔍 ParentHomeView - Family members: \(familyService.getFamilyMembers().count)")
             print("🔍 ParentHomeView - All children: \(familyService.getAllChildren().count)")
             print("🔍 ParentHomeView - All children: \(familyService.getAllChildren().count)")
+            
+            // Start listening to geofence events for this family
+            if let familyId = familyService.currentFamily?.id {
+                geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
+            }
+        }
+        .onDisappear {
+            // Stop listening to geofence events when view disappears
+            geofenceStatusService.stopListening()
         }
     }
     
