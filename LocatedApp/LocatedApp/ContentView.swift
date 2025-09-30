@@ -998,9 +998,20 @@ struct ParentHomeView: View {
                                                                 .foregroundColor(.orange)
                                                                 .fontWeight(.medium)
                                                         } else if let geofenceStatus = geofenceStatusService.getStatusForChild(childId: child.id) {
-                                                            Text(geofenceStatus.displayText)
-                                                                .font(.caption)
-                                                                .foregroundColor(.secondary)
+                                                            // Check if geofence status is recent (within 30 minutes)
+                                                            let geofenceStatusAge = geofenceStatus.timestamp.timeIntervalSinceNow
+                                                            if geofenceStatusAge > -1800 { // 30 minutes
+                                                                Text(geofenceStatus.displayText)
+                                                                    .font(.caption)
+                                                                    .foregroundColor(.secondary)
+                                                            } else {
+                                                                // Geofence status is old, show location-based status
+                                                                let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+                                                                let hasRecentLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -300)
+                                                                Text(hasRecentLocation ? "Located" : "Offline")
+                                                                    .font(.caption)
+                                                                    .foregroundColor(hasRecentLocation ? .green : .red)
+                                                            }
                                                         } else {
                                                             // Show "Located" if child has recent location, "Offline" if not
                                                             let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }

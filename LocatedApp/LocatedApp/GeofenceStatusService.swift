@@ -45,8 +45,64 @@ class GeofenceStatusService: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        // Listen to geofence events for this family
-        // Try a simpler query first to see if there are any events at all
+        // First, load existing geofence events
+        Task {
+            await loadLatestGeofenceEvents(familyId: familyId)
+            
+            // Then start the real-time listener
+            await MainActor.run {
+                self.startRealtimeListener(familyId: familyId)
+            }
+        }
+    }
+    
+    /// Load the latest geofence event for each child in the family
+    private func loadLatestGeofenceEvents(familyId: String) async {
+        print("🔍 GeofenceStatusService - Loading latest geofence events for family: \(familyId)")
+        
+        do {
+            // Query for all geofence events for this family, ordered by timestamp descending
+            let snapshot = try await db.collection("geofence_events")
+                .whereField("familyId", isEqualTo: familyId)
+                .order(by: "timestamp", descending: true)
+                .getDocuments()
+            
+            print("🔍 GeofenceStatusService - Found \(snapshot.documents.count) geofence events")
+            
+            // Group events by childId and keep only the latest event per child
+            var latestEventsByChild: [String: [String: Any]] = [:]
+            
+            for document in snapshot.documents {
+                let data = document.data()
+                guard let childId = data["childId"] as? String else { continue }
+                
+                // Keep only the first (latest) event for each child
+                if latestEventsByChild[childId] == nil {
+                    latestEventsByChild[childId] = data
+                    print("🔍 GeofenceStatusService - Latest event for child \(childId): \(data)")
+                }
+            }
+            
+            // Process the latest events
+            await MainActor.run {
+                for (childId, eventData) in latestEventsByChild {
+                    processGeofenceEvent(eventData)
+                }
+                print("🔍 GeofenceStatusService - Loaded \(latestEventsByChild.count) latest geofence events")
+            }
+            
+        } catch {
+            print("❌ GeofenceStatusService - Error loading latest geofence events: \(error)")
+            await MainActor.run {
+                self.errorMessage = "Failed to load geofence events: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    /// Start the real-time listener for new geofence events
+    private func startRealtimeListener(familyId: String) {
+        print("🔍 GeofenceStatusService - Starting real-time listener for family: \(familyId)")
+        
         listener = db.collection("geofence_events")
             .whereField("familyId", isEqualTo: familyId)
             .addSnapshotListener { [weak self] snapshot, error in
@@ -74,11 +130,19 @@ class GeofenceStatusService: ObservableObject {
                         print("🔍 GeofenceStatusService - Document ID: \(doc.documentID), data: \(doc.data())")
                     }
                     
-                    // Process document changes
+                    // Process document changes (only new events since we already loaded existing ones)
                     for change in snapshot.documentChanges {
                         switch change.type {
-                        case .added, .modified:
+                        case .added:
+                            // Only process newly added events (not existing ones we already loaded)
                             if let eventData = change.document.data() as? [String: Any] {
+                                print("🔍 GeofenceStatusService - New geofence event added: \(eventData)")
+                                self.processGeofenceEvent(eventData)
+                            }
+                        case .modified:
+                            // Handle modified events if needed
+                            if let eventData = change.document.data() as? [String: Any] {
+                                print("🔍 GeofenceStatusService - Geofence event modified: \(eventData)")
                                 self.processGeofenceEvent(eventData)
                             }
                         case .removed:
