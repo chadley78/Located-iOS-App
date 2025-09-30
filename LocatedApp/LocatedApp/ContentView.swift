@@ -1078,29 +1078,6 @@ struct ParentHomeView: View {
                                 .font(.headline)
                             
                             VStack(spacing: 12) {
-                                // Refresh Family Data Button
-                                Button(action: {
-                                    Task {
-                                        await familyService.forceRefreshFamilyListener()
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "arrow.clockwise")
-                                            .font(.title2)
-                                            .foregroundColor(.blue)
-                                        Text("Refresh Family Data")
-                                            .font(.headline)
-                                            .foregroundColor(.blue)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.blue)
-                                    }
-                                    .padding()
-                                    .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(12)
-                                }
-                                
                                 // Family Management Button
                                 NavigationLink(destination: ChildrenListView()) {
                                     HStack {
