@@ -328,10 +328,9 @@ struct LocationPickerView: View {
                 Map(coordinateRegion: $region, annotationItems: [MapPinAnnotation(coordinate: region.center)]) { annotation in
                     MapPin(coordinate: annotation.coordinate, tint: .red)
                 }
-                .onTapGesture { location in
-                    // Convert tap location to coordinate
-                    let coordinate = region.center
-                    selectedCoordinate = coordinate
+                .onTapGesture {
+                    // Use the center of the current region as the selected coordinate
+                    selectedCoordinate = region.center
                 }
                 .onChange(of: region.center.latitude) { _ in
                     selectedCoordinate = region.center
@@ -363,20 +362,16 @@ struct LocationPickerView: View {
             }
             .navigationTitle("Select Location")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+            .navigationBarBackButtonHidden(true)
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    dismiss()
+                },
+                trailing: Button("Done") {
+                    dismiss()
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .disabled(selectedCoordinate == nil)
-                }
-            }
+                .disabled(selectedCoordinate == nil)
+            )
             .onAppear {
                 if let userLocation = locationManager.location {
                     region.center = userLocation.coordinate

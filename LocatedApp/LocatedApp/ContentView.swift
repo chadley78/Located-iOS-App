@@ -233,7 +233,7 @@ struct ChildSignUpView: View {
                         
                         Text("Join Your Family")
                             .font(.title)
-                            .fontWeight(.bold)
+                            .font(.system(size: 28, weight: .bold))
                         
                 Text("Enter the invitation code your parent shared with you.")
                     .font(.body)
@@ -930,7 +930,7 @@ struct ParentHomeView: View {
                             VStack(spacing: 16) {
                                 Text("Family Overview")
                                     .font(.title2)
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 18, weight: .semibold))
                             
                             if let family = familyService.currentFamily {
                                 let allChildren = familyService.getAllChildren()
@@ -996,7 +996,7 @@ struct ParentHomeView: View {
                                                             Text("• \(child.status.displayName)")
                                                                 .font(.caption)
                                                                 .foregroundColor(.orange)
-                                                                .fontWeight(.medium)
+                                                                .font(.system(size: 12, weight: .medium))
                                                         } else if let geofenceStatus = geofenceStatusService.getStatusForChild(childId: child.id) {
                                                             // Check if geofence status is recent (within 30 minutes)
                                                             let geofenceStatusAge = geofenceStatus.timestamp.timeIntervalSinceNow
@@ -1772,7 +1772,7 @@ struct ChildrenListView: View {
                                                         Text("• \(child.status.displayName)")
                                                             .font(.caption)
                                                             .foregroundColor(.orange)
-                                                            .fontWeight(.medium)
+                                                            .font(.system(size: 12, weight: .medium))
                                                     }
                                                 }
                                             }
@@ -1863,7 +1863,7 @@ struct ChildrenListView: View {
                                                             Text("• \(child.status.displayName)")
                                                                 .font(.caption)
                                                                 .foregroundColor(.orange)
-                                                                .fontWeight(.medium)
+                                                                .font(.system(size: 12, weight: .medium))
                                                         }
                                                     }
                                                 }
@@ -2012,7 +2012,7 @@ struct ChildProfileView: View {
     @State private var showingImagePicker = false
     @State private var isUploadingImage = false
     @State private var childImageURL: String?
-    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedPhotoItem: Any? // PhotosPickerItem for iOS 16+, nil for iOS 15
     
     init(childId: String, child: ChildDisplayItem) {
         self.childId = childId
@@ -2070,21 +2070,20 @@ struct ChildProfileView: View {
                     VStack(spacing: 16) {
                         // Profile Image
                         ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.2))
+                                .frame(width: 120, height: 120)
+                            
                             if let selectedImage = selectedImage {
                                 Image(uiImage: selectedImage)
                                     .resizable()
-                                    .aspectRatio(contentMode: .fill)
+                                    .aspectRatio(contentMode: .fit)
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
                             } else {
-                                Circle()
-                                    .fill(Color.blue.opacity(0.2))
-                                    .frame(width: 120, height: 120)
-                                    .overlay(
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 50))
-                                            .foregroundColor(.blue)
-                                    )
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.blue)
                             }
                             
                             // Upload button overlay
@@ -2115,13 +2114,13 @@ struct ChildProfileView: View {
                             if isEditingName {
                                 TextField("Child's Name", text: $childName)
                                     .font(.title2)
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 18, weight: .semibold))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .multilineTextAlignment(.center)
                             } else {
                                 Text(childName)
                                     .font(.title2)
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 18, weight: .semibold))
                             }
                             
                             Button(isEditingName ? "Save" : "Edit Name") {
@@ -2199,7 +2198,7 @@ struct ChildProfileView: View {
                             VStack(spacing: 16) {
                                 Text("New Invitation Code Created!")
                                     .font(.title2)
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.green)
                                 
                                 Text("Share this code with \(childName):")
@@ -2297,18 +2296,60 @@ struct ChildProfileView: View {
                  "Are you sure you want to remove \(childName) from your pending children? This will cancel their invitation." :
                  "Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
         }
-        .photosPicker(isPresented: $showingImagePicker, selection: $selectedPhotoItem, photoLibrary: .shared())
-        .onChange(of: showingImagePicker) {
-            print("🔍 PhotosPicker presentation changed: \(showingImagePicker)")
-        }
-        .onChange(of: selectedPhotoItem) {
-            print("🔍 PhotosPicker onChange triggered with item: \(selectedPhotoItem != nil ? "selected" : "nil")")
-            Task {
-                if let item = selectedPhotoItem {
-                    await loadSelectedImage(from: item)
-                } else {
-                    print("🔍 PhotosPicker item is nil")
+        .sheet(isPresented: $showingImagePicker) {
+            if #available(iOS 16.0, *) {
+                NavigationView {
+                    VStack(spacing: 20) {
+                        // Show selected image preview
+                        if let selectedImage = selectedImage {
+                            Image(uiImage: selectedImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxHeight: 300)
+                                .cornerRadius(12)
+                                .padding()
+                        }
+                        
+                        // PhotosPicker
+                        PhotosPicker(selection: Binding<PhotosPickerItem?>(
+                            get: { selectedPhotoItem as? PhotosPickerItem },
+                            set: { selectedPhotoItem = $0 }
+                        ), matching: .images, photoLibrary: .shared()) {
+                            HStack {
+                                Image(systemName: "photo")
+                                Text("Select Photo")
+                            }
+                            .foregroundColor(.blue)
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                        
+                        Spacer()
+                    }
+                    .navigationTitle("Select Photo")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarItems(
+                        leading: Button("Cancel") {
+                            showingImagePicker = false
+                        },
+                        trailing: Button("Done") {
+                            showingImagePicker = false
+                        }
+                        .disabled(selectedImage == nil)
+                    )
                 }
+                .onChange(of: selectedPhotoItem as? PhotosPickerItem) { newValue in
+                    print("🔍 PhotosPicker onChange triggered with item: \(newValue != nil ? "selected" : "nil")")
+                    Task {
+                        if let item = newValue {
+                            await loadSelectedImage(from: item)
+                        }
+                    }
+                }
+            } else {
+                // Fallback for iOS 15 - use UIImagePickerController
+                ImagePickerView(selectedImage: $selectedImage)
             }
         }
         .onAppear {
@@ -2335,6 +2376,7 @@ struct ChildProfileView: View {
         }
     }
     
+    @available(iOS 16.0, *)
     private func loadSelectedImage(from item: PhotosPickerItem) async {
         print("🔍 loadSelectedImage called with item: \(item)")
         
@@ -4181,4 +4223,42 @@ struct RoundedCorner: Shape {
 
 #Preview {
     ContentView()
+}
+
+// MARK: - ImagePickerView for iOS 15 compatibility
+struct ImagePickerView: UIViewControllerRepresentable {
+    @Binding var selectedImage: UIImage?
+    @Environment(\.presentationMode) var presentationMode
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePickerView
+        
+        init(_ parent: ImagePickerView) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+            }
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+    }
 }
