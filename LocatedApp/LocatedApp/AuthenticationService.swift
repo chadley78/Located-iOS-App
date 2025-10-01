@@ -90,6 +90,7 @@ class AuthenticationService: ObservableObject {
     private let auth = Auth.auth()
     private let db = Firestore.firestore()
     private var notificationService: NotificationService?
+    private var userListener: ListenerRegistration?
     
     init() {
         // Listen for authentication state changes
@@ -108,6 +109,8 @@ class AuthenticationService: ObservableObject {
         if let user = user {
             // User is signed in - fetch profile first, then set authenticated
             await fetchUserProfile(userId: user.uid)
+            // Start listening to user document changes for family removal detection
+            startUserDocumentListener(userId: user.uid)
             // Only set authenticated after currentUser is loaded
             if currentUser != nil {
                 // If we should show welcome, don't set authenticated yet
@@ -123,6 +126,8 @@ class AuthenticationService: ObservableObject {
             currentUser = nil
             isAuthenticated = false
             shouldShowWelcome = false
+            userListener?.remove()
+            userListener = nil
             print("🔍 User signed out")
         }
     }
@@ -131,6 +136,36 @@ class AuthenticationService: ObservableObject {
         shouldShowWelcome = false
         isAuthenticated = true
         print("🔍 Welcome flow completed, user now authenticated")
+    }
+    
+    // MARK: - User Document Listener
+    private func startUserDocumentListener(userId: String) {
+        // Remove existing listener
+        userListener?.remove()
+        
+        userListener = db.collection("users").document(userId).addSnapshotListener { [weak self] documentSnapshot, error in
+            if let error = error {
+                print("❌ Error listening to user document: \(error)")
+                return
+            }
+            
+            guard let document = documentSnapshot,
+                  let data = document.data() else {
+                print("ℹ️ User document not found or empty")
+                return
+            }
+            
+            // Check if familyId was removed (indicating child was removed from family)
+            if let currentUser = self?.currentUser,
+               currentUser.userType == .child,
+               currentUser.familyId != nil,
+               data["familyId"] == nil {
+                print("🔍 Child was removed from family - signing out")
+                Task {
+                    await self?.signOut()
+                }
+            }
+        }
     }
     
     // MARK: - Authentication Methods
@@ -339,5 +374,10 @@ class AuthenticationService: ObservableObject {
         } catch {
             print("Error updating last active: \(error)")
         }
+    }
+    
+    deinit {
+        userListener?.remove()
+        print("🔐 AuthenticationService deallocated")
     }
 }
