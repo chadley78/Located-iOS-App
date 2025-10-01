@@ -362,16 +362,19 @@ struct LocationPickerView: View {
             }
             .navigationTitle("Select Location")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Done") {
-                    dismiss()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-                .disabled(selectedCoordinate == nil)
-            )
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .disabled(selectedCoordinate == nil)
+                }
+            }
             .onAppear {
                 if let userLocation = locationManager.location {
                     region.center = userLocation.coordinate

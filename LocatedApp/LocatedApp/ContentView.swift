@@ -827,7 +827,7 @@ struct ParentHomeView: View {
     @State private var showingFamilyManagement = false
     @State private var scrollOffset: CGFloat = 0
     @State private var panelHeight: CGFloat = 0.25
-    @State private var dragOffset: CGFloat = 0
+    @State private var isPanelExpanded: Bool = false
     
     var body: some View {
         ZStack {
@@ -896,32 +896,44 @@ struct ParentHomeView: View {
                 Spacer()
                 
                 VStack(spacing: 0) {
-                    // Drag Handle
-                    RoundedRectangle(cornerRadius: 2.5)
-                        .fill(Color.secondary)
-                        .frame(width: 40, height: 5)
-                        .padding(.vertical, 8)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    let screenHeight = UIScreen.main.bounds.height
-                                    // Invert the translation: dragging up (negative height) should increase panel size
-                                    let newHeight = panelHeight - (value.translation.height / screenHeight)
-                                    let clampedHeight = max(0.15, min(0.8, newHeight)) // Between 15% and 80%
-                                    dragOffset = (clampedHeight - panelHeight) * screenHeight
+                    // Panel Header
+                    HStack {
+                        // Drag Handle (visual only)
+                        RoundedRectangle(cornerRadius: 2.5)
+                            .fill(Color.secondary)
+                            .frame(width: 40, height: 5)
+                        
+                        Spacer()
+                        
+                        // Collapse Button (only when expanded)
+                        if isPanelExpanded {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isPanelExpanded = false
+                                    panelHeight = 0.25
                                 }
-                                .onEnded { value in
-                                    let screenHeight = UIScreen.main.bounds.height
-                                    // Invert the translation: dragging up (negative height) should increase panel size
-                                    let newHeight = panelHeight - (value.translation.height / screenHeight)
-                                    let clampedHeight = max(0.15, min(0.8, newHeight))
-                                    
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                        panelHeight = clampedHeight
-                                        dragOffset = 0
-                                    }
-                                }
-                        )
+                            }) {
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .padding(8)
+                                    .background(Color.secondary.opacity(0.1))
+                                    .clipShape(Circle())
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 20)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Tap anywhere on header to expand (only when collapsed)
+                        if !isPanelExpanded {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isPanelExpanded = true
+                                panelHeight = 0.7
+                            }
+                        }
+                    }
                     
                     ScrollViewReader { proxy in
                         ScrollView {
@@ -1152,7 +1164,10 @@ struct ParentHomeView: View {
                         }
                         .coordinateSpace(name: "scroll")
                         .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                            scrollOffset = value
+                            // Throttle scroll offset updates to prevent performance issues
+                            DispatchQueue.main.async {
+                                scrollOffset = value
+                            }
                         }
                     }
                 }
@@ -1161,8 +1176,7 @@ struct ParentHomeView: View {
                         .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
                 )
-                .frame(height: UIScreen.main.bounds.height * panelHeight + dragOffset)
-                .offset(y: max(0, -scrollOffset * 0.3)) // Reduced parallax effect
+                .frame(height: UIScreen.main.bounds.height * panelHeight)
             }
         }
             .navigationTitle("")
@@ -1676,6 +1690,7 @@ struct ChildrenListView: View {
     @State private var showingInviteChild = false
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
+    @State private var removedChildId: String? = nil
     
     var body: some View {
         NavigationView {
@@ -1744,16 +1759,17 @@ struct ChildrenListView: View {
                                 
                                 // Show all children (pending + accepted)
                                 ForEach(allChildren, id: \.id) { child in
-                                    Button(action: {
-                                        if !child.isPending {
-                                            childProfileData.setChild(id: child.id, name: child.name)
-                                        } else {
-                                            // Show pending child management options
-                                            print("🔍 ChildrenListView - Tapping pending child: \(child.name)")
-                                            selectedPendingChild = child
-                                            print("🔍 ChildrenListView - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
-                                        }
-                                    }) {
+                                    if removedChildId != child.id {
+                                        Button(action: {
+                                            if !child.isPending {
+                                                childProfileData.setChild(id: child.id, name: child.name)
+                                            } else {
+                                                // Show pending child management options
+                                                print("🔍 ChildrenListView - Tapping pending child: \(child.name)")
+                                                selectedPendingChild = child
+                                                print("🔍 ChildrenListView - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
+                                            }
+                                        }) {
                                         HStack {
                                             Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
                                                 .foregroundColor(child.isPending ? .orange : .green)
@@ -1794,8 +1810,12 @@ struct ChildrenListView: View {
                                         .background(Color(UIColor.systemBackground))
                                         .cornerRadius(8)
                                         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                        .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
+                                        .opacity(removedChildId == child.id ? 0.0 : 1.0)
+                                        .animation(.easeInOut(duration: 0.8), value: removedChildId)
                                     }
                                     .buttonStyle(PlainButtonStyle())
+                                    }
                                 }
                             }
                         } else {
@@ -1835,16 +1855,17 @@ struct ChildrenListView: View {
                                     
                                     // Show all children (pending + accepted)
                                     ForEach(allChildren, id: \.id) { child in
-                                        Button(action: {
-                                            if !child.isPending {
-                                                childProfileData.setChild(id: child.id, name: child.name)
-                                            } else {
-                                                // Show pending child management options
-                                                print("🔍 ChildrenListView (ScrollView) - Tapping pending child: \(child.name)")
-                                                selectedPendingChild = child
-                                                print("🔍 ChildrenListView (ScrollView) - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
-                                            }
-                                        }) {
+                                        if removedChildId != child.id {
+                                            Button(action: {
+                                                if !child.isPending {
+                                                    childProfileData.setChild(id: child.id, name: child.name)
+                                                } else {
+                                                    // Show pending child management options
+                                                    print("🔍 ChildrenListView (ScrollView) - Tapping pending child: \(child.name)")
+                                                    selectedPendingChild = child
+                                                    print("🔍 ChildrenListView (ScrollView) - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
+                                                }
+                                            }) {
                                             HStack {
                                                 Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
                                                     .foregroundColor(child.isPending ? .orange : .green)
@@ -1885,8 +1906,12 @@ struct ChildrenListView: View {
                                             .background(Color(UIColor.systemBackground))
                                             .cornerRadius(8)
                                             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                            .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
+                                            .opacity(removedChildId == child.id ? 0.0 : 1.0)
+                                            .animation(.easeInOut(duration: 0.8), value: removedChildId)
                                         }
                                         .buttonStyle(PlainButtonStyle())
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 16)
@@ -1956,13 +1981,31 @@ struct ChildrenListView: View {
                         ),
                         id: childProfileData.childId
                     )
-                    ChildProfileView(childId: childProfileData.childId, child: child)
+                    ChildProfileView(childId: childProfileData.childId, child: child, onChildRemoved: { childId in
+                        // Trigger the bubble pop animation
+                        withAnimation(.easeInOut(duration: 0.8)) {
+                            removedChildId = childId
+                        }
+                        // Clear the removed child after animation completes
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            removedChildId = nil
+                        }
+                    })
                         .environmentObject(familyService)
                 }
             }
             .sheet(item: $selectedPendingChild) { pendingChild in
                 // Use existing child management - show profile for pending children too
-                ChildProfileView(childId: pendingChild.id, child: pendingChild)
+                ChildProfileView(childId: pendingChild.id, child: pendingChild, onChildRemoved: { childId in
+                    // Trigger the bubble pop animation
+                    withAnimation(.easeInOut(duration: 0.8)) {
+                        removedChildId = childId
+                    }
+                    // Clear the removed child after animation completes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        removedChildId = nil
+                    }
+                })
                     .environmentObject(familyService)
                     .onAppear {
                         print("🔍 ChildrenListView - Presenting child profile for pending child: \(pendingChild.name)")
@@ -2001,6 +2044,7 @@ struct ChildrenListView: View {
 struct ChildProfileView: View {
     let childId: String
     let child: ChildDisplayItem
+    let onChildRemoved: ((String) -> Void)?
     @EnvironmentObject var familyService: FamilyService
     @Environment(\.dismiss) private var dismiss
     
@@ -2014,9 +2058,10 @@ struct ChildProfileView: View {
     @State private var childImageURL: String?
     @State private var selectedPhotoItem: Any? // PhotosPickerItem for iOS 16+, nil for iOS 15
     
-    init(childId: String, child: ChildDisplayItem) {
+    init(childId: String, child: ChildDisplayItem, onChildRemoved: ((String) -> Void)? = nil) {
         self.childId = childId
         self.child = child
+        self.onChildRemoved = onChildRemoved
         self._childName = State(initialValue: child.name)
     }
     
@@ -2329,15 +2374,19 @@ struct ChildProfileView: View {
                     }
                     .navigationTitle("Select Photo")
                     .navigationBarTitleDisplayMode(.inline)
-                    .navigationBarItems(
-                        leading: Button("Cancel") {
-                            showingImagePicker = false
-                        },
-                        trailing: Button("Done") {
-                            showingImagePicker = false
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Cancel") {
+                                showingImagePicker = false
+                            }
                         }
-                        .disabled(selectedImage == nil)
-                    )
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingImagePicker = false
+                            }
+                            .disabled(selectedImage == nil)
+                        }
+                    }
                 }
                 .onChange(of: selectedPhotoItem as? PhotosPickerItem) { newValue in
                     print("🔍 PhotosPicker onChange triggered with item: \(newValue != nil ? "selected" : "nil")")
@@ -2568,7 +2617,13 @@ struct ChildProfileView: View {
     }
     
     private func removeChild() {
+        // Navigate back immediately
+        dismiss()
+        
         Task {
+            // Wait a bit for navigation to complete
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            
             do {
                 if let familyId = familyService.currentFamily?.id {
                     if child.isPending {
@@ -2578,12 +2633,19 @@ struct ChildProfileView: View {
                         // For accepted children, use the existing logic
                         try await familyService.removeChildFromFamily(childId: childId, familyId: familyId)
                     }
+                    
                     await MainActor.run {
-                        dismiss()
+                        // Trigger the bubble pop animation
+                        onChildRemoved?(childId)
                     }
                 }
             } catch {
                 print("❌ Error removing child: \(error)")
+                // Even if removal fails, still trigger animation
+                await MainActor.run {
+                    // Trigger the bubble pop animation
+                    onChildRemoved?(childId)
+                }
             }
         }
     }

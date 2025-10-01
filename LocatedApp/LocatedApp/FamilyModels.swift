@@ -224,21 +224,52 @@ class FamilyService: ObservableObject {
         listenToFamily(userId: userId)
     }
     
-    /// Remove a child from the family
+    /// Remove a child from the family using Cloud Function
     func removeChildFromFamily(childId: String, familyId: String) async throws {
-        print("🔍 Removing child \(childId) from family \(familyId)")
+        print("🔍 Removing child \(childId) from family \(familyId) using Cloud Function")
         
-        // Remove child from family members
-        try await db.collection("families").document(familyId).updateData([
-            "members.\(childId)": FieldValue.delete()
-        ])
+        guard let userId = auth.currentUser?.uid else {
+            throw FamilyError.notAuthenticated
+        }
         
-        // Remove familyId from child's user document
-        try await db.collection("users").document(childId).updateData([
-            "familyId": FieldValue.delete()
-        ])
+        // Get Firebase ID token for authentication
+        guard let idToken = try await auth.currentUser?.getIDToken() else {
+            throw FamilyError.notAuthenticated
+        }
         
-        print("✅ Successfully removed child from family")
+        // Call the removeChildFromFamily Cloud Function via HTTP (callable function)
+        let url = URL(string: "https://us-central1-located-d9dce.cloudfunctions.net/removeChildFromFamily")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        
+        // Callable functions expect this format
+        let requestBody = [
+            "data": [
+                "childId": childId,
+                "familyId": familyId
+            ]
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw FamilyError.familyNotFound
+        }
+        
+        // Parse the callable function response format
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let result = json["result"] as? [String: Any],
+              let success = result["success"] as? Bool,
+              success else {
+            throw FamilyError.familyNotFound
+        }
+        
+        print("✅ Successfully removed child from family via Cloud Function")
     }
     
     /// Update a family member's name

@@ -1326,6 +1326,88 @@ exports.createFamily = onCall(async (request) => {
 });
 
 /**
+ * Callable Cloud Function to remove a child from a family
+ * Parent calls this to remove a child from their family
+ */
+exports.removeChildFromFamily = onCall(async (request) => {
+  try {
+    const {childId, familyId} = request.data;
+    const parentId = request.auth.uid;
+
+    if (!childId || !familyId) {
+      throw new Error("childId and familyId are required");
+    }
+
+    // Verify the user is a parent in this family
+    const familyDoc = await admin.firestore()
+        .collection("families")
+        .doc(familyId)
+        .get();
+
+    if (!familyDoc.exists) {
+      throw new Error("Family not found");
+    }
+
+    const familyData = familyDoc.data();
+    const memberData = familyData.members[parentId];
+
+    if (!memberData || memberData.role !== "parent") {
+      throw new Error("Only parents can remove children from the family");
+    }
+
+    // Check if the child exists in the family
+    const childData = familyData.members[childId];
+    if (!childData) {
+      throw new Error("Child not found in family");
+    }
+
+    // Use batch to ensure atomicity
+    const batch = admin.firestore().batch();
+
+    // Remove child from family members
+    batch.update(
+        admin.firestore().collection("families").doc(familyId),
+        {
+          [`members.${childId}`]: admin.firestore.FieldValue.delete(),
+        },
+    );
+
+    // Only try to remove familyId from child's user document if it exists
+    // Pending children (UUIDs) don't have user documents
+    const childUserDoc = await admin.firestore()
+        .collection("users")
+        .doc(childId)
+        .get();
+
+    if (childUserDoc.exists) {
+      batch.update(
+          admin.firestore().collection("users").doc(childId),
+          {
+            familyId: admin.firestore.FieldValue.delete(),
+          },
+      );
+    }
+
+    await batch.commit();
+
+    logger.info(`Child removed from family successfully`, {
+      childId: childId,
+      familyId: familyId,
+      removedBy: parentId,
+      childName: childData.name,
+    });
+
+    return {
+      success: true,
+      message: "Child removed from family successfully",
+    };
+  } catch (error) {
+    logger.error("Error removing child from family:", error);
+    throw new Error(`Failed to remove child: ${error.message}`);
+  }
+});
+
+/**
  * Helper function to generate a unique 6-character alphanumeric invite code
  * @return {string} A unique invite code
  */
