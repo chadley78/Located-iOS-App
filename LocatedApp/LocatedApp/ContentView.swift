@@ -696,7 +696,6 @@ struct MainTabView: View {
     @EnvironmentObject var authService: AuthenticationService
     @StateObject private var geofenceStatusService = GeofenceStatusService()
     @State private var selectedTab: TabOption = .home
-    @State private var showingMenu = false
     
     enum TabOption: String, CaseIterable {
         case home = "home"
@@ -750,73 +749,8 @@ struct MainTabView: View {
                         }
                     }
                 }
-                
-                // Hamburger Menu Overlay
-                if showingMenu {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            showingMenu = false
-                        }
-                    
-                    VStack {
-                        HStack {
-                            Spacer()
-                            
-                            VStack(spacing: 0) {
-                                ForEach(TabOption.allCases, id: \.self) { tab in
-                                    if authService.currentUser?.userType == .parent || tab != .children {
-                                        Button(action: {
-                                            selectedTab = tab
-                                            showingMenu = false
-                                        }) {
-                                            HStack {
-                                                Image(systemName: tab.icon)
-                                                    .font(.title2)
-                                                Text(tab.title)
-                                                    .font(.headline)
-                                                Spacer()
-                                                if selectedTab == tab {
-                                                    Image(systemName: "checkmark")
-                                                        .foregroundColor(.blue)
-                                                }
-                                            }
-                                            .foregroundColor(.primary)
-                                            .padding()
-                                            .background(Color(UIColor.systemBackground))
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                        
-                                        if tab != TabOption.allCases.last {
-                                            Divider()
-                                        }
-                                    }
-                                }
-                            }
-                            .background(Color(UIColor.systemBackground))
-                            .cornerRadius(12)
-                            .shadow(radius: 10)
-                            .frame(width: 200)
-                            .padding(.trailing, 20)
-                            .padding(.top, 100)
-                        }
-                        
-                        Spacer()
-                    }
-                }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingMenu.toggle()
-                    }) {
-                        Image(systemName: "line.horizontal.3")
-                            .font(.title2)
-                            .foregroundColor(.primary)
-                    }
-                }
-            }
         }
     }
 }
@@ -904,31 +838,25 @@ struct ParentHomeView: View {
                 Spacer()
                 
                 VStack(spacing: 0) {
-                    // Panel Header
+                    // Panel Header with Hamburger Menu
                     HStack {
-                        // Drag Handle (visual only)
-                        RoundedRectangle(cornerRadius: 2.5)
-                            .fill(Color.secondary)
-                            .frame(width: 40, height: 5)
+                        // Hamburger Menu Button (attached to panel)
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isPanelExpanded.toggle()
+                                panelHeight = isPanelExpanded ? 0.7 : 0.25
+                            }
+                        }) {
+                            Image(systemName: isPanelExpanded ? "xmark" : "line.3.horizontal")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                        }
+                        .offset(y: -30) // Position above panel by 30px
                         
                         Spacer()
-                        
-                        // Collapse Button (only when expanded)
-                        if isPanelExpanded {
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    isPanelExpanded = false
-                                    panelHeight = 0.25
-                                }
-                            }) {
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.secondary)
-                                    .padding(8)
-                                    .background(Color.secondary.opacity(0.1))
-                                    .clipShape(Circle())
-                            }
-                        }
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 20)
