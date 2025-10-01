@@ -15,7 +15,8 @@ struct FamilySetupView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
+            ScrollView {
+                VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
                     Image(systemName: "house.fill")
@@ -85,8 +86,9 @@ struct FamilySetupView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .padding(.bottom)
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("Family Setup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -322,7 +324,8 @@ struct InviteChildView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
+            ScrollView {
+                VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
                     Image(systemName: "person.badge.plus")
@@ -459,8 +462,9 @@ struct InviteChildView: View {
                 }
                 .disabled(childName.isEmpty || isLoading)
                 .padding(.horizontal)
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("Invite Child")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

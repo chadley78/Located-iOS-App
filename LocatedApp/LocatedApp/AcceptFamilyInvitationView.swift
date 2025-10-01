@@ -28,7 +28,8 @@ struct AcceptFamilyInvitationView: View {
                 }
             } else {
                 NavigationView {
-                    VStack(spacing: 24) {
+                    ScrollView {
+                        VStack(spacing: 24) {
                         // Header
                         VStack(spacing: 16) {
                             Image(systemName: "person.badge.plus")
@@ -99,8 +100,9 @@ struct AcceptFamilyInvitationView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .padding(.bottom)
+                        }
+                        .padding()
                     }
-                    .padding()
                     .navigationTitle("Join Family")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {

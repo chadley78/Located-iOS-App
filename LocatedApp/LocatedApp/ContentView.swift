@@ -222,7 +222,8 @@ struct ChildSignUpView: View {
                     }
                 }
             } else {
-                VStack(spacing: 24) {
+                ScrollView {
+                    VStack(spacing: 24) {
                     Spacer()
                     
                     // Header
@@ -288,6 +289,7 @@ struct ChildSignUpView: View {
             .padding(.horizontal, 30)
             
                     Spacer()
+                    }
                 }
                 .onAppear {
                     // Pre-fill invitation code if provided
@@ -412,7 +414,8 @@ struct SignInView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
+            ScrollView {
+                VStack(spacing: 24) {
                 Spacer()
                 
                 VStack(spacing: 20) {
@@ -470,6 +473,7 @@ struct SignInView: View {
                 .foregroundColor(.blue)
                 
                 Spacer()
+                }
             }
             .navigationTitle("Sign In")
             .navigationBarTitleDisplayMode(.inline)
@@ -512,7 +516,8 @@ struct SignUpView: View {
     @State private var confirmPassword = ""
     
     var body: some View {
-        VStack(spacing: 24) {
+        ScrollView {
+            VStack(spacing: 24) {
             Spacer()
             
             VStack(spacing: 20) {
@@ -578,6 +583,7 @@ struct SignUpView: View {
             .padding(.horizontal, 30)
             
             Spacer()
+            }
         }
         .navigationTitle("Create Account")
         .navigationBarTitleDisplayMode(.inline)

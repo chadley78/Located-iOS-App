@@ -34,7 +34,8 @@ struct CreateGeofenceView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
+            ScrollView {
+                VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 8) {
                     Text(existingGeofence != nil ? "Edit Location Alert" : "Create Location Alert")
@@ -179,8 +180,9 @@ struct CreateGeofenceView: View {
                     .cornerRadius(12)
                 }
                 .disabled(!canCreateGeofence || isLoading)
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("New Location Alert")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
