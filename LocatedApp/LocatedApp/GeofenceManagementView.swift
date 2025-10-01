@@ -178,11 +178,6 @@ struct GeofenceCard: View {
                 }
                 
                 Spacer()
-                
-                // Created date
-                Text(geofence.createdAt, style: .relative)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
             }
             
             // Mini map preview
@@ -192,7 +187,8 @@ struct GeofenceCard: View {
                     longitude: geofence.longitude
                 ),
                 radius: geofence.radius,
-                geofenceName: geofence.name
+                geofenceName: geofence.name,
+                isInteractive: false
             )
             .frame(height: 120)
             .cornerRadius(8)
@@ -298,7 +294,8 @@ struct GeofenceDetailsView: View {
                             longitude: geofence.longitude
                         ),
                         radius: geofence.radius,
-                        geofenceName: geofence.name
+                        geofenceName: geofence.name,
+                        isInteractive: false
                     )
                     .frame(height: 250)
                     .cornerRadius(12)

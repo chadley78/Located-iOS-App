@@ -146,7 +146,7 @@ struct CreateGeofenceView: View {
                         coordinate: coordinate,
                         radius: selectedRadius,
                         geofenceName: geofenceName.isEmpty ? "New Location Alert" : geofenceName,
-                        isInteractive: existingGeofence == nil
+                        isInteractive: false
                     )
                     .frame(height: 200)
                     .cornerRadius(12)
@@ -162,26 +162,6 @@ struct CreateGeofenceView: View {
                         .multilineTextAlignment(.center)
                 }
                 
-                // Create Button
-                Button(action: createGeofence) {
-                    HStack {
-                        if isLoading {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "plus.circle.fill")
-                        }
-                        Text(existingGeofence != nil ? "Update Location Alert" : "Create Location Alert")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        canCreateGeofence ? Color.blue : Color.gray
-                    )
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-                .disabled(!canCreateGeofence || isLoading)
                 }
                 .padding()
             }
@@ -192,6 +172,12 @@ struct CreateGeofenceView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(existingGeofence != nil ? "Update" : "Done") {
+                        createGeofence()
+                    }
+                    .disabled(!canCreateGeofence || isLoading)
                 }
             }
             .sheet(isPresented: $showingLocationPicker) {

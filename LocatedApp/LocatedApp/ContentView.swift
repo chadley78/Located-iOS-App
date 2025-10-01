@@ -1026,44 +1026,46 @@ struct ParentHomeView: View {
                                 .font(.headline)
                             
                             VStack(spacing: 12) {
-                                // Family Management Button
-                                NavigationLink(destination: ChildrenListView()) {
-                                    HStack {
-                                        Image(systemName: "person.2.fill")
-                                            .font(.title2)
-                                            .foregroundColor(.blue)
-                                        Text("My Family")
-                                            .font(.headline)
-                                            .foregroundColor(.blue)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.blue)
+                                // Only show family-related buttons if a family exists
+                                if familyService.currentFamily != nil {
+                                    // Family Management Button
+                                    NavigationLink(destination: ChildrenListView()) {
+                                        HStack {
+                                            Image(systemName: "person.2.fill")
+                                                .font(.title2)
+                                                .foregroundColor(.blue)
+                                            Text("My Family")
+                                                .font(.headline)
+                                                .foregroundColor(.blue)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption)
+                                                .foregroundColor(.blue)
+                                        }
+                                        .padding()
+                                        .background(Color.blue.opacity(0.1))
+                                        .cornerRadius(12)
                                     }
-                                    .padding()
-                                    .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(12)
-                                }
-                                
-                                // Location Alerts Button
-                                NavigationLink(destination: GeofenceManagementView(familyId: familyService.currentFamily?.id ?? "")) {
-                                    HStack {
-                                        Image(systemName: "location.circle")
-                                            .font(.title2)
-                                            .foregroundColor(.orange)
-                                        Text("Location Alerts")
-                                            .font(.headline)
-                                            .foregroundColor(.orange)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
+                                    
+                                    // Location Alerts Button
+                                    NavigationLink(destination: GeofenceManagementView(familyId: familyService.currentFamily?.id ?? "")) {
+                                        HStack {
+                                            Image(systemName: "location.circle")
+                                                .font(.title2)
+                                                .foregroundColor(.orange)
+                                            Text("Location Alerts")
+                                                .font(.headline)
+                                                .foregroundColor(.orange)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                        }
+                                        .padding()
+                                        .background(Color.orange.opacity(0.1))
+                                        .cornerRadius(12)
                                     }
-                                    .padding()
-                                    .background(Color.orange.opacity(0.1))
-                                    .cornerRadius(12)
                                 }
-                                .disabled(familyService.currentFamily == nil)
                                 
                                 // Settings Button
                                 NavigationLink(destination: SettingsView()) {
@@ -1146,13 +1148,25 @@ struct ParentHomeView: View {
                 } else {
                     print("❌ ParentHomeView - No family ID available for geofence status listening")
                 }
+                
+                // Set panel to expanded state for new users (no family)
+                if familyService.currentFamily == nil {
+                    isPanelExpanded = true
+                    panelHeight = 0.7
+                }
             }
             .onChange(of: familyService.currentFamily?.id) { familyId in
                 // Start geofence status listening when family becomes available
                 if let familyId = familyId {
                     geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
+                    // Collapse panel when family is created (user is no longer new)
+                    isPanelExpanded = false
+                    panelHeight = 0.25
                 } else {
                     geofenceStatusService.stopListening()
+                    // Expand panel when family is removed (user becomes new again)
+                    isPanelExpanded = true
+                    panelHeight = 0.7
                 }
             }
             .onChange(of: locationService.currentLocation) { newLocation in

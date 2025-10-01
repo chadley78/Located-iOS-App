@@ -79,8 +79,8 @@ struct FamilySetupView: View {
                 .disabled(familyName.isEmpty || isLoading)
                 .padding(.horizontal)
                 
-                // Skip Button
-                Button("Skip for now") {
+                // Cancel Button
+                Button("Cancel") {
                     dismiss()
                 }
                 .font(.subheadline)
@@ -92,8 +92,8 @@ struct FamilySetupView: View {
             .navigationTitle("Family Setup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Skip") {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
                         dismiss()
                     }
                 }
@@ -477,6 +477,7 @@ struct InviteChildView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .disabled(inviteCode == nil)
                 }
             }
         }
