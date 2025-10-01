@@ -287,42 +287,42 @@ struct LocationPickerView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Search Bar
+            ScrollView {
                 VStack(spacing: 0) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        
-                        TextField("Search for a location...", text: $searchText)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .onChange(of: searchText) { newValue in
-                                if newValue.count > 2 {
-                                    searchCompleter.queryFragment = newValue
-                                } else {
+                    // Search Bar
+                    VStack(spacing: 0) {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.gray)
+                            
+                            TextField("Search for a location...", text: $searchText)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .onChange(of: searchText) { newValue in
+                                    if newValue.count > 2 {
+                                        searchCompleter.queryFragment = newValue
+                                    } else {
+                                        searchResults = []
+                                        showingSearchResults = false
+                                    }
+                                }
+                            
+                            if !searchText.isEmpty {
+                                Button("Clear") {
+                                    searchText = ""
                                     searchResults = []
                                     showingSearchResults = false
                                 }
+                                .font(.caption)
+                                .foregroundColor(.blue)
                             }
-                        
-                        if !searchText.isEmpty {
-                            Button("Clear") {
-                                searchText = ""
-                                searchResults = []
-                                showingSearchResults = false
-                            }
-                            .font(.caption)
-                            .foregroundColor(.blue)
                         }
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-                    
-                    // Search Results
-                    if showingSearchResults && !searchResults.isEmpty {
-                        ScrollView {
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                        
+                        // Search Results
+                        if showingSearchResults && !searchResults.isEmpty {
                             LazyVStack(spacing: 0) {
                                 ForEach(searchResults, id: \.self) { result in
                                     SearchResultRow(result: result) {
@@ -330,51 +330,51 @@ struct LocationPickerView: View {
                                     }
                                 }
                             }
+                            .background(Color(.systemBackground))
+                            .cornerRadius(10)
+                            .shadow(radius: 2)
+                            .padding(.horizontal)
                         }
-                        .frame(maxHeight: 200)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(10)
-                        .shadow(radius: 2)
-                        .padding(.horizontal)
                     }
-                }
-                .background(Color(.systemBackground))
-                
-                // Map
-                Map(coordinateRegion: $region, annotationItems: [MapPinAnnotation(coordinate: region.center)]) { annotation in
-                    MapPin(coordinate: annotation.coordinate, tint: .red)
-                }
-                .onTapGesture {
-                    // Use the center of the current region as the selected coordinate
-                    selectedCoordinate = region.center
-                }
-                .onChange(of: region.center.latitude) { _ in
-                    selectedCoordinate = region.center
-                }
-                .onChange(of: region.center.longitude) { _ in
-                    selectedCoordinate = region.center
-                }
-                
-                VStack(spacing: 16) {
-                    Text("Tap on the map to select location")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    .background(Color(.systemBackground))
                     
-                    if let coordinate = selectedCoordinate {
-                        VStack(spacing: 4) {
-                            Text("Selected Location")
-                                .font(.headline)
-                            Text("Lat: \(coordinate.latitude, specifier: "%.6f")")
-                                .font(.caption)
-                            Text("Lng: \(coordinate.longitude, specifier: "%.6f")")
-                                .font(.caption)
-                        }
-                        .padding()
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(8)
+                    // Map
+                    Map(coordinateRegion: $region, annotationItems: [MapPinAnnotation(coordinate: region.center)]) { annotation in
+                        MapPin(coordinate: annotation.coordinate, tint: .red)
                     }
+                    .frame(height: 300)
+                    .onTapGesture {
+                        // Use the center of the current region as the selected coordinate
+                        selectedCoordinate = region.center
+                    }
+                    .onChange(of: region.center.latitude) { _ in
+                        selectedCoordinate = region.center
+                    }
+                    .onChange(of: region.center.longitude) { _ in
+                        selectedCoordinate = region.center
+                    }
+                    
+                    VStack(spacing: 16) {
+                        Text("Tap on the map to select location")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        if let coordinate = selectedCoordinate {
+                            VStack(spacing: 4) {
+                                Text("Selected Location")
+                                    .font(.headline)
+                                Text("Lat: \(coordinate.latitude, specifier: "%.6f")")
+                                    .font(.caption)
+                                Text("Lng: \(coordinate.longitude, specifier: "%.6f")")
+                                    .font(.caption)
+                            }
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Select Location")
             .navigationBarTitleDisplayMode(.inline)
@@ -426,33 +426,37 @@ struct LocationPickerView: View {
     }
     
     private func performSearch(for completion: MKLocalSearchCompletion) {
-        // Set flag to prevent delegate from interfering
+        // Immediately set flag and close UI to prevent double-tap
         isSelectingLocation = true
-        
-        // Immediately close the dropdown
         showingSearchResults = false
         searchResults = []
+        searchText = completion.title
         
-        let searchRequest = MKLocalSearch.Request(completion: completion)
-        let search = MKLocalSearch(request: searchRequest)
+        // Dismiss keyboard
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         
-        search.start { response, error in
-            guard let response = response,
-                  let mapItem = response.mapItems.first else {
-                DispatchQueue.main.async {
-                    isSelectingLocation = false
-                }
-                return
-            }
+        // Small delay to ensure UI updates before search
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let searchRequest = MKLocalSearch.Request(completion: completion)
+            let search = MKLocalSearch(request: searchRequest)
             
-            DispatchQueue.main.async {
-                let coordinate = mapItem.placemark.coordinate
-                region.center = coordinate
-                selectedCoordinate = coordinate
-                searchText = completion.title
+            search.start { response, error in
+                guard let response = response,
+                      let mapItem = response.mapItems.first else {
+                    DispatchQueue.main.async {
+                        self.isSelectingLocation = false
+                    }
+                    return
+                }
                 
-                // Reset flag after selection is complete
-                isSelectingLocation = false
+                DispatchQueue.main.async {
+                    let coordinate = mapItem.placemark.coordinate
+                    self.region.center = coordinate
+                    self.selectedCoordinate = coordinate
+                    
+                    // Reset flag after selection is complete
+                    self.isSelectingLocation = false
+                }
             }
         }
     }
