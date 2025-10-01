@@ -825,6 +825,7 @@ struct ParentHomeView: View {
     
     @State private var showingFamilySetup = false
     @State private var showingFamilyManagement = false
+    @State private var showingInviteChild = false
     @State private var scrollOffset: CGFloat = 0
     @State private var panelHeight: CGFloat = 0.25
     @State private var isPanelExpanded: Bool = false
@@ -964,7 +965,7 @@ struct ParentHomeView: View {
                                             .padding(.horizontal)
                                         
                                         Button("Add Child") {
-                                            showingFamilyManagement = true
+                                            showingInviteChild = true
                                         }
                                         .font(.headline)
                                         .foregroundColor(.white)
@@ -1188,6 +1189,10 @@ struct ParentHomeView: View {
             .sheet(isPresented: $showingFamilyManagement) {
                 FamilyManagementView()
                     .environmentObject(authService)
+            }
+            .sheet(isPresented: $showingInviteChild) {
+                InviteChildView()
+                    .environmentObject(familyService)
             }
             .onAppear {
                 // Start listening for children locations when view appears
