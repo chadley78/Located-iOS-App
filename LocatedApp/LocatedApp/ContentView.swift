@@ -19,7 +19,28 @@ struct ContentView: View {
     
     var body: some View {
         Group {
-            if authService.isAuthenticated {
+            if authService.isInitializing {
+                // Show loading screen while checking authentication state
+                VStack(spacing: 20) {
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 80, height: 80)
+                        .overlay(
+                            Text("L")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                    
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    
+                    Text("Loading...")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemBackground))
+            } else if authService.isAuthenticated {
                 if authService.currentUser != nil {
                     MainTabView()
                         .environmentObject(authService)

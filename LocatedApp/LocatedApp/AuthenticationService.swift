@@ -84,6 +84,7 @@ class AuthenticationService: ObservableObject {
     @Published var currentUser: User?
     @Published var isAuthenticated = false
     @Published var isLoading = false
+    @Published var isInitializing = true
     @Published var errorMessage: String?
     @Published var shouldShowWelcome = false
     
@@ -130,6 +131,9 @@ class AuthenticationService: ObservableObject {
             userListener = nil
             print("🔍 User signed out")
         }
+        
+        // Mark initialization as complete
+        isInitializing = false
     }
     
     func completeWelcomeFlow() {
