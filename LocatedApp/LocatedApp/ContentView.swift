@@ -820,6 +820,7 @@ struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var geofenceStatusService: GeofenceStatusService
+    @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var mapViewModel = ParentMapViewModel()
     
@@ -1200,6 +1201,11 @@ struct ParentHomeView: View {
                     mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
                 }
                 
+                // Center map on parent's location if no children are present
+                if mapViewModel.childrenLocations.isEmpty, let parentLocation = locationService.currentLocation {
+                    mapViewModel.centerOnLocation(parentLocation.coordinate)
+                }
+                
                 // Start listening to geofence events for this family
                 if let familyId = familyService.currentFamily?.id {
                     geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
@@ -1213,6 +1219,12 @@ struct ParentHomeView: View {
                     geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
                 } else {
                     geofenceStatusService.stopListening()
+                }
+            }
+            .onChange(of: locationService.currentLocation) { newLocation in
+                // Center map on parent's location when it updates and no children are present
+                if mapViewModel.childrenLocations.isEmpty, let location = newLocation {
+                    mapViewModel.centerOnLocation(location.coordinate)
                 }
             }
             .onDisappear {
@@ -3323,6 +3335,17 @@ class ParentMapViewModel: ObservableObject {
         
         region = MKCoordinateRegion(center: center, span: span)
         
+    }
+    
+    func centerOnLocation(_ coordinate: CLLocationCoordinate2D) {
+        // Set a reasonable span for viewing the parent's location
+        let span = MKCoordinateSpan(
+            latitudeDelta: 0.01, // Smaller span for parent's location
+            longitudeDelta: 0.01
+        )
+        
+        region = MKCoordinateRegion(center: coordinate, span: span)
+        print("📍 Map centered on parent location: \(coordinate.latitude), \(coordinate.longitude)")
     }
     
     func refreshChildrenLocations() {
