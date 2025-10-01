@@ -7,6 +7,7 @@ typealias EditGeofenceView = CreateGeofenceView
 // MARK: - Geofence Management View
 struct GeofenceManagementView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
     
     let familyId: String
@@ -108,6 +109,7 @@ struct GeofenceManagementView: View {
             }
             .sheet(isPresented: $showingCreateGeofence) {
                 CreateGeofenceView(familyId: familyId)
+                    .environmentObject(locationService)
                     .onDisappear {
                         Task {
                             await geofenceService.fetchGeofences(for: familyId)
@@ -117,6 +119,7 @@ struct GeofenceManagementView: View {
             .sheet(isPresented: $showingGeofenceDetails) {
                 if let geofence = selectedGeofence {
                     EditGeofenceView(familyId: familyId, existingGeofence: geofence)
+                        .environmentObject(locationService)
                         .onDisappear {
                             Task {
                                 await geofenceService.fetchGeofences(for: familyId)

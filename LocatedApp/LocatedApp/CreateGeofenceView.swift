@@ -5,6 +5,7 @@ import CoreLocation
 // MARK: - Geofence Creation View
 struct CreateGeofenceView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var locationService: LocationService
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var locationManager = LocationManager()
     
@@ -38,7 +39,8 @@ struct CreateGeofenceView: View {
                 VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 8) {
-                    Text(existingGeofence != nil ? "Edit Location Alert" : "Create Location Alert")
+                    let titleText = existingGeofence != nil ? "Edit Location Alert" : "Create Location Alert"
+                    Text(titleText)
                         .font(.title2)
                         .fontWeight(.semibold)
                     
@@ -194,6 +196,17 @@ struct CreateGeofenceView: View {
             }
             .sheet(isPresented: $showingLocationPicker) {
                 LocationPickerView(selectedCoordinate: $selectedCoordinate)
+                    .environmentObject(locationService)
+            }
+            .onAppear {
+                // Request location permission
+                locationManager.requestLocationPermission()
+            }
+            .onChange(of: locationService.currentLocation) { newLocation in
+                // Location is available - LocationPickerView will handle centering
+                if let location = newLocation {
+                    print("📍 CreateGeofenceView: User location available: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                }
             }
         }
     }
@@ -249,6 +262,7 @@ struct CreateGeofenceView: View {
 // MARK: - Location Picker View
 struct LocationPickerView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var locationService: LocationService
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     
     @StateObject private var locationManager = LocationManager()
@@ -259,8 +273,8 @@ struct LocationPickerView: View {
     init(selectedCoordinate: Binding<CLLocationCoordinate2D?>) {
         self._selectedCoordinate = selectedCoordinate
         
-        // Initialize region with existing coordinate or default location
-        let center = selectedCoordinate.wrappedValue ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        // Initialize region with existing coordinate or default to a reasonable location
+        let center = selectedCoordinate.wrappedValue ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194) // Default to San Francisco
         self._region = State(initialValue: MKCoordinateRegion(
             center: center,
             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -378,10 +392,22 @@ struct LocationPickerView: View {
                 }
             }
             .onAppear {
-                if let userLocation = locationManager.location {
+                // Use LocationService for user location
+                if let userLocation = locationService.currentLocation {
                     region.center = userLocation.coordinate
+                    print("📍 LocationPickerView: Centered on user location: \(userLocation.coordinate.latitude), \(userLocation.coordinate.longitude)")
+                } else if let localLocation = locationManager.location {
+                    region.center = localLocation.coordinate
+                    print("📍 LocationPickerView: Centered on local location: \(localLocation.coordinate.latitude), \(localLocation.coordinate.longitude)")
                 }
                 setupSearchCompleter()
+            }
+            .onChange(of: locationService.currentLocation) { newLocation in
+                // Update region when location becomes available
+                if let location = newLocation {
+                    region.center = location.coordinate
+                    print("📍 LocationPickerView: Updated to user location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+                }
             }
         }
     }
