@@ -254,13 +254,33 @@ class AuthenticationService: ObservableObject {
         errorMessage = nil
         
         do {
-            try await auth.sendPasswordReset(withEmail: email)
-            errorMessage = "Password reset email sent"
+            // Configure better email settings for improved deliverability
+            let actionCodeSettings = ActionCodeSettings()
+            
+            // Use a custom domain URL for better branding
+            if let customURL = URL(string: "https://located.app/reset-password") {
+                actionCodeSettings.url = customURL
+                actionCodeSettings.handleCodeInApp = false
+            }
+            
+            // iOS bundle ID for deep linking
+            actionCodeSettings.iOSBundleID = Bundle.main.bundleIdentifier
+            
+            // Send password reset with improved settings
+            try await auth.sendPasswordReset(withEmail: email, actionCodeSettings: actionCodeSettings)
+            
+            await MainActor.run {
+                self.errorMessage = "Password reset email sent to \(email). Please check your inbox and spam folder."
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            await MainActor.run {
+                self.errorMessage = "Failed to send reset email: \(error.localizedDescription)"
+            }
         }
         
-        isLoading = false
+        await MainActor.run {
+            self.isLoading = false
+        }
     }
     
     // MARK: - User Profile Management

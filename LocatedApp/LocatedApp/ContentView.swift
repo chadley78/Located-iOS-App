@@ -526,6 +526,76 @@ struct SignInView: View {
     }
 }
 
+// MARK: - Password Strength View
+struct PasswordStrengthView: View {
+    let password: String
+    
+    private var strength: PasswordStrength {
+        calculateStrength(password)
+    }
+    
+    var body: some View {
+        if !password.isEmpty {
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    ForEach(0..<4) { index in
+                        Rectangle()
+                            .fill(strength.color.opacity(index < strength.score ? 1 : 0.2))
+                            .frame(height: 3)
+                            .cornerRadius(1.5)
+                    }
+                }
+                
+                Text(strength.text)
+                    .font(.caption)
+                    .foregroundColor(strength.color)
+            }
+        }
+    }
+    
+    private func calculateStrength(_ password: String) -> PasswordStrength {
+        var score = 0
+        
+        if password.count >= 8 { score += 1 }
+        if password.count >= 12 { score += 1 }
+        if password.contains(where: { $0.isUppercase }) && password.contains(where: { $0.isLowercase }) { score += 1 }
+        if password.contains(where: { $0.isNumber }) && password.contains(where: { "!@#$%^&*()_+-=[]{}|;:,.<>?".contains($0) }) { score += 1 }
+        
+        switch score {
+        case 0...1:
+            return PasswordStrength(score: score, text: "Weak", color: .red)
+        case 2:
+            return PasswordStrength(score: score, text: "Fair", color: .orange)
+        case 3:
+            return PasswordStrength(score: score, text: "Good", color: .yellow)
+        case 4:
+            return PasswordStrength(score: score, text: "Strong", color: .green)
+        default:
+            return PasswordStrength(score: 0, text: "Weak", color: .red)
+        }
+    }
+}
+
+struct PasswordStrength {
+    let score: Int
+    let text: String
+    let color: Color
+}
+
+// MARK: - Validation States
+enum ValidationState {
+    case none
+    case valid
+    case invalid(String) // Contains error message
+    
+    var isValid: Bool {
+        switch self {
+        case .valid: return true
+        case .none, .invalid: return false
+        }
+    }
+}
+
 // MARK: - Sign Up View
 struct SignUpView: View {
     let userType: User.UserType
@@ -535,6 +605,9 @@ struct SignUpView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var emailValidationState: ValidationState = .none
+    @State private var passwordValidationState: ValidationState = .none
+    @State private var confirmPasswordValidationState: ValidationState = .none
     
     var body: some View {
         ScrollView {
@@ -558,11 +631,36 @@ struct SignUpView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     
-                    TextField("Enter your email", text: $email)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
+                    HStack {
+                        TextField("Enter your email", text: $email)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .textContentType(.emailAddress)
+                            .accessibilityLabel("Email address")
+                            .onChange(of: email) { _ in
+                                validateEmail()
+                            }
+                        
+                        // Validation indicator
+                        Image(systemName: emailValidationState.isValid ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                            .foregroundColor({
+                                switch emailValidationState {
+                                case .none: return .clear
+                                case .valid: return .green
+                                case .invalid: return .red
+                                }
+                            }())
+                            .font(.system(size: 16))
+                    }
+                    
+                    // Validation error message
+                    if case .invalid(let message) = emailValidationState {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
                 }
                 
                 // Password Field
@@ -572,6 +670,22 @@ struct SignUpView: View {
                         .foregroundColor(.secondary)
                     
                     CustomSecureField(placeholder: "Enter your password", text: $password)
+                        .textContentType(.newPassword)
+                        .accessibilityLabel("New password")
+                        .onChange(of: password) { _ in
+                            validatePassword()
+                            validateConfirmPassword()
+                        }
+                    
+                    // Password strength indicator
+                    PasswordStrengthView(password: password)
+                    
+                    // Validation error message
+                    if case .invalid(let message) = passwordValidationState {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
                 }
                 
                 // Confirm Password Field
@@ -580,7 +694,33 @@ struct SignUpView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     
-                    CustomSecureField(placeholder: "Confirm your password", text: $confirmPassword)
+                    HStack {
+                        CustomSecureField(placeholder: "Confirm your password", text: $confirmPassword)
+                            .textContentType(.newPassword)
+                            .accessibilityLabel("Confirm password")
+                            .onChange(of: confirmPassword) { _ in
+                                validateConfirmPassword()
+                            }
+                        
+                        // Validation indicator
+                        Image(systemName: confirmPasswordValidationState.isValid ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                            .foregroundColor({
+                                switch confirmPasswordValidationState {
+                                case .none: return .clear
+                                case .valid: return .green
+                                case .invalid: return .red
+                                }
+                            }())
+                            .font(.system(size: 16))
+                            .opacity(confirmPassword.isEmpty ? 0 : 1)
+                    }
+                    
+                    // Validation error message
+                    if case .invalid(let message) = confirmPasswordValidationState {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
                 }
             }
             .padding(.horizontal, 30)
@@ -618,7 +758,71 @@ struct SignUpView: View {
     }
     
     private var isFormValid: Bool {
-        !name.isEmpty && !email.isEmpty && !password.isEmpty && password == confirmPassword && password.count >= 6
+        !name.isEmpty && 
+        emailValidationState.isValid && 
+        passwordValidationState.isValid && 
+        confirmPasswordValidationState.isValid
+    }
+    
+    private func validateEmail() {
+        if email.isEmpty {
+            emailValidationState = .none
+        } else if isValidEmail(email) {
+            emailValidationState = .valid
+        } else {
+            emailValidationState = .invalid("Please enter a valid email address")
+        }
+    }
+    
+    private func validatePassword() {
+        if password.isEmpty {
+            passwordValidationState = .none
+            return
+        }
+        
+        var errors: [String] = []
+        
+        if password.count < 8 {
+            errors.append("At least 8 characters")
+        }
+        
+        if !password.contains(where: { $0.isUppercase }) {
+            errors.append("One uppercase letter")
+        }
+        
+        if !password.contains(where: { $0.isLowercase }) {
+            errors.append("One lowercase letter")
+        }
+        
+        if !password.contains(where: { $0.isNumber }) {
+            errors.append("One number")
+        }
+        
+        if !password.contains(where: { "!@#$%^&*()_+-=[]{}|;:,.<>?".contains($0) }) {
+            errors.append("One special character")
+        }
+        
+        if errors.isEmpty {
+            passwordValidationState = .valid
+        } else {
+            passwordValidationState = .invalid(errors.joined(separator: ", "))
+        }
+    }
+    
+    private func validateConfirmPassword() {
+        if confirmPassword.isEmpty {
+            confirmPasswordValidationState = .none
+        } else if confirmPassword == password {
+            confirmPasswordValidationState = .valid
+        } else {
+            confirmPasswordValidationState = .invalid("Passwords don't match")
+        }
+    }
+    
+    private func isValidEmail(_ email: String) -> Bool {
+        let emailRegex = "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        return emailPredicate.evaluate(with: email)
     }
     
     private func signUp() {
@@ -640,11 +844,19 @@ struct ForgotPasswordView: View {
             VStack(spacing: 24) {
                 Spacer()
                 
-                Text("Enter your email address and we'll send you a link to reset your password.")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
+                VStack(spacing: 12) {
+                    Text("Enter your email address and we'll send you a link to reset your password.")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Text("💡 Check your spam folder if you don't receive the email within a few minutes.")
+                        .font(.system(size: 14))
+                        .foregroundColor(.orange)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                }
+                .padding(.horizontal, 30)
                 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email Address")
@@ -1677,6 +1889,9 @@ struct ChildrenListView: View {
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
     @State private var removedChildId: String? = nil
+    @State private var showingEditFamilyName = false
+    @State private var editingFamilyName = ""
+    @State private var isLoadingEditName = false
     
     var body: some View {
         NavigationView {
@@ -1688,9 +1903,22 @@ struct ChildrenListView: View {
                             .font(.system(size: 50))
                             .foregroundColor(.blue)
                         
-                        Text(family.name)
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                        HStack {
+                            Text(family.name)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                editingFamilyName = family.name
+                                showingEditFamilyName = true
+                            }) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.blue)
+                            }
+                        }
                         
                         Text("\(familyService.getFamilyMembers().count) members")
                             .font(.subheadline)
@@ -1997,11 +2225,43 @@ struct ChildrenListView: View {
                         print("🔍 ChildrenListView - Presenting child profile for pending child: \(pendingChild.name)")
                     }
             }
+            .sheet(isPresented: $showingEditFamilyName) {
+                EditFamilyNameView(
+                    currentName: familyService.currentFamily?.name ?? "",
+                    isLoading: isLoadingEditName,
+                    onSave: { newName in
+                        Task {
+                            await updateFamilyName(newName)
+                        }
+                    }
+                )
+            }
             .onAppear {
                 // Debug logging
                 print("🔍 ChildrenListView - Family members: \(familyService.getFamilyMembers().count)")
                 print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
                 print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
+            }
+        }
+    }
+    
+    private func updateFamilyName(_ newName: String) async {
+        guard let family = familyService.currentFamily else { return }
+        
+        await MainActor.run {
+            isLoadingEditName = true
+        }
+        
+        do {
+            try await familyService.updateFamilyName(newName)
+            await MainActor.run {
+                showingEditFamilyName = false
+                isLoadingEditName = false
+            }
+        } catch {
+            print("❌ Error updating family name: \(error)")
+            await MainActor.run {
+                isLoadingEditName = false
             }
         }
     }
@@ -4277,6 +4537,64 @@ struct RoundedCorner: Shape {
             cornerRadii: CGSize(width: radius, height: radius)
         )
         return Path(path.cgPath)
+    }
+}
+
+// MARK: - Edit Family Name View
+struct EditFamilyNameView: View {
+    let currentName: String
+    let isLoading: Bool
+    let onSave: (String) async -> Void
+    
+    @State private var familyName: String
+    @Environment(\.dismiss) private var dismiss
+    
+    init(currentName: String, isLoading: Bool, onSave: @escaping (String) async -> Void) {
+        self.currentName = currentName
+        self.isLoading = isLoading
+        self.onSave = onSave
+        self._familyName = State(initialValue: currentName)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Family Name")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Enter family name", text: $familyName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.words)
+                            .disableAutocorrection(true)
+                    }
+                    
+                    Spacer(minLength: 20)
+                }
+                .padding(.horizontal, 30)
+                .padding(.top, 20)
+            }
+            .navigationTitle("Edit Family Name")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        Task {
+                            await onSave(familyName)
+                        }
+                    }
+                    .disabled(familyName.isEmpty || familyName == currentName || isLoading)
+                }
+            }
+        }
     }
 }
 
