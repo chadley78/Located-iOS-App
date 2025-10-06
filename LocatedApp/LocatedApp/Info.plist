@@ -24,5 +24,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>RadioCanadaBig-Regular.ttf</string>
+		<string>RadioCanadaBig-Medium.ttf</string>
+		<string>RadioCanadaBig-SemiBold.ttf</string>
+		<string>RadioCanadaBig-Bold.ttf</string>
+	</array>
 </dict>
 </plist>

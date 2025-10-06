@@ -52,6 +52,34 @@
 			);
 			target = 5991B3212E73141D0007442E /* LocatedApp */;
 		};
+		59D20D832E9407E800C48484 /* Exceptions for "LocatedApp" folder in "LocatedAppTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"RadioCanadaBig-Bold.ttf",
+				"RadioCanadaBig-BoldItalic.ttf",
+				"RadioCanadaBig-Italic.ttf",
+				"RadioCanadaBig-Medium.ttf",
+				"RadioCanadaBig-MediumItalic.ttf",
+				"RadioCanadaBig-Regular.ttf",
+				"RadioCanadaBig-SemiBold.ttf",
+				"RadioCanadaBig-SemiBoldItalic.ttf",
+			);
+			target = 5991B32F2E73141E0007442E /* LocatedAppTests */;
+		};
+		59D20D842E9407E800C48484 /* Exceptions for "LocatedApp" folder in "LocatedAppUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"RadioCanadaBig-Bold.ttf",
+				"RadioCanadaBig-BoldItalic.ttf",
+				"RadioCanadaBig-Italic.ttf",
+				"RadioCanadaBig-Medium.ttf",
+				"RadioCanadaBig-MediumItalic.ttf",
+				"RadioCanadaBig-Regular.ttf",
+				"RadioCanadaBig-SemiBold.ttf",
+				"RadioCanadaBig-SemiBoldItalic.ttf",
+			);
+			target = 5991B3392E73141E0007442E /* LocatedAppUITests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -59,6 +87,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				597E658C2E732896004348BB /* Exceptions for "LocatedApp" folder in "LocatedApp" target */,
+				59D20D832E9407E800C48484 /* Exceptions for "LocatedApp" folder in "LocatedAppTests" target */,
+				59D20D842E9407E800C48484 /* Exceptions for "LocatedApp" folder in "LocatedAppUITests" target */,
 			);
 			path = LocatedApp;
 			sourceTree = "<group>";

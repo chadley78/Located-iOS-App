@@ -1,29 +1,38 @@
 import SwiftUI
 
-// MARK: - Primary A Button Style (Blue Buttons) - Main Action Buttons
+// MARK: - Color Palette
+extension Color {
+    static let vibrantRed = Color(red: 1.0, green: 0.35, blue: 0.37) // #FF595E
+    static let vibrantYellow = Color(red: 1.0, green: 0.79, blue: 0.23) // #FFCA3A
+    static let vibrantGreen = Color(red: 0.54, green: 0.79, blue: 0.15) // #8AC926
+    static let vibrantBlue = Color(red: 0.10, green: 0.51, blue: 0.77) // #1982C4
+    static let vibrantPurple = Color(red: 0.42, green: 0.30, blue: 0.58) // #6A4C93
+}
+
+// MARK: - Primary A Button Style (Vibrant Red Buttons) - Main Action Buttons
 struct PrimaryAButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 18, weight: .semibold))
+            .font(.radioCanadaBigButton)
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
-            .background(Color.blue)
+            .background(Color.vibrantRed)
             .cornerRadius(25)
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .padding(.horizontal, 30)
     }
 }
 
-// MARK: - Primary B Button Style (Red Buttons) - Destructive/Action Buttons
+// MARK: - Primary B Button Style (Vibrant Yellow Buttons) - Destructive/Action Buttons
 struct PrimaryBButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 18, weight: .semibold))
-            .foregroundColor(.white)
+            .font(.radioCanadaBigButton)
+            .foregroundColor(.black)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
-            .background(Color.red)
+            .background(Color.vibrantYellow)
             .cornerRadius(25)
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .padding(.horizontal, 30)
