@@ -1254,21 +1254,22 @@ struct ParentHomeView: View {
                                 VStack(spacing: 0) {
                                     // Background image section
                                     ZStack {
-                                        // Background image
+                                        // Background image (cropped from top)
                                         Image("Nest")
                                             .resizable()
                                             .aspectRatio(contentMode: .fill)
-                                            .frame(height: 300)
+                                            .frame(height: 220)
                                             .clipped()
+                                            .offset(y: -40) // Crop top of image
                                         
                                         // Overlay content
                                         VStack(spacing: 0) {
                                             Spacer()
-                                                .frame(height: 60)
+                                                .frame(height: 30)
                                             
                                             VStack(alignment: .leading, spacing: 20) {
                                                 Text("Let's create a\nfamily")
-                                                    .font(.radioCanadaBig(24, weight: .bold))
+                                                    .font(.radioCanadaBig(32, weight: .bold))
                                                     .foregroundColor(.white)
                                                     .multilineTextAlignment(.leading)
                                                 
