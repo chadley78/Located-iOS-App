@@ -272,20 +272,20 @@ struct ChildSignUpView: View {
                     .padding(.horizontal)
             }
             
-            VStack(spacing: 20) {
-                // Invitation Code Field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Invitation Code")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
+            Form {
+                Section {
                     TextField("Enter invitation code", text: $inviteCode)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .textFieldStyle(.roundedBorder)
                         .autocapitalization(.allCharacters)
                         .disableAutocorrection(true)
-                        .font(.system(size: 18, weight: .medium, design: .monospaced))
+                        .font(.radioCanadaBig(18, weight: .medium))
+                } header: {
+                    Text("Invitation Code")
+                        .font(.radioCanadaBigCaption)
+                        .foregroundColor(.secondary)
                 }
             }
+            .scrollContentBackground(.hidden)
             .padding(.horizontal, 30)
             
             // Error Message
@@ -441,34 +441,34 @@ struct SignInView: View {
                 VStack(spacing: 24) {
                 Spacer()
                 
-                VStack(spacing: 20) {
-                    // Email Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Email Address")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                        
+                Form {
+                    Section {
                         TextField("Enter your email", text: $email)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.roundedBorder)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .font(.radioCanadaBigBody)
+                    } header: {
+                        Text("Email Address")
+                            .font(.radioCanadaBigCaption)
+                            .foregroundColor(.secondary)
                     }
                     
-                    // Password Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Password")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                        
+                    Section {
                         SecureField("Enter your password", text: $password)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.roundedBorder)
                             .textContentType(.password)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
+                            .font(.radioCanadaBigBody)
+                    } header: {
+                        Text("Password")
+                            .font(.radioCanadaBigCaption)
+                            .foregroundColor(.secondary)
                     }
                 }
-                .padding(.horizontal, 30)
+                .scrollContentBackground(.hidden)
                 
                 // Sign In Button
                 Button(action: signIn) {
@@ -610,31 +610,27 @@ struct SignUpView: View {
             VStack(spacing: 24) {
             Spacer()
             
-            VStack(spacing: 20) {
-                // Name Field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Full Name")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
+            Form {
+                Section {
                     TextField("Enter your name", text: $name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .textFieldStyle(.roundedBorder)
+                        .font(.radioCanadaBigBody)
+                } header: {
+                    Text("Full Name")
+                        .font(.radioCanadaBigCaption)
+                        .foregroundColor(.secondary)
                 }
                 
-                // Email Field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Email Address")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
+                Section {
                     HStack {
                         TextField("Enter your email", text: $email)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .textFieldStyle(.roundedBorder)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .textContentType(.emailAddress)
                             .accessibilityLabel("Email address")
+                            .font(.radioCanadaBigBody)
                             .onChange(of: email) { _ in
                                 validateEmail()
                             }
@@ -659,15 +655,11 @@ struct SignUpView: View {
                     }
                 }
                 
-                // Password Field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Password")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
+                Section {
                     CustomSecureField(placeholder: "Enter your password", text: $password)
                         .textContentType(.newPassword)
                         .accessibilityLabel("New password")
+                        .font(.radioCanadaBigBody)
                         .onChange(of: password) { _ in
                             validatePassword()
                             validateConfirmPassword()
@@ -679,21 +671,21 @@ struct SignUpView: View {
                     // Validation error message
                     if case .invalid(let message) = passwordValidationState {
                         Text(message)
-                            .font(.caption)
+                            .font(.radioCanadaBigCaption)
                             .foregroundColor(.red)
                     }
+                } header: {
+                    Text("Password")
+                        .font(.radioCanadaBigCaption)
+                        .foregroundColor(.secondary)
                 }
                 
-                // Confirm Password Field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Confirm Password")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
+                Section {
                     HStack {
                         CustomSecureField(placeholder: "Confirm your password", text: $confirmPassword)
                             .textContentType(.newPassword)
                             .accessibilityLabel("Confirm password")
+                            .font(.radioCanadaBigBody)
                             .onChange(of: confirmPassword) { _ in
                                 validateConfirmPassword()
                             }
@@ -714,12 +706,16 @@ struct SignUpView: View {
                     // Validation error message
                     if case .invalid(let message) = confirmPasswordValidationState {
                         Text(message)
-                            .font(.caption)
+                            .font(.radioCanadaBigCaption)
                             .foregroundColor(.red)
                     }
+                } header: {
+                    Text("Confirm Password")
+                        .font(.radioCanadaBigCaption)
+                        .foregroundColor(.secondary)
                 }
             }
-            .padding(.horizontal, 30)
+            .scrollContentBackground(.hidden)
             
             // Create Account Button
             Button(action: signUp) {
