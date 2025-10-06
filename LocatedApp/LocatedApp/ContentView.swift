@@ -1264,9 +1264,8 @@ struct ParentHomeView: View {
                                         // Overlay content
                                         VStack(spacing: 0) {
                                             Spacer()
-                                                .frame(height: 30)
                                             
-                                            VStack(alignment: .leading, spacing: 20) {
+                                            VStack(alignment: .leading, spacing: 30) {
                                                 Text("Let's create a\nfamily")
                                                     .font(.radioCanadaBig(28, weight: .bold))
                                                     .foregroundColor(.white)
@@ -1281,11 +1280,11 @@ struct ParentHomeView: View {
                                                 .primaryAButtonStyle()
                                             }
                                             .padding(.horizontal, 40)
-                                            .padding(.bottom, 40)
+                                            .padding(.bottom, 20)
                                         }
                                     }
                                 }
-                                .frame(height: 220)
+                                .frame(height: 280)
                                 .background(Color(UIColor.systemGray6))
                                 .cornerRadius(12)
                             }
