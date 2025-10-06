@@ -505,8 +505,6 @@ struct SignInView: View {
                 Spacer()
                 }
             }
-            .navigationTitle("Parent Login")
-            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 // Set initial focus to email field
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
