@@ -632,12 +632,18 @@ struct SignUpView: View {
                         .font(.radioCanadaBig(14, weight: .medium))
                         .foregroundColor(.primary)
                     
-                    TextField("Enter your name", text: $name)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .focused($focusedField, equals: .name)
-                        .onSubmit {
-                            focusedField = .email
-                        }
+                    HStack {
+                        TextField("Enter your name", text: $name)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .focused($focusedField, equals: .name)
+                            .onSubmit {
+                                focusedField = .email
+                            }
+                        
+                        // Spacer to maintain consistent width
+                        Spacer()
+                            .frame(width: 24) // Same width as validation indicator
+                    }
                 }
                 
                 // Email Field
@@ -688,17 +694,23 @@ struct SignUpView: View {
                         .font(.radioCanadaBig(14, weight: .medium))
                         .foregroundColor(.primary)
                     
-                    CustomSecureField(placeholder: "Enter your password", text: $password)
-                        .textContentType(.newPassword)
-                        .accessibilityLabel("New password")
-                        .focused($focusedField, equals: .password)
-                        .onSubmit {
-                            focusedField = .confirmPassword
-                        }
-                        .onChange(of: password) { _ in
-                            validatePassword()
-                            validateConfirmPassword()
-                        }
+                    HStack {
+                        CustomSecureField(placeholder: "Enter your password", text: $password)
+                            .textContentType(.newPassword)
+                            .accessibilityLabel("New password")
+                            .focused($focusedField, equals: .password)
+                            .onSubmit {
+                                focusedField = .confirmPassword
+                            }
+                            .onChange(of: password) { _ in
+                                validatePassword()
+                                validateConfirmPassword()
+                            }
+                        
+                        // Spacer to maintain consistent width
+                        Spacer()
+                            .frame(width: 24) // Same width as validation indicator
+                    }
                     
                     // Password strength indicator
                     PasswordStrengthView(password: password)
