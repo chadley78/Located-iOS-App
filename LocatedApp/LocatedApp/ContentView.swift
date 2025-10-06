@@ -614,6 +614,11 @@ struct SignUpView: View {
     @State private var emailValidationState: ValidationState = .none
     @State private var passwordValidationState: ValidationState = .none
     @State private var confirmPasswordValidationState: ValidationState = .none
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case name, email, password, confirmPassword
+    }
     
     var body: some View {
         ScrollView {
@@ -624,18 +629,22 @@ struct SignUpView: View {
                 // Name Field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Full Name")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.radioCanadaBig(14, weight: .medium))
+                        .foregroundColor(.primary)
                     
                     TextField("Enter your name", text: $name)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .focused($focusedField, equals: .name)
+                        .onSubmit {
+                            focusedField = .email
+                        }
                 }
                 
                 // Email Field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email Address")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.radioCanadaBig(14, weight: .medium))
+                        .foregroundColor(.primary)
                     
                     HStack {
                         TextField("Enter your email", text: $email)
@@ -645,6 +654,10 @@ struct SignUpView: View {
                             .disableAutocorrection(true)
                             .textContentType(.emailAddress)
                             .accessibilityLabel("Email address")
+                            .focused($focusedField, equals: .email)
+                            .onSubmit {
+                                focusedField = .password
+                            }
                             .onChange(of: email) { _ in
                                 validateEmail()
                             }
@@ -672,12 +685,16 @@ struct SignUpView: View {
                 // Password Field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Password")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.radioCanadaBig(14, weight: .medium))
+                        .foregroundColor(.primary)
                     
                     CustomSecureField(placeholder: "Enter your password", text: $password)
                         .textContentType(.newPassword)
                         .accessibilityLabel("New password")
+                        .focused($focusedField, equals: .password)
+                        .onSubmit {
+                            focusedField = .confirmPassword
+                        }
                         .onChange(of: password) { _ in
                             validatePassword()
                             validateConfirmPassword()
@@ -697,13 +714,17 @@ struct SignUpView: View {
                 // Confirm Password Field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Confirm Password")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.radioCanadaBig(14, weight: .medium))
+                        .foregroundColor(.primary)
                     
                     HStack {
                         CustomSecureField(placeholder: "Confirm your password", text: $confirmPassword)
                             .textContentType(.newPassword)
                             .accessibilityLabel("Confirm password")
+                            .focused($focusedField, equals: .confirmPassword)
+                            .onSubmit {
+                                signUp()
+                            }
                             .onChange(of: confirmPassword) { _ in
                                 validateConfirmPassword()
                             }
@@ -748,6 +769,12 @@ struct SignUpView: View {
         }
         .navigationTitle("Create Account")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Set initial focus to name field
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                focusedField = .name
+            }
+        }
         .alert("Error", isPresented: .constant(authService.errorMessage != nil)) {
             Button("OK") {
                 authService.errorMessage = nil
