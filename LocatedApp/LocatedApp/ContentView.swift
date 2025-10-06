@@ -108,6 +108,10 @@ struct WelcomeView: View {
                 
                 // App Logo and Title
                 VStack(spacing: 20) {
+                    Text("Located")
+                        .font(.radioCanadaBig(40, weight: .bold))
+                        .foregroundColor(.primary)
+                    
                     // App Splash Icon from Assets
                     RoundedRectangle(cornerRadius: 20)
                         .fill(Color.vibrantYellow)
@@ -119,15 +123,16 @@ struct WelcomeView: View {
                                 .frame(width: 80, height: 80)
                         )
                     
-                    Text("Located")
-                        .font(.radioCanadaBig(40, weight: .bold))
-                        .foregroundColor(.primary)
-                    
-                    Text("Providing a parents view of the world")
-                        .font(.radioCanadaBig(18, weight: .regular))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
+                    VStack(spacing: 4) {
+                        Text("Providing a parents")
+                            .font(.radioCanadaBig(18, weight: .regular))
+                            .foregroundColor(.black)
+                        Text("view of the world")
+                            .font(.radioCanadaBig(18, weight: .regular))
+                            .foregroundColor(.black)
+                    }
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
                 }
                 
                 Spacer()
