@@ -262,8 +262,7 @@ struct ChildSignUpView: View {
                     }
                 }
             } else {
-                ScrollView {
-                    VStack(spacing: 24) {
+                VStack(spacing: 24) {
                     Spacer()
                     
                     // Header
@@ -276,14 +275,14 @@ struct ChildSignUpView: View {
                             .font(.title)
                             .font(.system(size: 28, weight: .bold))
                         
-                Text("Enter the invitation code your parent shared with you.")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            
-            Form {
+                        Text("Enter the invitation code your parent shared with you.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    
+                    Form {
                 Section {
                     TextField("Enter invitation code", text: $inviteCode)
                         .textFieldStyle(.roundedBorder)
@@ -323,7 +322,6 @@ struct ChildSignUpView: View {
             .disabled(!isFormValid || isLoading)
             
                     Spacer()
-                    }
                 }
                 .onAppear {
                     // Pre-fill invitation code if provided
@@ -448,8 +446,7 @@ struct SignInView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
+            VStack(spacing: 24) {
                 Spacer()
                 
                 Form {
@@ -501,7 +498,6 @@ struct SignInView: View {
                 .foregroundColor(.blue)
                 
                 Spacer()
-                }
             }
             .navigationTitle("Sign In")
             .navigationBarTitleDisplayMode(.inline)
@@ -617,8 +613,7 @@ struct SignUpView: View {
     @State private var confirmPasswordValidationState: ValidationState = .none
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
+        VStack(spacing: 24) {
             Spacer()
             
             Form {
@@ -741,7 +736,6 @@ struct SignUpView: View {
             .disabled(authService.isLoading || !isFormValid)
             
             Spacer()
-            }
         }
         .navigationTitle("Create Account")
         .navigationBarTitleDisplayMode(.inline)
