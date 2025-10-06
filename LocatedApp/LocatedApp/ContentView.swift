@@ -124,13 +124,15 @@ struct WelcomeView: View {
                                 .clipShape(Circle())
                         )
                     
-                    VStack(spacing: 4) {
+                    VStack(spacing: 2) {
                         Text("Providing a parents")
                             .font(.radioCanadaBig(18, weight: .regular))
                             .foregroundColor(.black)
+                            .tracking(-0.9) // 5% of 18pt = 0.9pt reduction
                         Text("view of the world")
                             .font(.radioCanadaBig(18, weight: .regular))
                             .foregroundColor(.black)
+                            .tracking(-0.9) // 5% of 18pt = 0.9pt reduction
                     }
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
