@@ -1254,15 +1254,12 @@ struct ParentHomeView: View {
                                 VStack(spacing: 0) {
                                     // Background image section
                                     ZStack {
-                                        // Background image (aligned to bottom)
-                                        VStack {
-                                            Spacer()
-                                            Image("Nest")
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(height: 220)
-                                                .clipped()
-                                        }
+                                        // Background image (original size)
+                                        Image("Nest")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .clipped()
                                         
                                         // Overlay content
                                         VStack(spacing: 0) {
