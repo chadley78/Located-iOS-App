@@ -505,7 +505,7 @@ struct SignInView: View {
                 Spacer()
                 }
             }
-            .navigationTitle("Parent Sign In")
+            .navigationTitle("Parent Login")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 // Set initial focus to email field
