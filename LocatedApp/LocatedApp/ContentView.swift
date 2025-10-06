@@ -1254,13 +1254,12 @@ struct ParentHomeView: View {
                                 VStack(spacing: 0) {
                                     // Background image section
                                     ZStack {
-                                        // Background image (cropped from top)
+                                        // Background image
                                         Image("Nest")
                                             .resizable()
                                             .aspectRatio(contentMode: .fill)
                                             .frame(height: 220)
                                             .clipped()
-                                            .offset(y: -20) // Crop top of image
                                         
                                         // Overlay content
                                         VStack(spacing: 0) {
@@ -1269,7 +1268,7 @@ struct ParentHomeView: View {
                                             
                                             VStack(alignment: .leading, spacing: 20) {
                                                 Text("Let's create a\nfamily")
-                                                    .font(.radioCanadaBig(32, weight: .bold))
+                                                    .font(.radioCanadaBig(28, weight: .bold))
                                                     .foregroundColor(.white)
                                                     .multilineTextAlignment(.leading)
                                                 
