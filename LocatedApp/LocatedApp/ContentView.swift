@@ -1146,8 +1146,7 @@ struct ParentHomeView: View {
                             VStack(spacing: 16) {
                                 if let family = familyService.currentFamily {
                                     Text("My Family")
-                                        .font(.title2)
-                                        .font(.system(size: 18, weight: .semibold))
+                                        .font(.radioCanadaBig(18, weight: .semibold))
                                 }
                             
                             if let family = familyService.currentFamily {
@@ -1176,7 +1175,7 @@ struct ParentHomeView: View {
                                                     Spacer()
                                                 }
                                                 .padding(.horizontal, 40)
-                                                .padding(.top, 60)
+                                                .padding(.top, 100)
                                                 
                                                 Spacer()
                                                 
@@ -1186,11 +1185,11 @@ struct ParentHomeView: View {
                                                 }
                                                 .primaryAButtonStyle()
                                                 .padding(.horizontal, 40)
-                                                .padding(.bottom, 40)
+                                                .padding(.bottom, 60)
                                             }
                                         }
                                     }
-                                    .frame(height: 200)
+                                    .frame(height: 220)
                                     .background(Color(UIColor.systemGray6))
                                     .cornerRadius(12)
                                 } else {
