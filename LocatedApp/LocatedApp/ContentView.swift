@@ -113,7 +113,7 @@ struct WelcomeView: View {
                         .fill(Color.vibrantYellow)
                         .frame(width: 100, height: 100)
                         .overlay(
-                            Image("splash")
+                            Image("SplashImage")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 80, height: 80)
@@ -156,7 +156,7 @@ struct WelcomeView: View {
             }
             .padding()
             .navigationBarHidden(true)
-            .background(Color.vibrantOrange)
+            .background(Color.splashBackground)
         }
     }
 }
