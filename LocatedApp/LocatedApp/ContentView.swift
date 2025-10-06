@@ -1141,13 +1141,13 @@ struct ParentHomeView: View {
                     
                     ScrollViewReader { proxy in
                         ScrollView {
-                            VStack(spacing: 20) {
+                            VStack(spacing: 40) {
                             // Children List Section
                             VStack(spacing: 8) {
                                 if let family = familyService.currentFamily {
                                     HStack {
                                         Text("My Family")
-                                            .font(.radioCanadaBig(28, weight: .bold))
+                                            .font(.radioCanadaBig(28, weight: .semibold))
                                         Spacer()
                                     }
                                 }
