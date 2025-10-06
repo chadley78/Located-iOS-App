@@ -1143,7 +1143,7 @@ struct ParentHomeView: View {
                         ScrollView {
                             VStack(spacing: 20) {
                             // Children List Section
-                            VStack(spacing: 20) {
+                            VStack(spacing: 8) {
                                 if let family = familyService.currentFamily {
                                     HStack {
                                         Text("My Family")
@@ -1189,7 +1189,7 @@ struct ParentHomeView: View {
                                                 }
                                                 .primaryAButtonStyle()
                                                 .padding(.horizontal, 40)
-                                                .padding(.bottom, 60)
+                                                .padding(.bottom, 80)
                                             }
                                         }
                                     }
@@ -1315,9 +1315,7 @@ struct ParentHomeView: View {
                         
                         // Quick Actions Section
                         VStack(spacing: 16) {
-                            Text("Quick Actions")
-                                .font(.headline)
-                            
+                            // Removed "Quick Actions" title but kept spacing
                             VStack(spacing: 12) {
                                 // Only show family-related buttons if a family exists
                                 if familyService.currentFamily != nil {
