@@ -1264,6 +1264,7 @@ struct ParentHomeView: View {
                                         // Overlay content
                                         VStack(spacing: 0) {
                                             Spacer()
+                                                .frame(height: 60)
                                             
                                             VStack(alignment: .leading, spacing: 20) {
                                                 Text("Let's create a\nfamily")
