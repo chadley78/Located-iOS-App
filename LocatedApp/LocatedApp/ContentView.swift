@@ -1260,7 +1260,7 @@ struct ParentHomeView: View {
                                             .aspectRatio(contentMode: .fill)
                                             .frame(height: 220)
                                             .clipped()
-                                            .offset(y: -40) // Crop top of image
+                                            .offset(y: -20) // Crop top of image
                                         
                                         // Overlay content
                                         VStack(spacing: 0) {
