@@ -434,6 +434,11 @@ struct SignInView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showingForgotPassword = false
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case email, password
+    }
     
     var body: some View {
         NavigationView {
@@ -445,27 +450,35 @@ struct SignInView: View {
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Email Address")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(.radioCanadaBig(14, weight: .medium))
+                            .foregroundColor(.primary)
                         
                         TextField("Enter your email", text: $email)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .focused($focusedField, equals: .email)
+                            .onSubmit {
+                                focusedField = .password
+                            }
                     }
                     
                     // Password Field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Password")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(.radioCanadaBig(14, weight: .medium))
+                            .foregroundColor(.primary)
                         
                         SecureField("Enter your password", text: $password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .textContentType(.password)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
+                            .focused($focusedField, equals: .password)
+                            .onSubmit {
+                                signIn()
+                            }
                     }
                 }
                 .padding(.horizontal, 30)
@@ -492,7 +505,14 @@ struct SignInView: View {
                 Spacer()
                 }
             }
+            .navigationTitle("Parent Sign In")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                // Set initial focus to email field
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    focusedField = .email
+                }
+            }
             .alert("Error", isPresented: .constant(authService.errorMessage != nil)) {
                 Button("OK") {
                     authService.errorMessage = nil
