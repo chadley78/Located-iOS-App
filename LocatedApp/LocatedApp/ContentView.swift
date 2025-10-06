@@ -1273,7 +1273,7 @@ struct ParentHomeView: View {
                                                 Spacer()
                                             }
                                             .padding(.horizontal, 40)
-                                            .padding(.top, 20)
+                                            .padding(.top, 60)
                                             
                                             Spacer()
                                             
@@ -1283,7 +1283,7 @@ struct ParentHomeView: View {
                                             }
                                             .primaryAButtonStyle()
                                             .padding(.horizontal, 40)
-                                            .padding(.bottom, 20)
+                                            .padding(.bottom, 40)
                                         }
                                     }
                                 }
