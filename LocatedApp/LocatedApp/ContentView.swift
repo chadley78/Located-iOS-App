@@ -1271,6 +1271,7 @@ struct ParentHomeView: View {
                                                     .font(.radioCanadaBig(28, weight: .bold))
                                                     .foregroundColor(.white)
                                                     .multilineTextAlignment(.leading)
+                                                    .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
                                                 
                                                 Spacer()
                                                 
@@ -1284,6 +1285,7 @@ struct ParentHomeView: View {
                                         }
                                     }
                                 }
+                                .frame(height: 220)
                                 .background(Color(UIColor.systemGray6))
                                 .cornerRadius(12)
                             }
