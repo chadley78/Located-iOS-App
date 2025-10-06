@@ -19,15 +19,35 @@
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="YjF-8K-2xJ">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                                 <color key="backgroundColor" red="1.0" green="0.79" blue="0.23" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <subviews>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Located" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="title-label">
+                                        <rect key="frame" x="146.66666666666666" y="300" width="100" height="48"/>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="40"/>
+                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="icon-container">
+                                        <rect key="frame" x="136.66666666666666" y="368" width="120" height="120"/>
+                                        <color key="backgroundColor" red="1.0" green="0.79" blue="0.23" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="120" id="icon-width"/>
+                                            <constraint firstAttribute="height" constant="120" id="icon-height"/>
+                                        </constraints>
+                                    </view>
+                                </subviews>
                             </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" red="1.0" green="0.79" blue="0.23" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="YjF-8K-2xJ" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="1a2-3D-4e5"/>
                             <constraint firstItem="YjF-8K-2xJ" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="2b3-4E-5f6"/>
                             <constraint firstAttribute="trailing" secondItem="YjF-8K-2xJ" secondAttribute="trailing" id="3c4-5F-6g7"/>
                             <constraint firstAttribute="bottom" secondItem="YjF-8K-2xJ" secondAttribute="bottom" id="4d5-6G-7h8"/>
+                            <constraint firstItem="title-label" firstAttribute="centerX" secondItem="YjF-8K-2xJ" secondAttribute="centerX" id="title-center-x"/>
+                            <constraint firstItem="title-label" firstAttribute="centerY" secondItem="YjF-8K-2xJ" secondAttribute="centerY" constant="-100" id="title-center-y"/>
+                            <constraint firstItem="icon-container" firstAttribute="centerX" secondItem="YjF-8K-2xJ" secondAttribute="centerX" id="icon-center-x"/>
+                            <constraint firstItem="icon-container" firstAttribute="top" secondItem="title-label" secondAttribute="bottom" constant="20" id="icon-top"/>
                         </constraints>
                     </view>
                 </viewController>

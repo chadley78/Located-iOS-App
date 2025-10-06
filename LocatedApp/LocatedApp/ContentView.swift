@@ -12,6 +12,7 @@ struct ContentView: View {
     @StateObject private var locationService = LocationService()
     @StateObject private var invitationService = FamilyInvitationService()
     @EnvironmentObject var familyService: FamilyService
+    @State private var showContent = false
     
     init(invitationCode: String? = nil) {
         self.invitationCode = invitationCode
@@ -19,7 +20,11 @@ struct ContentView: View {
     
     var body: some View {
         Group {
-            if authService.isInitializing {
+            if !showContent {
+                // Show launch screen while transitioning
+                Color.vibrantYellow
+                    .ignoresSafeArea()
+            } else if authService.isInitializing {
                 // Show loading screen while checking authentication state
                 VStack(spacing: 20) {
                     Circle()
@@ -68,6 +73,11 @@ struct ContentView: View {
         }
         .animation(.easeInOut, value: authService.isAuthenticated)
         .onAppear {
+            // Delay content display to allow launch screen to show
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                showContent = true
+            }
+            
             // Start location service when app appears
             if authService.isAuthenticated {
                 locationService.requestLocationPermission()
