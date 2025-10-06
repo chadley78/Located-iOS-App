@@ -6,17 +6,6 @@ import MapKit
 import PhotosUI
 import Combine
 
-// MARK: - iOS Version Compatibility Modifier
-struct ScrollContentBackgroundModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.0, *) {
-            content.scrollContentBackground(.hidden)
-        } else {
-            content
-        }
-    }
-}
-
 struct ContentView: View {
     let invitationCode: String?
     @StateObject private var authService = AuthenticationService()
@@ -262,7 +251,8 @@ struct ChildSignUpView: View {
                     }
                 }
             } else {
-                VStack(spacing: 24) {
+                ScrollView {
+                    VStack(spacing: 24) {
                     Spacer()
                     
                     // Header
@@ -275,27 +265,27 @@ struct ChildSignUpView: View {
                             .font(.title)
                             .font(.system(size: 28, weight: .bold))
                         
-                        Text("Enter the invitation code your parent shared with you.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
+                Text("Enter the invitation code your parent shared with you.")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            VStack(spacing: 20) {
+                // Invitation Code Field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Invitation Code")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
                     
-                    Form {
-                Section {
                     TextField("Enter invitation code", text: $inviteCode)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.allCharacters)
                         .disableAutocorrection(true)
-                        .font(.radioCanadaBig(18, weight: .medium))
-                } header: {
-                    Text("Invitation Code")
-                        .font(.radioCanadaBigCaption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 18, weight: .medium, design: .monospaced))
                 }
             }
-            .modifier(ScrollContentBackgroundModifier())
             .padding(.horizontal, 30)
             
             // Error Message
@@ -322,6 +312,7 @@ struct ChildSignUpView: View {
             .disabled(!isFormValid || isLoading)
             
                     Spacer()
+                    }
                 }
                 .onAppear {
                     // Pre-fill invitation code if provided
@@ -446,37 +437,38 @@ struct SignInView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
+            ScrollView {
+                VStack(spacing: 24) {
                 Spacer()
                 
-                Form {
-                    Section {
+                VStack(spacing: 20) {
+                    // Email Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Email Address")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
                         TextField("Enter your email", text: $email)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                            .font(.radioCanadaBigBody)
-                    } header: {
-                        Text("Email Address")
-                            .font(.radioCanadaBigCaption)
-                            .foregroundColor(.secondary)
                     }
                     
-                    Section {
+                    // Password Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Password")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
                         SecureField("Enter your password", text: $password)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
                             .textContentType(.password)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
-                            .font(.radioCanadaBigBody)
-                    } header: {
-                        Text("Password")
-                            .font(.radioCanadaBigCaption)
-                            .foregroundColor(.secondary)
                     }
                 }
-                .modifier(ScrollContentBackgroundModifier())
+                .padding(.horizontal, 30)
                 
                 // Sign In Button
                 Button(action: signIn) {
@@ -498,6 +490,7 @@ struct SignInView: View {
                 .foregroundColor(.blue)
                 
                 Spacer()
+                }
             }
             .navigationTitle("Sign In")
             .navigationBarTitleDisplayMode(.inline)
@@ -613,30 +606,35 @@ struct SignUpView: View {
     @State private var confirmPasswordValidationState: ValidationState = .none
     
     var body: some View {
-        VStack(spacing: 24) {
+        ScrollView {
+            VStack(spacing: 24) {
             Spacer()
             
-            Form {
-                Section {
-                    TextField("Enter your name", text: $name)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.radioCanadaBigBody)
-                } header: {
+            VStack(spacing: 20) {
+                // Name Field
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Full Name")
-                        .font(.radioCanadaBigCaption)
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
+                    
+                    TextField("Enter your name", text: $name)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
                 
-                Section {
+                // Email Field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Email Address")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    
                     HStack {
                         TextField("Enter your email", text: $email)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .textContentType(.emailAddress)
                             .accessibilityLabel("Email address")
-                            .font(.radioCanadaBigBody)
                             .onChange(of: email) { _ in
                                 validateEmail()
                             }
@@ -661,11 +659,15 @@ struct SignUpView: View {
                     }
                 }
                 
-                Section {
+                // Password Field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Password")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    
                     CustomSecureField(placeholder: "Enter your password", text: $password)
                         .textContentType(.newPassword)
                         .accessibilityLabel("New password")
-                        .font(.radioCanadaBigBody)
                         .onChange(of: password) { _ in
                             validatePassword()
                             validateConfirmPassword()
@@ -677,21 +679,21 @@ struct SignUpView: View {
                     // Validation error message
                     if case .invalid(let message) = passwordValidationState {
                         Text(message)
-                            .font(.radioCanadaBigCaption)
+                            .font(.caption)
                             .foregroundColor(.red)
                     }
-                } header: {
-                    Text("Password")
-                        .font(.radioCanadaBigCaption)
-                        .foregroundColor(.secondary)
                 }
                 
-                Section {
+                // Confirm Password Field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Confirm Password")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    
                     HStack {
                         CustomSecureField(placeholder: "Confirm your password", text: $confirmPassword)
                             .textContentType(.newPassword)
                             .accessibilityLabel("Confirm password")
-                            .font(.radioCanadaBigBody)
                             .onChange(of: confirmPassword) { _ in
                                 validateConfirmPassword()
                             }
@@ -712,16 +714,12 @@ struct SignUpView: View {
                     // Validation error message
                     if case .invalid(let message) = confirmPasswordValidationState {
                         Text(message)
-                            .font(.radioCanadaBigCaption)
+                            .font(.caption)
                             .foregroundColor(.red)
                     }
-                } header: {
-                    Text("Confirm Password")
-                        .font(.radioCanadaBigCaption)
-                        .foregroundColor(.secondary)
                 }
             }
-            .modifier(ScrollContentBackgroundModifier())
+            .padding(.horizontal, 30)
             
             // Create Account Button
             Button(action: signUp) {
@@ -736,6 +734,7 @@ struct SignUpView: View {
             .disabled(authService.isLoading || !isFormValid)
             
             Spacer()
+            }
         }
         .navigationTitle("Create Account")
         .navigationBarTitleDisplayMode(.inline)
