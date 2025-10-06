@@ -28,12 +28,14 @@ struct ContentView: View {
                 // Show loading screen while checking authentication state
                 VStack(spacing: 20) {
                     Circle()
-                        .fill(Color.blue)
+                        .fill(Color.vibrantYellow)
                         .frame(width: 80, height: 80)
                         .overlay(
-                            Text("L")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white)
+                            Image("AppSplash")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 60, height: 60)
+                                .clipShape(Circle())
                         )
                     
                     ProgressView()
