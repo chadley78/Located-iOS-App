@@ -1145,7 +1145,7 @@ struct ParentHomeView: View {
                             // Children List Section
                             VStack(spacing: 16) {
                                 if let family = familyService.currentFamily {
-                                    Text("Family Overview")
+                                    Text("My Family")
                                         .font(.title2)
                                         .font(.system(size: 18, weight: .semibold))
                                 }
@@ -1154,28 +1154,43 @@ struct ParentHomeView: View {
                                 let allChildren = familyService.getAllChildren()
                                 if allChildren.isEmpty {
                                     // No children state
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "person.2")
-                                            .font(.system(size: 40))
-                                            .foregroundColor(.gray)
-                                        
-                                        Text("No Children Added")
-                                            .font(.headline)
-                                            .foregroundColor(.secondary)
-                                        
-                                        Text("Add children to your family to start tracking their locations.")
-                                            .font(.body)
-                                            .foregroundColor(.secondary)
-                                            .multilineTextAlignment(.center)
-                                            .padding(.horizontal)
-                                        
-                                        Button("Add Child") {
-                                            showingInviteChild = true
+                                    VStack(spacing: 0) {
+                                        // Background image section
+                                        ZStack {
+                                            // Background image
+                                            Image("Nest")
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                .clipped()
+                                            
+                                            // Overlay content
+                                            VStack(spacing: 0) {
+                                                // Text at the top
+                                                HStack {
+                                                    Text("No children to locate yet")
+                                                        .font(.radioCanadaBig(28, weight: .bold))
+                                                        .foregroundColor(.white)
+                                                        .multilineTextAlignment(.leading)
+                                                        .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
+                                                    Spacer()
+                                                }
+                                                .padding(.horizontal, 40)
+                                                .padding(.top, 60)
+                                                
+                                                Spacer()
+                                                
+                                                // Button at the bottom
+                                                Button("Add a child") {
+                                                    showingInviteChild = true
+                                                }
+                                                .primaryAButtonStyle()
+                                                .padding(.horizontal, 40)
+                                                .padding(.bottom, 40)
+                                            }
                                         }
-                                        .primaryAButtonStyle()
-                                        .padding(.horizontal)
                                     }
-                                    .padding()
+                                    .frame(height: 200)
                                     .background(Color(UIColor.systemGray6))
                                     .cornerRadius(12)
                                 } else {
@@ -1424,8 +1439,11 @@ struct ParentHomeView: View {
                     print("❌ ParentHomeView - No family ID available for geofence status listening")
                 }
                 
-                // Set panel to expanded state for new users (no family)
+                // Set panel to expanded state for new users (no family) or when no children
                 if familyService.currentFamily == nil {
+                    isPanelExpanded = true
+                    panelHeight = 0.7
+                } else if let family = familyService.currentFamily, familyService.getAllChildren().isEmpty {
                     isPanelExpanded = true
                     panelHeight = 0.7
                 }
@@ -1434,9 +1452,15 @@ struct ParentHomeView: View {
                 // Start geofence status listening when family becomes available
                 if let familyId = familyId {
                     geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
-                    // Collapse panel when family is created (user is no longer new)
-                    isPanelExpanded = false
-                    panelHeight = 0.25
+                    // Keep panel expanded if no children, collapse if children exist
+                    let allChildren = familyService.getAllChildren()
+                    if allChildren.isEmpty {
+                        isPanelExpanded = true
+                        panelHeight = 0.7
+                    } else {
+                        isPanelExpanded = false
+                        panelHeight = 0.25
+                    }
                 } else {
                     geofenceStatusService.stopListening()
                     // Expand panel when family is removed (user becomes new again)
