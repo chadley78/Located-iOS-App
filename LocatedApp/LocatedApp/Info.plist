@@ -31,5 +31,7 @@
 		<string>RadioCanadaBig-SemiBold.ttf</string>
 		<string>RadioCanadaBig-Bold.ttf</string>
 	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
 </dict>
 </plist>
