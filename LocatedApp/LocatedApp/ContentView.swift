@@ -1143,14 +1143,13 @@ struct ParentHomeView: View {
                         ScrollView {
                             VStack(spacing: 20) {
                             // Children List Section
-                            VStack(spacing: 16) {
+                            VStack(spacing: 20) {
                                 if let family = familyService.currentFamily {
                                     HStack {
                                         Text("My Family")
                                             .font(.radioCanadaBig(28, weight: .bold))
                                         Spacer()
                                     }
-                                    .padding(.horizontal, 40)
                                 }
                             
                             if let family = familyService.currentFamily {
@@ -1161,14 +1160,12 @@ struct ParentHomeView: View {
                                         // Background image section
                                         ZStack {
                                             // Background image (raised to show more of the nest)
-                                            VStack {
-                                                Spacer()
-                                                Image("Nest")
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
-                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                    .clipped()
-                                            }
+                                            Image("Nest")
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                .clipped()
+                                                .offset(y: -20) // Raise the image to show more of the nest
                                             
                                             // Overlay content
                                             VStack(spacing: 0) {
