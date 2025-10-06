@@ -156,7 +156,7 @@ struct WelcomeView: View {
             }
             .padding()
             .navigationBarHidden(true)
-            .background(Color.splashBackground)
+            .background(Color.vibrantYellow)
         }
     }
 }
