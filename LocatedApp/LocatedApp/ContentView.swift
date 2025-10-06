@@ -1145,8 +1145,12 @@ struct ParentHomeView: View {
                             // Children List Section
                             VStack(spacing: 16) {
                                 if let family = familyService.currentFamily {
-                                    Text("My Family")
-                                        .font(.radioCanadaBig(18, weight: .semibold))
+                                    HStack {
+                                        Text("My Family")
+                                            .font(.radioCanadaBig(28, weight: .bold))
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 40)
                                 }
                             
                             if let family = familyService.currentFamily {
@@ -1156,18 +1160,21 @@ struct ParentHomeView: View {
                                     VStack(spacing: 0) {
                                         // Background image section
                                         ZStack {
-                                            // Background image
-                                            Image("Nest")
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .clipped()
+                                            // Background image (raised to show more of the nest)
+                                            VStack {
+                                                Spacer()
+                                                Image("Nest")
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                    .clipped()
+                                            }
                                             
                                             // Overlay content
                                             VStack(spacing: 0) {
                                                 // Text at the top
                                                 HStack {
-                                                    Text("No children to locate yet")
+                                                    Text("No children to\nlocate yet")
                                                         .font(.radioCanadaBig(28, weight: .bold))
                                                         .foregroundColor(.white)
                                                         .multilineTextAlignment(.leading)
