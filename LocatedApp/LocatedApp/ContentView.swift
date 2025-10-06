@@ -492,15 +492,7 @@ struct SignInView: View {
                 Spacer()
                 }
             }
-            .navigationTitle("Sign In")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
             .alert("Error", isPresented: .constant(authService.errorMessage != nil)) {
                 Button("OK") {
                     authService.errorMessage = nil
