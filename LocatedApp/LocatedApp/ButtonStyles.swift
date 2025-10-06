@@ -7,6 +7,7 @@ extension Color {
     static let vibrantGreen = Color(red: 0.54, green: 0.79, blue: 0.15) // #8AC926
     static let vibrantBlue = Color(red: 0.10, green: 0.51, blue: 0.77) // #1982C4
     static let vibrantPurple = Color(red: 0.42, green: 0.30, blue: 0.58) // #6A4C93
+    static let vibrantOrange = Color(red: 1.0, green: 0.65, blue: 0.0) // #FFA500
 }
 
 // MARK: - Primary A Button Style (Vibrant Red Buttons) - Main Action Buttons

@@ -6,6 +6,18 @@ import MapKit
 import PhotosUI
 import Combine
 
+// MARK: - Triangle Shape for Parrot Beak
+struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
 struct ContentView: View {
     let invitationCode: String?
     @StateObject private var authService = AuthenticationService()
@@ -108,27 +120,58 @@ struct WelcomeView: View {
                 
                 // App Logo and Title
                 VStack(spacing: 20) {
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 80, height: 80)
+                    // Custom Parrot Icon
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.vibrantYellow)
+                        .frame(width: 100, height: 100)
                         .overlay(
-                            Text("L")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white)
+                            // Parrot design with location pin eye
+                            ZStack {
+                                // Parrot body (coral pink)
+                                Circle()
+                                    .fill(Color(red: 1.0, green: 0.42, blue: 0.42)) // Coral pink
+                                    .frame(width: 80, height: 80)
+                                    .offset(x: -10, y: 5)
+                                
+                                // Parrot face (white)
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 50, height: 50)
+                                    .offset(x: 5, y: -5)
+                                
+                                // Location pin eye (green)
+                                VStack {
+                                    Circle()
+                                        .fill(Color.vibrantGreen)
+                                        .frame(width: 20, height: 20)
+                                        .overlay(
+                                            Circle()
+                                                .fill(Color.white)
+                                                .frame(width: 8, height: 8)
+                                        )
+                                    Rectangle()
+                                        .fill(Color.vibrantGreen)
+                                        .frame(width: 2, height: 8)
+                                }
+                                .offset(x: 5, y: -5)
+                                
+                                // Parrot beak (coral pink)
+                                Triangle()
+                                    .fill(Color(red: 1.0, green: 0.42, blue: 0.42))
+                                    .frame(width: 12, height: 8)
+                                    .offset(x: 25, y: -5)
+                            }
                         )
                     
                     Text("Located")
-                        .font(.system(size: 32, weight: .bold))
+                        .font(.radioCanadaBig(40, weight: .bold))
                         .foregroundColor(.primary)
                     
-                    VStack(spacing: 8) {
-                        Text("Keep your kids")
-                            .font(.system(size: 18))
-                            .foregroundColor(.secondary)
-                        Text("safe & sound")
-                            .font(.system(size: 18))
-                            .foregroundColor(.secondary)
-                    }
+                    Text("Providing a parents view of the world")
+                        .font(.radioCanadaBig(18, weight: .regular))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 }
                 
                 Spacer()
@@ -157,6 +200,7 @@ struct WelcomeView: View {
             }
             .padding()
             .navigationBarHidden(true)
+            .background(Color.vibrantOrange)
         }
     }
 }
