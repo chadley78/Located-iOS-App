@@ -113,14 +113,15 @@ struct WelcomeView: View {
                         .foregroundColor(.primary)
                     
                     // App Splash Icon from Assets
-                    RoundedRectangle(cornerRadius: 20)
+                    Circle()
                         .fill(Color.vibrantYellow)
-                        .frame(width: 100, height: 100)
+                        .frame(width: 120, height: 120)
                         .overlay(
                             Image("AppSplash")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 80, height: 80)
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
                         )
                     
                     VStack(spacing: 4) {
