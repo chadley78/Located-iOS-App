@@ -6,6 +6,17 @@ import MapKit
 import PhotosUI
 import Combine
 
+// MARK: - iOS Version Compatibility Modifier
+struct ScrollContentBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.scrollContentBackground(.hidden)
+        } else {
+            content
+        }
+    }
+}
+
 struct ContentView: View {
     let invitationCode: String?
     @StateObject private var authService = AuthenticationService()
@@ -285,7 +296,7 @@ struct ChildSignUpView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .scrollContentBackground(.hidden)
+            .modifier(ScrollContentBackgroundModifier())
             .padding(.horizontal, 30)
             
             // Error Message
@@ -468,7 +479,7 @@ struct SignInView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                .scrollContentBackground(.hidden)
+                .modifier(ScrollContentBackgroundModifier())
                 
                 // Sign In Button
                 Button(action: signIn) {
@@ -715,7 +726,7 @@ struct SignUpView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .scrollContentBackground(.hidden)
+            .modifier(ScrollContentBackgroundModifier())
             
             // Create Account Button
             Button(action: signUp) {
