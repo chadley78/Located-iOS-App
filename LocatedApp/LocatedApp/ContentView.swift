@@ -108,12 +108,12 @@ struct WelcomeView: View {
                 
                 // App Logo and Title
                 VStack(spacing: 20) {
-                    // Parrot Icon from Assets
+                    // App Splash Icon from Assets
                     RoundedRectangle(cornerRadius: 20)
                         .fill(Color.vibrantYellow)
                         .frame(width: 100, height: 100)
                         .overlay(
-                            Image("SplashImage")
+                            Image("AppSplash")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 80, height: 80)
