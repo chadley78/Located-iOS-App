@@ -1262,18 +1262,25 @@ struct ParentHomeView: View {
                                             .clipped()
                                         
                                         // Overlay content
-                                        VStack(spacing: 20) {
-                                            Text("Let's create a family")
-                                                .font(.radioCanadaBig(24, weight: .bold))
-                                                .foregroundColor(.white)
-                                                .multilineTextAlignment(.center)
+                                        VStack(spacing: 0) {
+                                            Spacer()
                                             
-                                            Button("Create a family") {
-                                                showingFamilySetup = true
+                                            VStack(alignment: .leading, spacing: 20) {
+                                                Text("Let's create a\nfamily")
+                                                    .font(.radioCanadaBig(24, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                    .multilineTextAlignment(.leading)
+                                                
+                                                Spacer()
+                                                
+                                                Button("Create a family") {
+                                                    showingFamilySetup = true
+                                                }
+                                                .primaryAButtonStyle()
                                             }
-                                            .primaryAButtonStyle()
+                                            .padding(.horizontal, 40)
+                                            .padding(.bottom, 40)
                                         }
-                                        .padding(.horizontal, 40)
                                     }
                                 }
                                 .background(Color(UIColor.systemGray6))
