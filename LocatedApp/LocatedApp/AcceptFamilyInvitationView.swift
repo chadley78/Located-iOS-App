@@ -83,13 +83,8 @@ struct AcceptFamilyInvitationView: View {
                                 }
                                 Text(isLoading ? "Joining Family..." : "Join Family")
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(inviteCode.isEmpty ? Color.gray : Color.green)
-                            .cornerRadius(12)
                         }
+                        .primaryAButtonStyle()
                         .disabled(inviteCode.isEmpty || isLoading)
                         .padding(.horizontal)
                         
@@ -358,16 +353,10 @@ struct WelcomeToFamilyView: View {
             Button(action: onNext) {
                 HStack {
                     Text("Next")
-                        .font(.headline)
-                        .fontWeight(.semibold)
                     Image(systemName: "arrow.right")
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(Color.blue)
-                .cornerRadius(12)
             }
+            .primaryAButtonStyle()
             .padding(.horizontal)
             .padding(.bottom)
         }

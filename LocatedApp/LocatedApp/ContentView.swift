@@ -140,26 +140,16 @@ struct WelcomeView: View {
                         .environmentObject(familyService)
                         .environmentObject(locationService)) {
                         Text("I'm a Parent")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.blue)
-                            .cornerRadius(25)
                     }
+                    .primaryAButtonStyle()
                     
                     NavigationLink(destination: AuthenticationView(userType: .child, invitationCode: invitationCode)
                         .environmentObject(authService)
                         .environmentObject(familyService)
                         .environmentObject(locationService)) {
                         Text("I'm a Child")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.green)
-                            .cornerRadius(25)
                     }
+                    .primaryAButtonStyle()
                 }
                 .padding(.horizontal, 50)
                 
@@ -298,16 +288,10 @@ struct ChildSignUpView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text("Join Family")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(isFormValid ? Color.green : Color.gray)
-            .cornerRadius(25)
+            .primaryAButtonStyle()
             .disabled(!isFormValid || isLoading)
-            .padding(.horizontal, 30)
             
                     Spacer()
                     }
@@ -475,16 +459,10 @@ struct SignInView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
                         Text("Sign In")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(Color.blue)
-                .cornerRadius(25)
+                .primaryAButtonStyle()
                 .disabled(authService.isLoading || email.isEmpty || password.isEmpty)
-                .padding(.horizontal, 30)
                 
                 // Forgot Password
                 Button("Forgot Password?") {
@@ -732,16 +710,10 @@ struct SignUpView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text("Create Account")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(Color.blue)
-            .cornerRadius(25)
+            .primaryAButtonStyle()
             .disabled(authService.isLoading || !isFormValid)
-            .padding(.horizontal, 30)
             
             Spacer()
             }
@@ -877,16 +849,10 @@ struct ForgotPasswordView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
                         Text("Send Reset Email")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(Color.blue)
-                .cornerRadius(25)
+                .primaryAButtonStyle()
                 .disabled(authService.isLoading || email.isEmpty)
-                .padding(.horizontal, 30)
                 
                 Spacer()
             }
@@ -1135,12 +1101,7 @@ struct ParentHomeView: View {
                                         Button("Add Child") {
                                             showingInviteChild = true
                                         }
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 50)
-                                        .background(Color.blue)
-                                        .cornerRadius(12)
+                                        .primaryAButtonStyle()
                                         .padding(.horizontal)
                                     }
                                     .padding()
@@ -1239,13 +1200,7 @@ struct ParentHomeView: View {
                                     Button("Create Family") {
                                         showingFamilySetup = true
                                     }
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 50)
-                                    .background(Color.blue)
-                                    .cornerRadius(12)
-                                    .padding(.horizontal)
+                                    .primaryAButtonStyle()
                                 }
                                 .padding()
                                 .background(Color(UIColor.systemGray6))
@@ -2144,13 +2099,8 @@ struct ChildrenListView: View {
                             Image(systemName: "person.badge.plus")
                             Text("Invite Child")
                         }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(12)
                     }
+                    .primaryAButtonStyle()
                     .padding(.horizontal)
                     
                 } else {
@@ -2459,13 +2409,8 @@ struct ChildProfileView: View {
                                     Image(systemName: "arrow.clockwise")
                                     Text("Reissue Invitation")
                                 }
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(Color.blue)
-                                .cornerRadius(12)
                             }
+                            .primaryAButtonStyle()
                         } else {
                             // Generate New Invitation Button (for accepted children)
                             Button(action: {
@@ -2475,13 +2420,8 @@ struct ChildProfileView: View {
                                     Image(systemName: "envelope.badge")
                                     Text("Generate New Invitation Code")
                                 }
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(Color.blue)
-                                .cornerRadius(12)
                             }
+                            .primaryAButtonStyle()
                         }
                         
                         // New Invitation Code Display (Green Panel)
@@ -2563,13 +2503,8 @@ struct ChildProfileView: View {
                                 Image(systemName: "trash")
                                 Text(child.isPending ? "Remove Pending Child" : "Remove from Family")
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.red)
-                            .cornerRadius(12)
                         }
+                        .primaryBButtonStyle()
                     }
                     
                     Spacer(minLength: 50) // Bottom padding
@@ -2928,24 +2863,14 @@ struct SettingsView: View {
                                 await authService.updateUserType(.parent)
                             }
                         }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(Color.blue)
-                        .cornerRadius(8)
+                        .primaryAButtonStyle()
                         
                         Button("Set as Child") {
                             Task {
                                 await authService.updateUserType(.child)
                             }
                         }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(Color.green)
-                        .cornerRadius(8)
+                        .primaryAButtonStyle()
                     }
                 }
                 .padding()
@@ -2987,12 +2912,7 @@ struct SettingsView: View {
                                 await forceCompleteInvitation()
                             }
                         }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(Color.red)
-                        .cornerRadius(8)
+                        .primaryBButtonStyle()
                     }
                 }
                 
@@ -3003,13 +2923,7 @@ struct SettingsView: View {
                         print("🔐 Sign out process completed")
                     }
                 }
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(Color.red)
-                .cornerRadius(25)
-                .padding(.horizontal, 30)
+                .primaryBButtonStyle()
                 
                 Spacer()
             }
@@ -3991,16 +3905,10 @@ struct AddChildView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
                         Text("Send Invitation")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(Color.blue)
-                .cornerRadius(25)
+                .primaryAButtonStyle()
                 .disabled(isLoading || childName.isEmpty)
-                .padding(.horizontal, 30)
                 
                 Spacer()
             }

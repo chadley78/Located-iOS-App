@@ -53,12 +53,8 @@ struct GeofenceManagementView: View {
                                 Image(systemName: "plus.circle.fill")
                                 Text("Create First Location Alert")
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
                         }
+                        .primaryAButtonStyle()
                         .padding(.horizontal)
                     }
                 } else {
@@ -91,12 +87,8 @@ struct GeofenceManagementView: View {
                             Image(systemName: "plus.circle.fill")
                             Text("Add Location Alert")
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
                     }
+                    .primaryAButtonStyle()
                     .padding()
                 }
             }

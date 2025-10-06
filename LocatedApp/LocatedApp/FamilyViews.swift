@@ -69,13 +69,8 @@ struct FamilySetupView: View {
                         }
                         Text(isLoading ? "Creating Family..." : "Create Family")
                     }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(familyName.isEmpty ? Color.gray : Color.blue)
-                    .cornerRadius(12)
                 }
+                .primaryAButtonStyle()
                 .disabled(familyName.isEmpty || isLoading)
                 .padding(.horizontal)
                 
@@ -188,13 +183,8 @@ struct FamilyManagementView: View {
                                 Image(systemName: "person.badge.plus")
                                 Text("Invite Child")
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.blue)
-                            .cornerRadius(12)
                         }
+                        .primaryAButtonStyle()
                         
                         Button(action: {
                             showingFamilySettings = true
@@ -231,13 +221,7 @@ struct FamilyManagementView: View {
                         Button("Create Family") {
                             // This will be handled by the parent view
                         }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
+                        .primaryAButtonStyle()
                     }
                     .padding()
                 }
