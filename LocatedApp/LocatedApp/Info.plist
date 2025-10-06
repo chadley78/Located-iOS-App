@@ -33,5 +33,7 @@
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UILaunchScreen_Generation</key>
+	<false/>
 </dict>
 </plist>

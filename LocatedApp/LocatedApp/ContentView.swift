@@ -39,7 +39,7 @@ struct ContentView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemBackground))
+                .background(Color.vibrantYellow)
             } else if authService.isAuthenticated {
                 if authService.currentUser != nil {
                     MainTabView()
@@ -57,7 +57,7 @@ struct ContentView: View {
                             .padding(.top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemBackground))
+                    .background(Color.vibrantYellow)
                 }
             } else {
                 WelcomeView(invitationCode: invitationCode)
