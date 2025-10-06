@@ -1263,22 +1263,25 @@ struct ParentHomeView: View {
                                         
                                         // Overlay content
                                         VStack(spacing: 0) {
-                                            Spacer()
-                                            
-                                            VStack(alignment: .leading, spacing: 30) {
+                                            // Text at the top
+                                            HStack {
                                                 Text("Let's create a\nfamily")
                                                     .font(.radioCanadaBig(28, weight: .bold))
                                                     .foregroundColor(.white)
                                                     .multilineTextAlignment(.leading)
                                                     .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
-                                                
                                                 Spacer()
-                                                
-                                                Button("Create a family") {
-                                                    showingFamilySetup = true
-                                                }
-                                                .primaryAButtonStyle()
                                             }
+                                            .padding(.horizontal, 40)
+                                            .padding(.top, 20)
+                                            
+                                            Spacer()
+                                            
+                                            // Button at the bottom
+                                            Button("Create a family") {
+                                                showingFamilySetup = true
+                                            }
+                                            .primaryAButtonStyle()
                                             .padding(.horizontal, 40)
                                             .padding(.bottom, 20)
                                         }
