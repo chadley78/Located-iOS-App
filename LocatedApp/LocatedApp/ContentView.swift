@@ -1142,9 +1142,11 @@ struct ParentHomeView: View {
                             VStack(spacing: 20) {
                             // Children List Section
                             VStack(spacing: 16) {
-                                Text("Family Overview")
-                                    .font(.title2)
-                                    .font(.system(size: 18, weight: .semibold))
+                                if let family = familyService.currentFamily {
+                                    Text("Family Overview")
+                                        .font(.title2)
+                                        .font(.system(size: 18, weight: .semibold))
+                                }
                             
                             if let family = familyService.currentFamily {
                                 let allChildren = familyService.getAllChildren()
@@ -1248,50 +1250,32 @@ struct ParentHomeView: View {
                                     }
                                 }
                             } else {
-                                // No family state - New User Design
-                                VStack(spacing: 24) {
-                                    // Nest Image
-                                    Image("Nest")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(maxHeight: 200)
-                                        .padding(.horizontal, 20)
-                                    
-                                    // Quick Actions Section
-                                    VStack(spacing: 16) {
-                                        Text("Quick Actions")
-                                            .font(.radioCanadaBig(20, weight: .bold))
-                                            .foregroundColor(.primary)
+                                // No family state
+                                VStack(spacing: 0) {
+                                    // Background image section
+                                    ZStack {
+                                        // Background image
+                                        Image("Nest")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(height: 300)
+                                            .clipped()
                                         
-                                        // Settings Menu Item
-                                        Button(action: {
-                                            // Navigate to settings
-                                        }) {
-                                            HStack {
-                                                Image(systemName: "gear")
-                                                    .font(.system(size: 18))
-                                                    .foregroundColor(.secondary)
-                                                
-                                                Text("Settings")
-                                                    .font(.radioCanadaBig(16, weight: .medium))
-                                                    .foregroundColor(.primary)
-                                                
-                                                Spacer()
-                                                
-                                                Image(systemName: "chevron.right")
-                                                    .font(.system(size: 14))
-                                                    .foregroundColor(.secondary)
+                                        // Overlay content
+                                        VStack(spacing: 20) {
+                                            Text("Let's create a family")
+                                                .font(.radioCanadaBig(24, weight: .bold))
+                                                .foregroundColor(.white)
+                                                .multilineTextAlignment(.center)
+                                            
+                                            Button("Create a family") {
+                                                showingFamilySetup = true
                                             }
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 12)
-                                            .background(Color(UIColor.systemGray6))
-                                            .cornerRadius(8)
+                                            .primaryAButtonStyle()
                                         }
-                                        .buttonStyle(PlainButtonStyle())
+                                        .padding(.horizontal, 40)
                                     }
-                                    .padding(.horizontal, 20)
                                 }
-                                .padding()
                                 .background(Color(UIColor.systemGray6))
                                 .cornerRadius(12)
                             }
