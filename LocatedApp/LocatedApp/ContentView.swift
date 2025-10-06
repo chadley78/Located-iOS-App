@@ -1248,26 +1248,48 @@ struct ParentHomeView: View {
                                     }
                                 }
                             } else {
-                                // No family state
-                                VStack(spacing: 16) {
-                                    Image(systemName: "house")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.gray)
+                                // No family state - New User Design
+                                VStack(spacing: 24) {
+                                    // Nest Image
+                                    Image("Nest")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxHeight: 200)
+                                        .padding(.horizontal, 20)
                                     
-                                    Text("No Family Created")
-                                        .font(.headline)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text("Create a family to start tracking your children and setting up geofences.")
-                                        .font(.body)
-                                        .foregroundColor(.secondary)
-                                        .multilineTextAlignment(.center)
-                                        .padding(.horizontal)
-                                    
-                                    Button("Create Family") {
-                                        showingFamilySetup = true
+                                    // Quick Actions Section
+                                    VStack(spacing: 16) {
+                                        Text("Quick Actions")
+                                            .font(.radioCanadaBig(20, weight: .bold))
+                                            .foregroundColor(.primary)
+                                        
+                                        // Settings Menu Item
+                                        Button(action: {
+                                            // Navigate to settings
+                                        }) {
+                                            HStack {
+                                                Image(systemName: "gear")
+                                                    .font(.system(size: 18))
+                                                    .foregroundColor(.secondary)
+                                                
+                                                Text("Settings")
+                                                    .font(.radioCanadaBig(16, weight: .medium))
+                                                    .foregroundColor(.primary)
+                                                
+                                                Spacer()
+                                                
+                                                Image(systemName: "chevron.right")
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .background(Color(UIColor.systemGray6))
+                                            .cornerRadius(8)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
                                     }
-                                    .primaryAButtonStyle()
+                                    .padding(.horizontal, 20)
                                 }
                                 .padding()
                                 .background(Color(UIColor.systemGray6))
