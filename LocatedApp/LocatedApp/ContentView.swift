@@ -2427,7 +2427,7 @@ struct ChildrenListView: View {
         }
     }
     
-    private func getPinImage(for child: ChildDisplayItem, childrenLocations: [ChildLocation]) -> String {
+    private func getPinImage(for child: ChildDisplayItem, childrenLocations: [ChildLocationData]) -> String {
         if child.isPending {
             return "OrangePin" // Pending invitation
         }
@@ -2448,7 +2448,7 @@ struct ChildrenListView: View {
         return "RedPin" // No location data
     }
     
-    private func getChildStatusText(for child: ChildDisplayItem, childrenLocations: [ChildLocation]) -> String {
+    private func getChildStatusText(for child: ChildDisplayItem, childrenLocations: [ChildLocationData]) -> String {
         if child.isPending {
             return "Invite not accepted"
         }
