@@ -4842,53 +4842,44 @@ struct ChildRowView: View {
 }
 
 // MARK: - Navigation Bar Configurator
-struct NavigationBarConfigurator: UIViewControllerRepresentable {
+struct NavigationBarConfigurator: UIViewRepresentable {
     let backgroundColor: Color
     let titleColor: Color
     let tintColor: Color
     
-    func makeUIViewController(context: Context) -> NavigationBarConfiguratorViewController {
-        NavigationBarConfiguratorViewController(backgroundColor: backgroundColor, titleColor: titleColor, tintColor: tintColor)
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isHidden = true
+        return view
     }
     
-    func updateUIViewController(_ uiViewController: NavigationBarConfiguratorViewController, context: Context) {
-        uiViewController.updateNavigationBar()
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            guard let viewController = uiView.findViewController() else { return }
+            guard let navigationController = viewController.navigationController else { return }
+            
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor(backgroundColor)
+            appearance.titleTextAttributes = [.foregroundColor: UIColor(titleColor)]
+            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(titleColor)]
+            
+            navigationController.navigationBar.standardAppearance = appearance
+            navigationController.navigationBar.scrollEdgeAppearance = appearance
+            navigationController.navigationBar.compactAppearance = appearance
+            navigationController.navigationBar.tintColor = UIColor(tintColor)
+        }
     }
 }
 
-class NavigationBarConfiguratorViewController: UIViewController {
-    let backgroundColor: Color
-    let titleColor: Color
-    let tintColor: Color
-    
-    init(backgroundColor: Color, titleColor: Color, tintColor: Color) {
-        self.backgroundColor = backgroundColor
-        self.titleColor = titleColor
-        self.tintColor = tintColor
-        super.init(nibName: nil, bundle: nil)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        updateNavigationBar()
-    }
-    
-    func updateNavigationBar() {
-        guard let navigationController = navigationController else { return }
-        
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(backgroundColor)
-        appearance.titleTextAttributes = [.foregroundColor: UIColor(titleColor)]
-        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(titleColor)]
-        
-        navigationController.navigationBar.standardAppearance = appearance
-        navigationController.navigationBar.scrollEdgeAppearance = appearance
-        navigationController.navigationBar.compactAppearance = appearance
-        navigationController.navigationBar.tintColor = UIColor(tintColor)
+extension UIView {
+    func findViewController() -> UIViewController? {
+        if let nextResponder = self.next as? UIViewController {
+            return nextResponder
+        } else if let nextResponder = self.next as? UIView {
+            return nextResponder.findViewController()
+        } else {
+            return nil
+        }
     }
 }
