@@ -19,16 +19,18 @@ struct FamilySetupView: View {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
-                    Image(systemName: "house.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
+                    Image("CreateFamily")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 120)
                     
                     Text("Create Your Family")
                         .font(.radioCanadaBig(28, weight: .bold))
+                        .foregroundColor(.white)
                     
                     Text("Set up your family group to start tracking your children's locations and creating geofences.")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -37,10 +39,12 @@ struct FamilySetupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Family Name")
                         .font(.radioCanadaBig(16, weight: .medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     
                     TextField("e.g., The Smith Family", text: $familyName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(12)
+                        .background(Color.familyMembersBg)
+                        .cornerRadius(8)
                         .autocapitalization(.words)
                         .disableAutocorrection(true)
                 }
@@ -58,15 +62,12 @@ struct FamilySetupView: View {
                 
                 // Create Family Button
                 Button(action: createFamily) {
-                    HStack {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "house.fill")
-                        }
-                        Text(isLoading ? "Creating Family..." : "Create Family")
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8)
+                    } else {
+                        Text("Create Family")
                     }
                 }
                 .primaryAButtonStyle()
@@ -78,11 +79,12 @@ struct FamilySetupView: View {
                     dismiss()
                 }
                 .font(.radioCanadaBig(14, weight: .regular))
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.7))
                 .padding(.bottom)
                 }
                 .padding()
             }
+            .background(Color.vibrantPurple)
             .navigationTitle("Family Setup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -90,6 +92,7 @@ struct FamilySetupView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(.white)
                 }
             }
             .alert("Family Created!", isPresented: $showingSuccess) {
@@ -309,16 +312,18 @@ struct InviteChildView: View {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
-                    Image(systemName: "person.badge.plus")
-                        .font(.system(size: 50))
-                        .foregroundColor(.blue)
+                    Image("CreateFamily")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 120)
                     
                     Text("Invite Your Child")
                         .font(.radioCanadaBig(28, weight: .bold))
+                        .foregroundColor(.white)
                     
                     Text("Enter your child's name to generate an invitation code they can use to join your family.")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -327,10 +332,12 @@ struct InviteChildView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Child's Name")
                         .font(.radioCanadaBig(16, weight: .medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     
                     TextField("e.g., Emma Smith", text: $childName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(12)
+                        .background(Color.familyMembersBg)
+                        .cornerRadius(8)
                         .autocapitalization(.words)
                         .disableAutocorrection(true)
                 }
@@ -349,22 +356,22 @@ struct InviteChildView: View {
                     VStack(spacing: 16) {
                         Text("Invitation Created!")
                             .font(.radioCanadaBig(22, weight: .semibold))
-                            .foregroundColor(.green)
+                            .foregroundColor(.white)
                         
                         Text("Share this code with your child:")
                             .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                         
                         Text(inviteCode)
                             .font(.system(size: 24, weight: .bold, design: .monospaced))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.vibrantPurple)
                             .padding()
-                            .background(Color.blue.opacity(0.1))
+                            .background(Color.familyMembersBg)
                             .cornerRadius(8)
                         
                         Text("This code expires in 24 hours")
                             .font(.radioCanadaBig(12, weight: .regular))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white.opacity(0.7))
                         
                         // Share buttons
                         HStack(spacing: 16) {
@@ -377,10 +384,10 @@ struct InviteChildView: View {
                                     Text("Copy")
                                 }
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(.blue)
+                                .foregroundColor(.vibrantPurple)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
+                                .background(Color.familyMembersBg)
                                 .cornerRadius(6)
                             }
                             
@@ -404,16 +411,16 @@ struct InviteChildView: View {
                                     Text("Share")
                                 }
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(.blue)
+                                .foregroundColor(.vibrantPurple)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
+                                .background(Color.familyMembersBg)
                                 .cornerRadius(6)
                             }
                         }
                     }
                     .padding()
-                    .background(Color.green.opacity(0.1))
+                    .background(Color.white.opacity(0.1))
                     .cornerRadius(12)
                     .padding(.horizontal)
                 }
@@ -422,28 +429,21 @@ struct InviteChildView: View {
                 
                 // Create Invitation Button
                 Button(action: createInvitation) {
-                    HStack {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "qrcode")
-                        }
-                        Text(isLoading ? "Creating Invitation..." : "Create Invitation")
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8)
+                    } else {
+                        Text("Create Invitation")
                     }
-                    .font(.radioCanadaBig(16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(childName.isEmpty ? Color.gray : Color.blue)
-                    .cornerRadius(12)
                 }
+                .primaryAButtonStyle()
                 .disabled(childName.isEmpty || isLoading)
                 .padding(.horizontal)
                 }
                 .padding()
             }
+            .background(Color.vibrantPurple)
             .navigationTitle("Invite Child")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -451,11 +451,13 @@ struct InviteChildView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(.white)
                     .disabled(inviteCode == nil)
                 }
             }
