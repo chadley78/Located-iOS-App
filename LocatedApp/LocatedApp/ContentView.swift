@@ -1187,74 +1187,23 @@ struct ParentHomeView: View {
                                     .cornerRadius(12)
                                 } else {
                                     // Children list (pending + accepted)
-                                    VStack(spacing: 8) {
-                                        ForEach(allChildren, id: \.id) { child in
-                                            Button(action: {
-                                                if !child.isPending {
-                                                    mapViewModel.centerOnChild(childId: child.id)
-                                                }
-                                                // For pending children, we don't do anything on tap in the home view
-                                            }) {
-                                                HStack {
-                                                    // Child pin with color or pending indicator
-                                                    if child.isPending {
-                                                        Circle()
-                                                            .fill(Color.orange)
-                                                            .frame(width: 12, height: 12)
-                                                    } else {
-                                                        Circle()
-                                                            .fill(Color(mapViewModel.getColorForChild(childId: child.id)))
-                                                            .frame(width: 12, height: 12)
-                                                    }
-                                                    
-                                                    VStack(alignment: .leading, spacing: 2) {
-                                                        Text(child.name)
-                                                            .font(.headline)
-                                                            .foregroundColor(.primary)
-                                                        
-                                                        if child.isPending {
-                                                            Text("• \(child.status.displayName)")
-                                                                .font(.caption)
-                                                                .foregroundColor(.orange)
-                                                                .font(.system(size: 12, weight: .medium))
-                                                        } else if let geofenceStatus = geofenceStatusService.getStatusForChild(childId: child.id) {
-                                                            // Check if geofence status is recent (within 30 minutes)
-                                                            let geofenceStatusAge = geofenceStatus.timestamp.timeIntervalSinceNow
-                                                            if geofenceStatusAge > -1800 { // 30 minutes
-                                                                Text(geofenceStatus.displayText)
-                                                                    .font(.caption)
-                                                                    .foregroundColor(.secondary)
-                                                            } else {
-                                                                // Geofence status is old, show location-based status
-                                                                let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
-                                                                let hasRecentLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -300)
-                                                                Text(hasRecentLocation ? "Located" : "Offline")
-                                                                    .font(.caption)
-                                                                    .foregroundColor(hasRecentLocation ? .green : .red)
-                                                            }
-                                                        } else {
-                                                            // Show "Located" if child has recent location, "Offline" if not
-                                                            let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
-                                                            let hasRecentLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -300)
-                                                            Text(hasRecentLocation ? "Located" : "Offline")
-                                                                .font(.caption)
-                                                                .foregroundColor(hasRecentLocation ? .green : .red)
-                                                        }
-                                                    }
-                                                    
-                                                    Spacer()
-                                                    
+                                    VStack(spacing: 0) {
+                                        ForEach(Array(allChildren.enumerated()), id: \.element.id) { index, child in
+                                            let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+                                            let lastSeen = childLocation?.lastSeen
+                                            let isLastChild = index == allChildren.count - 1
+                                            
+                                            ChildRowView(
+                                                child: child,
+                                                lastSeen: lastSeen,
+                                                onTap: {
                                                     if !child.isPending {
-                                                        Image(systemName: "chevron.right")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
+                                                        mapViewModel.centerOnChild(childId: child.id)
                                                     }
-                                                }
-                                                .padding()
-                                                .background(Color(UIColor.systemGray6))
-                                                .cornerRadius(8)
-                                            }
-                                            .buttonStyle(PlainButtonStyle())
+                                                    // For pending children, we don't do anything on tap in the home view
+                                                },
+                                                showDivider: !isLastChild
+                                            )
                                         }
                                     }
                                 }
@@ -2003,7 +1952,6 @@ struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var invitationService: FamilyInvitationService
-    @StateObject private var mapViewModel = ParentMapViewModel()
     @State private var showingInviteChild = false
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
@@ -2104,13 +2052,13 @@ struct ChildrenListView: View {
                                             }
                                         }) {
                                         HStack {
-                                            // Custom pin with child photo or initial
-                                            ChildPinView(child: child, mapViewModel: mapViewModel)
+                                            Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
+                                                .foregroundColor(child.isPending ? .orange : .green)
+                                                .frame(width: 24)
                                             
                                             VStack(alignment: .leading, spacing: 2) {
                                                 Text(child.name)
-                                                    .font(.radioCanadaBig(16, weight: .regular))
-                                                    .tracking(-0.8) // 5% reduced letter spacing
+                                                    .font(.headline)
                                                 
                                                 HStack(spacing: 4) {
                                                     Text("Child")
@@ -2128,13 +2076,17 @@ struct ChildrenListView: View {
                                             
                                             Spacer()
                                             
+                                            Circle()
+                                                .fill(child.isPending ? .orange : .green)
+                                                .frame(width: 8, height: 8)
+                                            
                                             if !child.isPending {
                                                 Image(systemName: "chevron.right")
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
                                         }
-                                        .padding(.vertical, 8)
+                                        .padding(.vertical, 4)
                                         .padding(.horizontal, 12)
                                         .background(Color(UIColor.systemBackground))
                                         .cornerRadius(8)
@@ -2142,12 +2094,6 @@ struct ChildrenListView: View {
                                         .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
                                         .opacity(removedChildId == child.id ? 0.0 : 1.0)
                                         .animation(.easeInOut(duration: 0.8), value: removedChildId)
-                                        
-                                        // Dividing line (except for last child)
-                                        if child.id != allChildren.last?.id {
-                                            Divider()
-                                                .padding(.horizontal, 12)
-                                        }
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                     }
@@ -2400,53 +2346,6 @@ struct ChildrenListView: View {
         }
     }
     
-}
-
-// MARK: - Child Pin View
-struct ChildPinView: View {
-    let child: ChildDisplayItem
-    let mapViewModel: ParentMapViewModel
-    
-    var body: some View {
-        ZStack {
-            // Determine pin color based on location status
-            let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
-            let hasRecentLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -300)
-            let hasOldLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -1800) && !hasRecentLocation
-            
-            let pinImageName: String = {
-                if child.isPending {
-                    return "RedPin" // Offline for pending
-                } else if hasRecentLocation {
-                    return "GreenPin" // Recent location
-                } else if hasOldLocation {
-                    return "OrangePin" // Old location
-                } else {
-                    return "RedPin" // Offline
-                }
-            }()
-            
-            Image(pinImageName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 40, height: 40)
-            
-            // Child photo or initial in center of pin
-            if let imageBase64 = child.imageBase64,
-               let imageData = Data(base64Encoded: imageBase64),
-               let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 20, height: 20)
-                    .clipShape(Circle())
-            } else {
-                Text(String(child.name.prefix(1)).uppercased())
-                    .font(.radioCanadaBig(14, weight: .semibold))
-                    .foregroundColor(.white)
-            }
-        }
-    }
 }
 
 // MARK: - Child Profile View
@@ -4758,5 +4657,123 @@ struct ImagePickerView: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.presentationMode.wrappedValue.dismiss()
         }
+    }
+}
+
+// MARK: - Child Pin View
+struct ChildPinView: View {
+    let child: ChildDisplayItem
+    let lastSeen: Date?
+    
+    var body: some View {
+        ZStack {
+            // Pin background image
+            Image(pinImageName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 24, height: 24)
+            
+            // Child photo or initial overlay
+            if let photoURL = child.photoURL, !photoURL.isEmpty {
+                // TODO: Load and display child photo
+                // For now, fall back to initial
+                Text(String(child.name.prefix(1)).uppercased())
+                    .font(.radioCanadaBig(10, weight: .bold))
+                    .foregroundColor(.white)
+            } else {
+                // First initial
+                Text(String(child.name.prefix(1)).uppercased())
+                    .font(.radioCanadaBig(10, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+    }
+    
+    private var pinImageName: String {
+        if child.isPending {
+            return "OrangePin" // Pending invitation
+        }
+        
+        guard let lastSeen = lastSeen else {
+            return "RedPin" // No location data = offline
+        }
+        
+        // Use existing isLocationRecent logic
+        if isLocationRecent(lastSeen) {
+            return "GreenPin" // Successfully tracked
+        } else {
+            return "OrangePin" // Old location
+        }
+    }
+    
+    private func isLocationRecent(_ date: Date) -> Bool {
+        date.timeIntervalSinceNow > -300 // 5 minutes
+    }
+}
+
+// MARK: - Child Row View
+struct ChildRowView: View {
+    let child: ChildDisplayItem
+    let lastSeen: Date?
+    let onTap: () -> Void
+    let showDivider: Bool
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Button(action: onTap) {
+                HStack(spacing: 12) {
+                    // Child pin
+                    ChildPinView(child: child, lastSeen: lastSeen)
+                    
+                    // Child info
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(child.name)
+                            .font(.radioCanadaBig(16, weight: .regular))
+                            .tracking(-0.8) // 5% reduced letter spacing (16 * 0.05 = 0.8)
+                            .foregroundColor(.primary)
+                        
+                        Text(statusText)
+                            .font(.radioCanadaBig(12, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Divider
+            if showDivider {
+                Divider()
+                    .padding(.leading, 36) // Align with text, not pin
+            }
+        }
+    }
+    
+    private var statusText: String {
+        if child.isPending {
+            return "Invite not accepted"
+        }
+        
+        guard let lastSeen = lastSeen else {
+            return "Offline"
+        }
+        
+        if isLocationRecent(lastSeen) {
+            return "Located \(formatTime(lastSeen))"
+        } else {
+            return "Last seen \(formatTime(lastSeen))"
+        }
+    }
+    
+    private func isLocationRecent(_ date: Date) -> Bool {
+        date.timeIntervalSinceNow > -300 // 5 minutes
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
