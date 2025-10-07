@@ -1179,7 +1179,7 @@ struct ParentHomeView: View {
                                                     Spacer()
                                                 }
                                                 .padding(.horizontal, 40)
-                                                .padding(.top, 100)
+                                                .padding(.top, UIScreen.main.bounds.height < 700 ? 80 : 100)
                                                 
                                                 Spacer()
                                                 
@@ -1189,11 +1189,11 @@ struct ParentHomeView: View {
                                                 }
                                                 .primaryAButtonStyle()
                                                 .padding(.horizontal, 40)
-                                                .padding(.bottom, 80)
+                                                .padding(.bottom, UIScreen.main.bounds.height < 700 ? 60 : 80)
                                             }
                                         }
                                     }
-                                    .frame(height: 220)
+                                    .frame(minHeight: 200, maxHeight: 280)
                                     .background(Color(UIColor.systemGray6))
                                     .cornerRadius(12)
                                 } else {
