@@ -4683,20 +4683,20 @@ struct ChildPinView: View {
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 37, height: 37)
                         .clipShape(Circle())
-                        .offset(y: -3) // Raise to center on widest part of pin
+                        .offset(y: -5) // Raise to center on widest part of pin
                 } else {
                     // Fallback to initial if base64 decode fails
                     Text(String(child.name.prefix(1)).uppercased())
                         .font(.radioCanadaBig(20, weight: .bold))
                         .foregroundColor(.white)
-                        .offset(y: -3) // Raise to center on widest part of pin
+                        .offset(y: -5) // Raise to center on widest part of pin
                 }
             } else {
                 // First initial
                 Text(String(child.name.prefix(1)).uppercased())
                     .font(.radioCanadaBig(20, weight: .bold))
                     .foregroundColor(.white)
-                    .offset(y: -3) // Raise to center on widest part of pin
+                    .offset(y: -5) // Raise to center on widest part of pin
             }
         }
     }
