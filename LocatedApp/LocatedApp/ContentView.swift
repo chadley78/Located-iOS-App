@@ -3598,6 +3598,18 @@ class ParentMapViewModel: ObservableObject {
         
         region = MKCoordinateRegion(center: center, span: span)
         
+        // Force a small delay to ensure map renders properly even when re-centering on same child
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Trigger a small region change to force map rendering
+            var adjustedRegion = self.region
+            adjustedRegion.span.latitudeDelta *= 1.001
+            adjustedRegion.span.longitudeDelta *= 1.001
+            self.region = adjustedRegion
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.region = self.region
+            }
+        }
     }
     
     func centerOnLocation(_ coordinate: CLLocationCoordinate2D) {
