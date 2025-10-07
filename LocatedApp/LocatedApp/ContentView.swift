@@ -1985,44 +1985,47 @@ struct ChildrenListView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                if let family = familyService.currentFamily {
-                    // Family Header
-                    VStack(spacing: 16) {
-                        Image(systemName: "house.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.blue)
+            ScrollView {
+                VStack(spacing: 20) {
+                    if let family = familyService.currentFamily {
+                        // Family Header with Image
+                        VStack(spacing: 16) {
+                            Image("CreateFamily")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 120)
                         
                         HStack {
-                            Text(family.name)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                editingFamilyName = family.name
-                                showingEditFamilyName = true
-                            }) {
-                                Image(systemName: "pencil")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.blue)
+                                Text(family.name)
+                                    .font(.radioCanadaBig(28, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    editingFamilyName = family.name
+                                    showingEditFamilyName = true
+                                }) {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.white)
+                                }
                             }
+                            
+                            Text("\(familyService.getFamilyMembers().count) members")
+                                .font(.radioCanadaBig(16, weight: .regular))
+                                .foregroundColor(.white.opacity(0.9))
                         }
-                        
-                        Text("\(familyService.getFamilyMembers().count) members")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color(UIColor.systemGray6))
-                    .cornerRadius(12)
+                        .padding()
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(12)
                     
                     // Family Members List
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Family Members")
-                            .font(.headline)
-                            .padding(.horizontal)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Family Members")
+                                .font(.radioCanadaBig(20, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal)
                         
                         let sortedMembers = getSortedFamilyMembers()
                         let allChildren = familyService.getAllChildren()
@@ -2033,92 +2036,100 @@ struct ChildrenListView: View {
                                 // Show parents first
                                 ForEach(sortedMembers, id: \.0) { userId, member in
                                     if member.role == .parent {
-                                        HStack {
-                                            Image(systemName: "person.fill")
-                                                .foregroundColor(.blue)
-                                                .frame(width: 24)
+                                        HStack(spacing: 12) {
+                                            // User icon
+                                            Circle()
+                                                .fill(Color.white.opacity(0.2))
+                                                .frame(width: 55, height: 55)
+                                                .overlay(
+                                                    Image(systemName: "person.fill")
+                                                        .font(.system(size: 24))
+                                                        .foregroundColor(.white)
+                                                )
                                             
-                                            VStack(alignment: .leading, spacing: 2) {
+                                            VStack(alignment: .leading, spacing: 1) {
                                                 Text(member.name)
-                                                    .font(.headline)
+                                                    .font(.radioCanadaBig(24, weight: .regular))
+                                                    .tracking(-1.2)
+                                                    .foregroundColor(.white)
                                                 
                                                 Text("Parent")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
+                                                    .font(.radioCanadaBig(16, weight: .regular))
+                                                    .foregroundColor(.white.opacity(0.7))
                                             }
                                             
                                             Spacer()
-                                            
-                                            Circle()
-                                                .fill(Color.green)
-                                                .frame(width: 8, height: 8)
                                         }
-                                        .padding(.vertical, 4)
-                                        .padding(.horizontal, 12)
-                                        .background(Color(UIColor.systemBackground))
-                                        .cornerRadius(8)
-                                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                        .padding(.vertical, 12)
                                     }
                                 }
                                 
                                 // Show all children (pending + accepted)
-                                ForEach(allChildren, id: \.id) { child in
+                                ForEach(Array(allChildren.enumerated()), id: \.element.id) { index, child in
                                     if removedChildId != child.id {
-                                        Button(action: {
-                                            if !child.isPending {
-                                                childProfileData.setChild(id: child.id, name: child.name)
-                                            } else {
-                                                // Show pending child management options
-                                                print("🔍 ChildrenListView - Tapping pending child: \(child.name)")
-                                                selectedPendingChild = child
-                                                print("🔍 ChildrenListView - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
-                                            }
-                                        }) {
-                                        HStack {
-                                            Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
-                                                .foregroundColor(child.isPending ? .orange : .green)
-                                                .frame(width: 24)
-                                            
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(child.name)
-                                                    .font(.headline)
+                                        VStack(spacing: 0) {
+                                            HStack(spacing: 12) {
+                                                // User icon with photo or initial
+                                                Circle()
+                                                    .fill(Color.white.opacity(0.2))
+                                                    .frame(width: 55, height: 55)
+                                                    .overlay(
+                                                        Group {
+                                                            if let imageBase64 = child.imageBase64, !imageBase64.isEmpty,
+                                                               let imageData = Data(base64Encoded: imageBase64),
+                                                               let uiImage = UIImage(data: imageData) {
+                                                                Image(uiImage: uiImage)
+                                                                    .resizable()
+                                                                    .aspectRatio(contentMode: .fill)
+                                                                    .frame(width: 50, height: 50)
+                                                                    .clipShape(Circle())
+                                                            } else {
+                                                                Text(String(child.name.prefix(1)).uppercased())
+                                                                    .font(.radioCanadaBig(24, weight: .bold))
+                                                                    .foregroundColor(.white)
+                                                            }
+                                                        }
+                                                    )
                                                 
-                                                HStack(spacing: 4) {
-                                                    Text("Child")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
+                                                VStack(alignment: .leading, spacing: 1) {
+                                                    Text(child.name)
+                                                        .font(.radioCanadaBig(24, weight: .regular))
+                                                        .tracking(-1.2)
+                                                        .foregroundColor(.white)
                                                     
-                                                    if child.isPending {
-                                                        Text("• \(child.status.displayName)")
-                                                            .font(.caption)
-                                                            .foregroundColor(.orange)
-                                                            .font(.system(size: 12, weight: .medium))
-                                                    }
+                                                    Text(child.isPending ? "Invite not accepted" : "Child")
+                                                        .font(.radioCanadaBig(16, weight: .regular))
+                                                        .foregroundColor(.white.opacity(0.7))
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                if !child.isPending {
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.caption)
+                                                        .foregroundColor(.white.opacity(0.5))
+                                                }
+                                            }
+                                            .padding(.vertical, 12)
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                if !child.isPending {
+                                                    childProfileData.setChild(id: child.id, name: child.name)
+                                                } else {
+                                                    selectedPendingChild = child
                                                 }
                                             }
                                             
-                                            Spacer()
-                                            
-                                            Circle()
-                                                .fill(child.isPending ? .orange : .green)
-                                                .frame(width: 8, height: 8)
-                                            
-                                            if !child.isPending {
-                                                Image(systemName: "chevron.right")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
+                                            // Divider
+                                            if index < allChildren.count - 1 {
+                                                Divider()
+                                                    .background(Color.white.opacity(0.2))
+                                                    .padding(.horizontal, 15)
                                             }
                                         }
-                                        .padding(.vertical, 4)
-                                        .padding(.horizontal, 12)
-                                        .background(Color(UIColor.systemBackground))
-                                        .cornerRadius(8)
-                                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                         .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
                                         .opacity(removedChildId == child.id ? 0.0 : 1.0)
                                         .animation(.easeInOut(duration: 0.8), value: removedChildId)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
                                     }
                                 }
                             }
@@ -2129,92 +2140,100 @@ struct ChildrenListView: View {
                                     // Show parents first
                                     ForEach(sortedMembers, id: \.0) { userId, member in
                                         if member.role == .parent {
-                                            HStack {
-                                                Image(systemName: "person.fill")
-                                                    .foregroundColor(.blue)
-                                                    .frame(width: 24)
+                                            HStack(spacing: 12) {
+                                                // User icon
+                                                Circle()
+                                                    .fill(Color.white.opacity(0.2))
+                                                    .frame(width: 55, height: 55)
+                                                    .overlay(
+                                                        Image(systemName: "person.fill")
+                                                            .font(.system(size: 24))
+                                                            .foregroundColor(.white)
+                                                    )
                                                 
-                                                VStack(alignment: .leading, spacing: 2) {
+                                                VStack(alignment: .leading, spacing: 1) {
                                                     Text(member.name)
-                                                        .font(.headline)
+                                                        .font(.radioCanadaBig(24, weight: .regular))
+                                                        .tracking(-1.2)
+                                                        .foregroundColor(.white)
                                                     
                                                     Text("Parent")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
+                                                        .font(.radioCanadaBig(16, weight: .regular))
+                                                        .foregroundColor(.white.opacity(0.7))
                                                 }
                                                 
                                                 Spacer()
-                                                
-                                                Circle()
-                                                    .fill(Color.green)
-                                                    .frame(width: 8, height: 8)
                                             }
-                                            .padding(.vertical, 4)
-                                            .padding(.horizontal, 12)
-                                            .background(Color(UIColor.systemBackground))
-                                            .cornerRadius(8)
-                                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                            .padding(.vertical, 12)
                                         }
                                     }
                                     
                                     // Show all children (pending + accepted)
-                                    ForEach(allChildren, id: \.id) { child in
+                                    ForEach(Array(allChildren.enumerated()), id: \.element.id) { index, child in
                                         if removedChildId != child.id {
-                                            Button(action: {
-                                                if !child.isPending {
-                                                    childProfileData.setChild(id: child.id, name: child.name)
-                                                } else {
-                                                    // Show pending child management options
-                                                    print("🔍 ChildrenListView (ScrollView) - Tapping pending child: \(child.name)")
-                                                    selectedPendingChild = child
-                                                    print("🔍 ChildrenListView (ScrollView) - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
-                                                }
-                                            }) {
-                                            HStack {
-                                                Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
-                                                    .foregroundColor(child.isPending ? .orange : .green)
-                                                    .frame(width: 24)
-                                                
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(child.name)
-                                                        .font(.headline)
+                                            VStack(spacing: 0) {
+                                                HStack(spacing: 12) {
+                                                    // User icon with photo or initial
+                                                    Circle()
+                                                        .fill(Color.white.opacity(0.2))
+                                                        .frame(width: 55, height: 55)
+                                                        .overlay(
+                                                            Group {
+                                                                if let imageBase64 = child.imageBase64, !imageBase64.isEmpty,
+                                                                   let imageData = Data(base64Encoded: imageBase64),
+                                                                   let uiImage = UIImage(data: imageData) {
+                                                                    Image(uiImage: uiImage)
+                                                                        .resizable()
+                                                                        .aspectRatio(contentMode: .fill)
+                                                                        .frame(width: 50, height: 50)
+                                                                        .clipShape(Circle())
+                                                                } else {
+                                                                    Text(String(child.name.prefix(1)).uppercased())
+                                                                        .font(.radioCanadaBig(24, weight: .bold))
+                                                                        .foregroundColor(.white)
+                                                                }
+                                                            }
+                                                        )
                                                     
-                                                    HStack(spacing: 4) {
-                                                        Text("Child")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
+                                                    VStack(alignment: .leading, spacing: 1) {
+                                                        Text(child.name)
+                                                            .font(.radioCanadaBig(24, weight: .regular))
+                                                            .tracking(-1.2)
+                                                            .foregroundColor(.white)
                                                         
-                                                        if child.isPending {
-                                                            Text("• \(child.status.displayName)")
-                                                                .font(.caption)
-                                                                .foregroundColor(.orange)
-                                                                .font(.system(size: 12, weight: .medium))
-                                                        }
+                                                        Text(child.isPending ? "Invite not accepted" : "Child")
+                                                            .font(.radioCanadaBig(16, weight: .regular))
+                                                            .foregroundColor(.white.opacity(0.7))
+                                                    }
+                                                    
+                                                    Spacer()
+                                                    
+                                                    if !child.isPending {
+                                                        Image(systemName: "chevron.right")
+                                                            .font(.caption)
+                                                            .foregroundColor(.white.opacity(0.5))
+                                                    }
+                                                }
+                                                .padding(.vertical, 12)
+                                                .contentShape(Rectangle())
+                                                .onTapGesture {
+                                                    if !child.isPending {
+                                                        childProfileData.setChild(id: child.id, name: child.name)
+                                                    } else {
+                                                        selectedPendingChild = child
                                                     }
                                                 }
                                                 
-                                                Spacer()
-                                                
-                                                Circle()
-                                                    .fill(child.isPending ? .orange : .green)
-                                                    .frame(width: 8, height: 8)
-                                                
-                                                if !child.isPending {
-                                                    Image(systemName: "chevron.right")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
+                                                // Divider
+                                                if index < allChildren.count - 1 {
+                                                    Divider()
+                                                        .background(Color.white.opacity(0.2))
+                                                        .padding(.horizontal, 15)
                                                 }
                                             }
-                                            .padding(.vertical, 4)
-                                            .padding(.horizontal, 12)
-                                            .background(Color(UIColor.systemBackground))
-                                            .cornerRadius(8)
-                                            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                             .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
                                             .opacity(removedChildId == child.id ? 0.0 : 1.0)
                                             .animation(.easeInOut(duration: 0.8), value: removedChildId)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
                                         }
                                     }
                                 }
@@ -2261,10 +2280,15 @@ struct ChildrenListView: View {
                     }
                     .padding()
                 }
+                }
+                .padding()
             }
-            .padding()
+            .background(Color.vibrantPurple)
             .navigationTitle("My Family")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.vibrantPurple, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
