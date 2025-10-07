@@ -1993,17 +1993,21 @@ struct ChildrenListView: View {
                         
                         Spacer()
                         
-                        // Add Child Button
-                        Button(action: {
-                            showingInviteChild = true
-                        }) {
-                            HStack {
-                                Image(systemName: "person.badge.plus")
-                                Text("Invite Child")
+                        // Add Child Button with shadow container
+                        VStack {
+                            Button(action: {
+                                showingInviteChild = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "person.badge.plus")
+                                    Text("Invite Child")
+                                }
                             }
+                            .primaryAButtonStyle()
+                            .padding(.horizontal)
                         }
-                        .primaryAButtonStyle()
-                        .padding(.horizontal)
+                        .background(Color.vibrantPurple)
+                        .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: -5)
                     } else {
                         // No Family State
                         VStack(spacing: 20) {
@@ -2103,6 +2107,8 @@ struct ChildrenListView: View {
                         .frame(height: 120)
                     
                     HStack {
+                        Spacer()
+                        
                         Text(family.name)
                             .font(.radioCanadaBig(28, weight: .bold))
                             .foregroundColor(.white)
@@ -2118,14 +2124,7 @@ struct ChildrenListView: View {
                                 .foregroundColor(.white)
                         }
                     }
-                    
-                    Text("\(familyService.getFamilyMembers().count) members")
-                        .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.white.opacity(0.9))
                 }
-                .padding()
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(12)
             }
         }
     }
