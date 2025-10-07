@@ -1198,6 +1198,13 @@ struct ParentHomeView: View {
                                                 lastSeen: lastSeen,
                                                 onTap: {
                                                     if !child.isPending {
+                                                        // Collapse the panel
+                                                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
+                                                            isPanelExpanded = false
+                                                            buttonPosition = 0
+                                                        }
+                                                        
+                                                        // Center on the child's location
                                                         mapViewModel.centerOnChild(childId: child.id)
                                                     }
                                                     // For pending children, we don't do anything on tap in the home view
