@@ -4688,14 +4688,14 @@ struct ChildPinView: View {
                     // Fallback to initial if base64 decode fails
                     Text(String(child.name.prefix(1)).uppercased())
                         .font(.radioCanadaBig(20, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .offset(y: -6) // Raise to center on widest part of pin
                 }
             } else {
                 // First initial
                 Text(String(child.name.prefix(1)).uppercased())
                     .font(.radioCanadaBig(20, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .offset(y: -6) // Raise to center on widest part of pin
             }
         }
