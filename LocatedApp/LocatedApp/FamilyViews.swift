@@ -12,7 +12,6 @@ struct FamilySetupView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showingSuccess = false
-    @State private var scrollOffset: CGFloat = 0
     
     var body: some View {
         NavigationView {
@@ -84,16 +83,6 @@ struct FamilySetupView: View {
                 .padding(.bottom)
                 }
                 .padding()
-                .background(
-                    GeometryReader { geometry in
-                        Color.clear
-                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
-                    }
-                )
-            }
-            .coordinateSpace(name: "scroll")
-            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                scrollOffset = value
             }
             .background(Color.vibrantPurple)
             .navigationTitle("Family Setup")
@@ -103,11 +92,9 @@ struct FamilySetupView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(scrollOffset < -20 ? .vibrantPurple : .white)
+                    .foregroundColor(.white)
                 }
             }
-            .toolbarBackground(scrollOffset < -20 ? .visible : .hidden, for: .navigationBar)
-            .toolbarBackground(.white, for: .navigationBar)
             .alert("Family Created!", isPresented: $showingSuccess) {
                 Button("Continue") {
                     dismiss()
@@ -318,7 +305,6 @@ struct InviteChildView: View {
     @State private var errorMessage: String?
     @State private var showingSuccess = false
     @State private var inviteCode: String?
-    @State private var scrollOffset: CGFloat = 0
     
     var body: some View {
         NavigationView {
@@ -456,16 +442,6 @@ struct InviteChildView: View {
                 .padding(.horizontal)
                 }
                 .padding()
-                .background(
-                    GeometryReader { geometry in
-                        Color.clear
-                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
-                    }
-                )
-            }
-            .coordinateSpace(name: "scroll")
-            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                scrollOffset = value
             }
             .background(Color.vibrantPurple)
             .navigationTitle("Invite Child")
@@ -475,18 +451,16 @@ struct InviteChildView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(scrollOffset < -20 ? .vibrantPurple : .white)
+                    .foregroundColor(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(scrollOffset < -20 ? .vibrantPurple : .white)
+                    .foregroundColor(.white)
                     .disabled(inviteCode == nil)
                 }
             }
-            .toolbarBackground(scrollOffset < -20 ? .visible : .hidden, for: .navigationBar)
-            .toolbarBackground(.white, for: .navigationBar)
         }
     }
     
