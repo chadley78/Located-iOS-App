@@ -1989,25 +1989,22 @@ struct ChildrenListView: View {
                 VStack(spacing: 20) {
                     if familyService.currentFamily != nil {
                         familyHeaderView
+                        
+                        // Add Child Button
+                        Button(action: {
+                            showingInviteChild = true
+                        }) {
+                            HStack {
+                                Image(systemName: "person.badge.plus")
+                                Text("Invite Child")
+                            }
+                        }
+                        .primaryAButtonStyle()
+                        .padding(.horizontal)
+                        
                         familyMembersListView
                         
                         Spacer()
-                        
-                        // Add Child Button with shadow container
-                        VStack {
-                            Button(action: {
-                                showingInviteChild = true
-                            }) {
-                                HStack {
-                                    Image(systemName: "person.badge.plus")
-                                    Text("Invite Child")
-                                }
-                            }
-                            .primaryAButtonStyle()
-                            .padding(.horizontal)
-                        }
-                        .background(Color.vibrantPurple)
-                        .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: -5)
                     } else {
                         // No Family State
                         VStack(spacing: 20) {
