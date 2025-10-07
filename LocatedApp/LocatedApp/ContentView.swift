@@ -2033,10 +2033,12 @@ struct ChildrenListView: View {
                 }
                 .padding()
             }
-            .background(NavigationBarConfigurator(backgroundColor: .vibrantPurple, titleColor: .white, tintColor: .white))
         }
         .navigationTitle("My Family")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            configureNavigationBar()
+        }
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
                 .environmentObject(familyService)
@@ -2376,6 +2378,44 @@ struct ChildrenListView: View {
             
             // If same role, sort alphabetically by name
             return firstMember.name.localizedCaseInsensitiveCompare(secondMember.name) == .orderedAscending
+        }
+    }
+    
+    private func configureNavigationBar() {
+        // Get all navigation controllers and find the one that's currently visible
+        for scene in UIApplication.shared.connectedScenes {
+            if let windowScene = scene as? UIWindowScene {
+                for window in windowScene.windows {
+                    if let rootVC = window.rootViewController {
+                        configureNavBar(for: rootVC)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func configureNavBar(for viewController: UIViewController) {
+        if let navController = viewController as? UINavigationController {
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor(Color.vibrantPurple)
+            appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+            
+            navController.navigationBar.standardAppearance = appearance
+            navController.navigationBar.scrollEdgeAppearance = appearance
+            navController.navigationBar.compactAppearance = appearance
+            navController.navigationBar.tintColor = UIColor.white
+        }
+        
+        // Check children
+        for child in viewController.children {
+            configureNavBar(for: child)
+        }
+        
+        // Check presented view controller
+        if let presented = viewController.presentedViewController {
+            configureNavBar(for: presented)
         }
     }
     
@@ -4838,48 +4878,5 @@ struct ChildRowView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
-    }
-}
-
-// MARK: - Navigation Bar Configurator
-struct NavigationBarConfigurator: UIViewRepresentable {
-    let backgroundColor: Color
-    let titleColor: Color
-    let tintColor: Color
-    
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.isHidden = true
-        return view
-    }
-    
-    func updateUIView(_ uiView: UIView, context: Context) {
-        DispatchQueue.main.async {
-            guard let viewController = uiView.findViewController() else { return }
-            guard let navigationController = viewController.navigationController else { return }
-            
-            let appearance = UINavigationBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = UIColor(backgroundColor)
-            appearance.titleTextAttributes = [.foregroundColor: UIColor(titleColor)]
-            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(titleColor)]
-            
-            navigationController.navigationBar.standardAppearance = appearance
-            navigationController.navigationBar.scrollEdgeAppearance = appearance
-            navigationController.navigationBar.compactAppearance = appearance
-            navigationController.navigationBar.tintColor = UIColor(tintColor)
-        }
-    }
-}
-
-extension UIView {
-    func findViewController() -> UIViewController? {
-        if let nextResponder = self.next as? UIViewController {
-            return nextResponder
-        } else if let nextResponder = self.next as? UIView {
-            return nextResponder.findViewController()
-        } else {
-            return nil
-        }
     }
 }
