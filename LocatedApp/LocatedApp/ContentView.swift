@@ -2121,11 +2121,6 @@ struct ChildrenListView: View {
         let allChildren = familyService.getAllChildren()
         
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Family Members")
-                .font(.radioCanadaBig(20, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal)
-            
             if sortedMembers.count + allChildren.count <= 5 {
                 // Show as VStack for small lists (no scroll needed)
                 VStack(spacing: 8) {
