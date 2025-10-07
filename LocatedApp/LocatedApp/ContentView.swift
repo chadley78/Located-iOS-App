@@ -2003,6 +2003,7 @@ struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var invitationService: FamilyInvitationService
+    @StateObject private var mapViewModel = ParentMapViewModel()
     @State private var showingInviteChild = false
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
@@ -2105,7 +2106,7 @@ struct ChildrenListView: View {
                                         HStack(spacing: 12) {
                                             // Pin with child photo or initial
                                             ZStack {
-                                                Image(getPinImage(for: child))
+                                                Image(getPinImage(for: child, childrenLocations: mapViewModel.childrenLocations))
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fit)
                                                     .frame(width: 40, height: 40)
@@ -2136,7 +2137,7 @@ struct ChildrenListView: View {
                                                     .font(.radioCanadaBig(16, weight: .regular))
                                                     .tracking(-0.8) // 5% reduction in letter spacing
                                                 
-                                                Text(getChildStatusText(for: child))
+                                                Text(getChildStatusText(for: child, childrenLocations: mapViewModel.childrenLocations))
                                                     .font(.radioCanadaBig(12, weight: .regular))
                                                     .foregroundColor(.secondary)
                                             }
@@ -2213,7 +2214,7 @@ struct ChildrenListView: View {
                                             HStack(spacing: 12) {
                                                 // Pin with child photo or initial
                                                 ZStack {
-                                                    Image(getPinImage(for: child))
+                                                    Image(getPinImage(for: child, childrenLocations: mapViewModel.childrenLocations))
                                                         .resizable()
                                                         .aspectRatio(contentMode: .fit)
                                                         .frame(width: 40, height: 40)
@@ -2244,7 +2245,7 @@ struct ChildrenListView: View {
                                                         .font(.radioCanadaBig(16, weight: .regular))
                                                         .tracking(-0.8) // 5% reduction in letter spacing
                                                     
-                                                    Text(getChildStatusText(for: child))
+                                                    Text(getChildStatusText(for: child, childrenLocations: mapViewModel.childrenLocations))
                                                         .font(.radioCanadaBig(12, weight: .regular))
                                                         .foregroundColor(.secondary)
                                                 }
@@ -2378,6 +2379,11 @@ struct ChildrenListView: View {
                 print("🔍 ChildrenListView - Family members: \(familyService.getFamilyMembers().count)")
                 print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
                 print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
+                
+                // Start listening for children locations when view appears
+                if let parentId = authService.currentUser?.id, !parentId.isEmpty {
+                    mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
+                }
             }
         }
     }
@@ -2421,13 +2427,13 @@ struct ChildrenListView: View {
         }
     }
     
-    private func getPinImage(for child: ChildDisplayItem) -> String {
+    private func getPinImage(for child: ChildDisplayItem, childrenLocations: [ChildLocation]) -> String {
         if child.isPending {
             return "OrangePin" // Pending invitation
         }
         
         // Check if child is offline (no recent location)
-        let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+        let childLocation = childrenLocations.first { $0.childId == child.id }
         if let childLocation = childLocation {
             let timeSinceLastSeen = Date().timeIntervalSince(childLocation.lastSeen)
             let fiveMinutes: TimeInterval = 5 * 60
@@ -2442,12 +2448,12 @@ struct ChildrenListView: View {
         return "RedPin" // No location data
     }
     
-    private func getChildStatusText(for child: ChildDisplayItem) -> String {
+    private func getChildStatusText(for child: ChildDisplayItem, childrenLocations: [ChildLocation]) -> String {
         if child.isPending {
             return "Invite not accepted"
         }
         
-        let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+        let childLocation = childrenLocations.first { $0.childId == child.id }
         if let childLocation = childLocation {
             let timeSinceLastSeen = Date().timeIntervalSince(childLocation.lastSeen)
             let fiveMinutes: TimeInterval = 5 * 60
