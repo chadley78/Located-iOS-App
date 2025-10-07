@@ -2031,12 +2031,22 @@ struct ChildrenListView: View {
                 }
                 .padding()
             }
-            .background(Color.vibrantPurple)
+            .background(
+                Color.vibrantPurple.ignoresSafeArea()
+            )
             .navigationTitle("My Family")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.vibrantPurple, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .background(NavigationConfigurator { navigationController in
+                let appearance = UINavigationBarAppearance()
+                appearance.configureWithOpaqueBackground()
+                appearance.backgroundColor = UIColor(Color.vibrantPurple)
+                appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+                appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+                
+                navigationController.navigationBar.standardAppearance = appearance
+                navigationController.navigationBar.scrollEdgeAppearance = appearance
+                navigationController.navigationBar.compactAppearance = appearance
+            })
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
@@ -4850,5 +4860,20 @@ struct ChildRowView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Navigation Configurator Helper
+struct NavigationConfigurator: UIViewControllerRepresentable {
+    var configure: (UINavigationController) -> Void
+    
+    func makeUIViewController(context: Context) -> UIViewController {
+        UIViewController()
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        if let navigationController = uiViewController.navigationController {
+            configure(navigationController)
+        }
     }
 }
