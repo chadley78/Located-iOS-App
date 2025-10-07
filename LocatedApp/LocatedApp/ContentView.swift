@@ -1201,6 +1201,7 @@ struct ParentHomeView: View {
                                                         // Collapse the panel
                                                         withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
                                                             isPanelExpanded = false
+                                                            panelHeight = 0.25
                                                             buttonPosition = 0
                                                         }
                                                         
