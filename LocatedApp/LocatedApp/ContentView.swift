@@ -2345,7 +2345,6 @@ struct ChildrenListView: View {
                                 }
                                 .padding(.horizontal, 16)
                             }
-                            .frame(maxHeight: 300)
                         }
         }
     }
