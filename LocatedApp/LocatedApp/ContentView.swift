@@ -1020,7 +1020,6 @@ struct MainTabView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .accentColor(.white)
     }
 }
 
@@ -2044,10 +2043,30 @@ struct ChildrenListView: View {
             appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
             appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
             
-            UINavigationBar.appearance().standardAppearance = appearance
-            UINavigationBar.appearance().scrollEdgeAppearance = appearance
-            UINavigationBar.appearance().compactAppearance = appearance
-            UINavigationBar.appearance().tintColor = UIColor.white
+            // Find the navigation controller and set the tint color
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let navigationController = window.rootViewController?.children.first as? UINavigationController {
+                navigationController.navigationBar.tintColor = UIColor.white
+                navigationController.navigationBar.standardAppearance = appearance
+                navigationController.navigationBar.scrollEdgeAppearance = appearance
+                navigationController.navigationBar.compactAppearance = appearance
+            }
+        }
+        .onDisappear {
+            // Reset to default tint color when leaving this view
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let navigationController = window.rootViewController?.children.first as? UINavigationController {
+                navigationController.navigationBar.tintColor = UIColor.systemBlue
+                
+                // Reset to default appearance
+                let defaultAppearance = UINavigationBarAppearance()
+                defaultAppearance.configureWithDefaultBackground()
+                navigationController.navigationBar.standardAppearance = defaultAppearance
+                navigationController.navigationBar.scrollEdgeAppearance = defaultAppearance
+                navigationController.navigationBar.compactAppearance = defaultAppearance
+            }
         }
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
