@@ -2111,18 +2111,19 @@ struct ChildrenListView: View {
                                                     .frame(width: 40, height: 40)
                                                 
                                                 // Child photo or initial
-                                                if let photoURL = child.photoURL, !photoURL.isEmpty {
-                                                    AsyncImage(url: URL(string: photoURL)) { image in
-                                                        image
+                                                if let imageBase64 = child.imageBase64, !imageBase64.isEmpty {
+                                                    if let imageData = Data(base64Encoded: imageBase64),
+                                                       let uiImage = UIImage(data: imageData) {
+                                                        Image(uiImage: uiImage)
                                                             .resizable()
                                                             .aspectRatio(contentMode: .fill)
-                                                    } placeholder: {
+                                                            .frame(width: 24, height: 24)
+                                                            .clipShape(Circle())
+                                                    } else {
                                                         Text(String(child.name.prefix(1)).uppercased())
                                                             .font(.radioCanadaBig(16, weight: .semibold))
                                                             .foregroundColor(.white)
                                                     }
-                                                    .frame(width: 24, height: 24)
-                                                    .clipShape(Circle())
                                                 } else {
                                                     Text(String(child.name.prefix(1)).uppercased())
                                                         .font(.radioCanadaBig(16, weight: .semibold))
@@ -2218,18 +2219,19 @@ struct ChildrenListView: View {
                                                         .frame(width: 40, height: 40)
                                                     
                                                     // Child photo or initial
-                                                    if let photoURL = child.photoURL, !photoURL.isEmpty {
-                                                        AsyncImage(url: URL(string: photoURL)) { image in
-                                                            image
+                                                    if let imageBase64 = child.imageBase64, !imageBase64.isEmpty {
+                                                        if let imageData = Data(base64Encoded: imageBase64),
+                                                           let uiImage = UIImage(data: imageData) {
+                                                            Image(uiImage: uiImage)
                                                                 .resizable()
                                                                 .aspectRatio(contentMode: .fill)
-                                                        } placeholder: {
+                                                                .frame(width: 24, height: 24)
+                                                                .clipShape(Circle())
+                                                        } else {
                                                             Text(String(child.name.prefix(1)).uppercased())
                                                                 .font(.radioCanadaBig(16, weight: .semibold))
                                                                 .foregroundColor(.white)
                                                         }
-                                                        .frame(width: 24, height: 24)
-                                                        .clipShape(Circle())
                                                     } else {
                                                         Text(String(child.name.prefix(1)).uppercased())
                                                             .font(.radioCanadaBig(16, weight: .semibold))
@@ -2425,8 +2427,9 @@ struct ChildrenListView: View {
         }
         
         // Check if child is offline (no recent location)
-        if let lastSeen = child.lastSeen {
-            let timeSinceLastSeen = Date().timeIntervalSince(lastSeen)
+        let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+        if let childLocation = childLocation {
+            let timeSinceLastSeen = Date().timeIntervalSince(childLocation.lastSeen)
             let fiveMinutes: TimeInterval = 5 * 60
             
             if timeSinceLastSeen > fiveMinutes {
@@ -2444,8 +2447,9 @@ struct ChildrenListView: View {
             return "Invite not accepted"
         }
         
-        if let lastSeen = child.lastSeen {
-            let timeSinceLastSeen = Date().timeIntervalSince(lastSeen)
+        let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+        if let childLocation = childLocation {
+            let timeSinceLastSeen = Date().timeIntervalSince(childLocation.lastSeen)
             let fiveMinutes: TimeInterval = 5 * 60
             
             if timeSinceLastSeen > fiveMinutes {
@@ -2453,7 +2457,7 @@ struct ChildrenListView: View {
             } else {
                 let formatter = DateFormatter()
                 formatter.timeStyle = .short
-                return "Located \(formatter.string(from: lastSeen))"
+                return "Located \(formatter.string(from: childLocation.lastSeen))"
             }
         }
         
