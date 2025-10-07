@@ -353,8 +353,9 @@ class FamilyService: ObservableObject {
         errorMessage = nil
         
         do {
-            // Get the parent's name from the current user
-            let parentName = auth.currentUser?.displayName ?? "Parent"
+            // Get the parent's name from the user document in Firestore
+            let userDoc = try await db.collection("users").document(userId).getDocument()
+            let parentName = userDoc.data()?["name"] as? String ?? "Parent"
             
             print("🔍 Creating family using Cloud Function: \(name)")
             
