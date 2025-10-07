@@ -2131,14 +2131,14 @@ struct ChildrenListView: View {
     }
     
     private var familyMembersListView: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let sortedMembers = getSortedFamilyMembers()
+        let allChildren = familyService.getAllChildren()
+        
+        return VStack(alignment: .leading, spacing: 12) {
             Text("Family Members")
                 .font(.radioCanadaBig(20, weight: .semibold))
                 .foregroundColor(.white)
                 .padding(.horizontal)
-            
-            let sortedMembers = getSortedFamilyMembers()
-            let allChildren = familyService.getAllChildren()
             
             if sortedMembers.count + allChildren.count <= 5 {
                 // Show as VStack for small lists (no scroll needed)
