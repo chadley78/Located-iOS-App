@@ -1189,7 +1189,7 @@ struct ParentHomeView: View {
                                                 }
                                                 .primaryAButtonStyle()
                                                 .padding(.horizontal, 40)
-                                                .padding(.bottom, UIScreen.main.bounds.height < 700 ? 60 : 80)
+                                                .padding(.bottom, UIScreen.main.bounds.height < 700 ? 30 : 80)
                                             }
                                         }
                                     }
