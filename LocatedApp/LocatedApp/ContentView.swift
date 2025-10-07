@@ -2036,6 +2036,7 @@ struct ChildrenListView: View {
         }
         .navigationTitle("My Family")
         .navigationBarTitleDisplayMode(.inline)
+        .accentColor(.white)
         .onAppear {
             let appearance = UINavigationBarAppearance()
             appearance.configureWithOpaqueBackground()
@@ -2043,17 +2044,10 @@ struct ChildrenListView: View {
             appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
             appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
             
-            // Set back button color to white
-            let backButtonAppearance = UIBarButtonItemAppearance()
-            backButtonAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.white]
-            appearance.backButtonAppearance = backButtonAppearance
-            
-            // Set the tint color for the back arrow
-            UINavigationBar.appearance().tintColor = UIColor.white
-            
             UINavigationBar.appearance().standardAppearance = appearance
             UINavigationBar.appearance().scrollEdgeAppearance = appearance
             UINavigationBar.appearance().compactAppearance = appearance
+            UINavigationBar.appearance().tintColor = UIColor.white
         }
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
