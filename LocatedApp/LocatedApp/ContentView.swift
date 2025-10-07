@@ -4739,28 +4739,29 @@ struct ChildRowView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Button(action: onTap) {
-                HStack(spacing: 12) {
-                    // Child pin
-                    ChildPinView(child: child, lastSeen: lastSeen)
+            HStack(spacing: 12) {
+                // Child pin
+                ChildPinView(child: child, lastSeen: lastSeen)
+                
+                // Child info
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(child.name)
+                        .font(.radioCanadaBig(24, weight: .regular))
+                        .tracking(-1.2) // 5% reduced letter spacing (32 * 0.05 = 1.6)
+                        .foregroundColor(.primary)
                     
-                    // Child info
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(child.name)
-                            .font(.radioCanadaBig(24, weight: .regular))
-                            .tracking(-1.2) // 5% reduced letter spacing (32 * 0.05 = 1.6)
-                            .foregroundColor(.primary)
-                        
-                        Text(statusText)
-                            .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
+                    Text(statusText)
+                        .font(.radioCanadaBig(16, weight: .regular))
+                        .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 12)
+                
+                Spacer()
             }
-            .buttonStyle(PlainButtonStyle())
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onTap()
+            }
             
             // Divider
             if showDivider {
