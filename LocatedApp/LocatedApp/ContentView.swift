@@ -2033,9 +2033,6 @@ struct ChildrenListView: View {
             .background(Color.vibrantPurple)
             .navigationTitle("My Family")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.vibrantPurple, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
@@ -2355,23 +2352,6 @@ struct ChildrenListView: View {
                             .frame(maxHeight: 300)
                         }
                     }
-                    
-                    Spacer()
-                    
-                    // Add Child Button
-                    Button(action: {
-                        showingInviteChild = true
-                    }) {
-                        HStack {
-                            Image(systemName: "person.badge.plus")
-                            Text("Invite Child")
-                        }
-                    }
-                    .primaryAButtonStyle()
-                    .padding(.horizontal)
-                    
-                }
-            }
         }
     }
     
