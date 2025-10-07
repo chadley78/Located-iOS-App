@@ -1987,54 +1987,167 @@ struct ChildrenListView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    if let family = familyService.currentFamily {
-                        // Family Header with Image
-                        VStack(spacing: 16) {
-                            Image("CreateFamily")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(height: 120)
+                    if familyService.currentFamily != nil {
+                        familyHeaderView
+                        familyMembersListView
                         
-                        HStack {
-                                Text(family.name)
-                                    .font(.radioCanadaBig(28, weight: .bold))
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Button(action: {
-                                    editingFamilyName = family.name
-                                    showingEditFamilyName = true
-                                }) {
-                                    Image(systemName: "pencil")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.white)
-                                }
+                        Spacer()
+                        
+                        // Add Child Button
+                        Button(action: {
+                            showingInviteChild = true
+                        }) {
+                            HStack {
+                                Image(systemName: "person.badge.plus")
+                                Text("Invite Child")
                             }
+                        }
+                        .primaryAButtonStyle()
+                        .padding(.horizontal)
+                    } else {
+                        // No Family State
+                        VStack(spacing: 20) {
+                            Image(systemName: "house")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
                             
-                            Text("\(familyService.getFamilyMembers().count) members")
-                                .font(.radioCanadaBig(16, weight: .regular))
-                                .foregroundColor(.white.opacity(0.9))
+                            Text("No Family")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            
+                            Text("You haven't created or joined a family yet.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("Go to the Family tab to create a family first.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
                         }
                         .padding()
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(12)
+                    }
+                }
+                .padding()
+            }
+            .background(Color.vibrantPurple)
+            .navigationTitle("My Family")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.vibrantPurple, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .sheet(isPresented: $showingInviteChild) {
+                InviteChildView()
+                    .environmentObject(familyService)
+            }
+            .fullScreenCover(isPresented: $childProfileData.isPresented) {
+                if !childProfileData.childId.isEmpty && !childProfileData.childName.isEmpty {
+                    // Create a simple child display item for the profile view
+                    let child = ChildDisplayItem(
+                        from: FamilyMember(
+                            role: .child,
+                            name: childProfileData.childName,
+                            joinedAt: Date()
+                        ),
+                        id: childProfileData.childId
+                    )
+                    ChildProfileView(childId: childProfileData.childId, child: child, onChildRemoved: { childId in
+                        // Trigger the bubble pop animation
+                        withAnimation(.easeInOut(duration: 0.8)) {
+                            removedChildId = childId
+                        }
+                        // Clear the removed child after animation completes
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            removedChildId = nil
+                        }
+                    })
+                        .environmentObject(familyService)
+                }
+            }
+            .sheet(item: $selectedPendingChild) { pendingChild in
+                // Use existing child management - show profile for pending children too
+                ChildProfileView(childId: pendingChild.id, child: pendingChild, onChildRemoved: { childId in
+                    // Trigger the bubble pop animation
+                    withAnimation(.easeInOut(duration: 0.8)) {
+                        removedChildId = childId
+                    }
+                    // Clear the removed child after animation completes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        removedChildId = nil
+                    }
+                })
+                    .environmentObject(familyService)
+                    .onAppear {
+                        print("🔍 ChildrenListView - Presenting child profile for pending child: \(pendingChild.name)")
+                    }
+            }
+            .sheet(isPresented: $showingEditFamilyName) {
+                EditFamilyNameView(
+                    currentName: familyService.currentFamily?.name ?? "",
+                    isLoading: isLoadingEditName,
+                    onSave: { newName in
+                        Task {
+                            await updateFamilyName(newName)
+                        }
+                    }
+                )
+            }
+        }
+    }
+    
+    // MARK: - Helper Views
+    private var familyHeaderView: some View {
+        Group {
+            if let family = familyService.currentFamily {
+                VStack(spacing: 16) {
+                    Image("CreateFamily")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 120)
                     
-                    // Family Members List
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Family Members")
-                                .font(.radioCanadaBig(20, weight: .semibold))
+                    HStack {
+                        Text(family.name)
+                            .font(.radioCanadaBig(28, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            editingFamilyName = family.name
+                            showingEditFamilyName = true
+                        }) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 16))
                                 .foregroundColor(.white)
-                                .padding(.horizontal)
-                        
-                        let sortedMembers = getSortedFamilyMembers()
-                        let allChildren = familyService.getAllChildren()
-                        
-                        if sortedMembers.count + allChildren.count <= 5 {
-                            // Show as VStack for small lists (no scroll needed)
-                            VStack(spacing: 8) {
-                                // Show parents first
-                                ForEach(sortedMembers, id: \.0) { userId, member in
+                        }
+                    }
+                    
+                    Text("\(familyService.getFamilyMembers().count) members")
+                        .font(.radioCanadaBig(16, weight: .regular))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+                .padding()
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(12)
+            }
+        }
+    }
+    
+    private var familyMembersListView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Family Members")
+                .font(.radioCanadaBig(20, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal)
+            
+            let sortedMembers = getSortedFamilyMembers()
+            let allChildren = familyService.getAllChildren()
+            
+            if sortedMembers.count + allChildren.count <= 5 {
+                // Show as VStack for small lists (no scroll needed)
+                VStack(spacing: 8) {
+                    // Show parents first
+                    ForEach(sortedMembers, id: \.0) { userId, member in
                                     if member.role == .parent {
                                         HStack(spacing: 12) {
                                             // User icon
@@ -2257,99 +2370,7 @@ struct ChildrenListView: View {
                     .primaryAButtonStyle()
                     .padding(.horizontal)
                     
-                } else {
-                    // No Family State
-                    VStack(spacing: 20) {
-                        Image(systemName: "house")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        
-                        Text("No Family")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("You haven't created or joined a family yet.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        
-                        Text("Go to the Family tab to create a family first.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
                 }
-                }
-                .padding()
-            }
-            .background(Color.vibrantPurple)
-            .navigationTitle("My Family")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.vibrantPurple, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .sheet(isPresented: $showingInviteChild) {
-                InviteChildView()
-                    .environmentObject(familyService)
-            }
-            .fullScreenCover(isPresented: $childProfileData.isPresented) {
-                if !childProfileData.childId.isEmpty && !childProfileData.childName.isEmpty {
-                    // Create a simple child display item for the profile view
-                    let child = ChildDisplayItem(
-                        from: FamilyMember(
-                            role: .child,
-                            name: childProfileData.childName,
-                            joinedAt: Date()
-                        ),
-                        id: childProfileData.childId
-                    )
-                    ChildProfileView(childId: childProfileData.childId, child: child, onChildRemoved: { childId in
-                        // Trigger the bubble pop animation
-                        withAnimation(.easeInOut(duration: 0.8)) {
-                            removedChildId = childId
-                        }
-                        // Clear the removed child after animation completes
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            removedChildId = nil
-                        }
-                    })
-                        .environmentObject(familyService)
-                }
-            }
-            .sheet(item: $selectedPendingChild) { pendingChild in
-                // Use existing child management - show profile for pending children too
-                ChildProfileView(childId: pendingChild.id, child: pendingChild, onChildRemoved: { childId in
-                    // Trigger the bubble pop animation
-                    withAnimation(.easeInOut(duration: 0.8)) {
-                        removedChildId = childId
-                    }
-                    // Clear the removed child after animation completes
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        removedChildId = nil
-                    }
-                })
-                    .environmentObject(familyService)
-                    .onAppear {
-                        print("🔍 ChildrenListView - Presenting child profile for pending child: \(pendingChild.name)")
-                    }
-            }
-            .sheet(isPresented: $showingEditFamilyName) {
-                EditFamilyNameView(
-                    currentName: familyService.currentFamily?.name ?? "",
-                    isLoading: isLoadingEditName,
-                    onSave: { newName in
-                        Task {
-                            await updateFamilyName(newName)
-                        }
-                    }
-                )
-            }
-            .onAppear {
-                // Debug logging
-                print("🔍 ChildrenListView - Family members: \(familyService.getFamilyMembers().count)")
-                print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
-                print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
             }
         }
     }
