@@ -1732,6 +1732,7 @@ struct ChildHomeView: View {
     @EnvironmentObject var familyService: FamilyService
     @StateObject private var geofenceService = GeofenceService()
     @State private var showingLocationPermissionAlert = false
+    @State private var showingSettings = false
     
     var body: some View {
         NavigationView {
@@ -1894,6 +1895,20 @@ struct ChildHomeView: View {
             }
             .padding()
             .navigationTitle("Located")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+                    .environmentObject(authService)
+            }
             .alert("Location Permission Required", isPresented: $showingLocationPermissionAlert) {
                 Button("Settings") {
                     if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
