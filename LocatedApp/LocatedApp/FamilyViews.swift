@@ -15,7 +15,7 @@ struct FamilySetupView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: true) {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
@@ -311,7 +311,7 @@ struct InviteChildView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: true) {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
