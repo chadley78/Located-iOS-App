@@ -2384,9 +2384,12 @@ struct ChildProfileView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var childName: String
-    @State private var isEditingName = false
+    @State private var showingEditName = false
+    @State private var editingChildName = ""
+    @State private var isLoadingEditName = false
     @State private var showingDeleteAlert = false
     @State private var newInviteCode: String?
+    @State private var isGeneratingInvite = false
     @State private var selectedImage: UIImage?
     @State private var showingImagePicker = false
     @State private var isUploadingImage = false
@@ -2401,6 +2404,9 @@ struct ChildProfileView: View {
     }
     
     var body: some View {
+        ZStack {
+            Color.vibrantPurple.ignoresSafeArea()
+            
         VStack(spacing: 0) {
             // Custom Header with Back Button
             HStack {
@@ -2409,39 +2415,33 @@ struct ChildProfileView: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.radioCanadaBig(18, weight: .medium))
                         Text("Back")
-                            .font(.system(size: 17))
+                            .font(.radioCanadaBig(17, weight: .regular))
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.white)
                 }
                 
                 Spacer()
                 
                 Text("Child Profile")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.radioCanadaBig(17, weight: .semibold))
+                    .foregroundColor(.white)
                 
                 Spacer()
                 
                 // Invisible spacer to center the title
                 HStack(spacing: 8) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.radioCanadaBig(18, weight: .medium))
                         .opacity(0)
                     Text("Back")
-                        .font(.system(size: 17))
+                        .font(.radioCanadaBig(17, weight: .regular))
                         .opacity(0)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(UIColor.systemBackground))
-            .overlay(
-                Rectangle()
-                    .frame(height: 0.5)
-                    .foregroundColor(Color(UIColor.separator)),
-                alignment: .bottom
-            )
             
             // Main Content
             ScrollView {
@@ -2450,20 +2450,30 @@ struct ChildProfileView: View {
                     VStack(spacing: 16) {
                         // Profile Image
                         ZStack {
-                            Circle()
-                                .fill(Color.blue.opacity(0.2))
-                                .frame(width: 120, height: 120)
-                            
                             if let selectedImage = selectedImage {
                                 Image(uiImage: selectedImage)
                                     .resizable()
-                                    .aspectRatio(contentMode: .fit)
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                            } else if let imageBase64 = child.imageBase64, !imageBase64.isEmpty,
+                                      let imageData = Data(base64Encoded: imageBase64),
+                                      let uiImage = UIImage(data: imageData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
                             } else {
-                                Image(systemName: "person.fill")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.blue)
+                                // Show initial
+                                Circle()
+                                    .fill(Color.white.opacity(0.2))
+                                    .frame(width: 120, height: 120)
+                                    .overlay(
+                                        Text(String(childName.prefix(1)).uppercased())
+                                            .font(.radioCanadaBig(50, weight: .bold))
+                                            .foregroundColor(.white)
+                                    )
                             }
                             
                             // Upload button overlay
@@ -2479,7 +2489,7 @@ struct ChildProfileView: View {
                                             .font(.system(size: 16))
                                             .foregroundColor(.white)
                                             .frame(width: 32, height: 32)
-                                            .background(Color.blue)
+                                            .background(Color.vibrantYellow)
                                             .clipShape(Circle())
                                     }
                                     .disabled(isUploadingImage)
@@ -2490,52 +2500,26 @@ struct ChildProfileView: View {
                         }
                         
                         // Name Section
-                        VStack(spacing: 8) {
-                            if isEditingName {
-                                TextField("Child's Name", text: $childName)
-                                    .font(.title2)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .multilineTextAlignment(.center)
-                            } else {
-                                Text(childName)
-                                    .font(.title2)
-                                    .font(.system(size: 18, weight: .semibold))
+                        Text(childName)
+                            .font(.radioCanadaBig(28, weight: .bold))
+                            .foregroundColor(.white)
+                            .onTapGesture {
+                                editingChildName = childName
+                                showingEditName = true
                             }
-                            
-                            Button(isEditingName ? "Save" : "Edit Name") {
-                                if isEditingName {
-                                    // Save the name change
-                                    saveNameChange()
-                                }
-                                isEditingName.toggle()
-                            }
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                        }
                         
                         // Status indicator for pending children
                         if child.isPending {
                             Text(child.status.displayName)
-                                .font(.caption)
-                                .foregroundColor(.orange)
+                                .font(.radioCanadaBig(14, weight: .regular))
+                                .foregroundColor(.white)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
-                                .background(Color.orange.opacity(0.1))
+                                .background(Color.white.opacity(0.2))
                                 .cornerRadius(8)
                         }
-                        
-                        Text("Family Member")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
                     }
                     .padding()
-                    .background(Color(UIColor.systemGray6))
-                    .cornerRadius(16)
                     
                     // Action Buttons
                     VStack(spacing: 16) {
@@ -2544,47 +2528,60 @@ struct ChildProfileView: View {
                             Button(action: {
                                 generateNewInviteCode()
                             }) {
-                                HStack {
-                                    Image(systemName: "arrow.clockwise")
-                                    Text("Reissue Invitation")
+                                if isGeneratingInvite {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                } else {
+                                    HStack {
+                                        Image(systemName: "arrow.clockwise")
+                                        Text("Reissue Invitation")
+                                    }
                                 }
                             }
                             .primaryAButtonStyle()
+                            .disabled(isGeneratingInvite)
                         } else {
                             // Generate New Invitation Button (for accepted children)
                             Button(action: {
                                 generateNewInviteCode()
                             }) {
-                                HStack {
-                                    Image(systemName: "envelope.badge")
-                                    Text("Generate New Invitation Code")
+                                if isGeneratingInvite {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(0.8)
+                                } else {
+                                    HStack {
+                                        Image(systemName: "envelope.badge")
+                                        Text("Generate New Invitation Code")
+                                    }
                                 }
                             }
                             .primaryAButtonStyle()
+                            .disabled(isGeneratingInvite)
                         }
                         
-                        // New Invitation Code Display (Green Panel)
+                        // New Invitation Code Display
                         if let inviteCode = newInviteCode {
                             VStack(spacing: 16) {
-                                Text("New Invitation Code Created!")
-                                    .font(.title2)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.green)
+                                Text("Invitation Created!")
+                                    .font(.radioCanadaBig(22, weight: .semibold))
+                                    .foregroundColor(.white)
                                 
                                 Text("Share this code with \(childName):")
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
+                                    .font(.radioCanadaBig(16, weight: .regular))
+                                    .foregroundColor(.white)
                                 
                                 Text(inviteCode)
                                     .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.vibrantPurple)
                                     .padding()
-                                    .background(Color.blue.opacity(0.1))
+                                    .background(Color.familyMembersBg)
                                     .cornerRadius(8)
                                 
                                 Text("This code expires in 24 hours")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .font(.radioCanadaBig(12, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.7))
                                 
                                 // Share buttons
                                 HStack(spacing: 16) {
@@ -2596,11 +2593,11 @@ struct ChildProfileView: View {
                                             Image(systemName: "doc.on.doc")
                                             Text("Copy")
                                         }
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
+                                        .font(.radioCanadaBig(12, weight: .regular))
+                                        .foregroundColor(.vibrantPurple)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(Color.familyMembersBg)
                                         .cornerRadius(6)
                                     }
                                     
@@ -2620,17 +2617,17 @@ struct ChildProfileView: View {
                                             Image(systemName: "square.and.arrow.up")
                                             Text("Share")
                                         }
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
+                                        .font(.radioCanadaBig(12, weight: .regular))
+                                        .foregroundColor(.vibrantPurple)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(Color.familyMembersBg)
                                         .cornerRadius(6)
                                     }
                                 }
                             }
                             .padding()
-                            .background(Color.green.opacity(0.1))
+                            .background(Color.white.opacity(0.1))
                             .cornerRadius(12)
                         }
                         
@@ -2651,6 +2648,7 @@ struct ChildProfileView: View {
                 .padding()
             }
         }
+        }
         .alert(child.isPending ? "Remove Pending Child" : "Remove Child", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Remove", role: .destructive) {
@@ -2660,6 +2658,17 @@ struct ChildProfileView: View {
             Text(child.isPending ? 
                  "Are you sure you want to remove \(childName) from your pending children? This will cancel their invitation." :
                  "Are you sure you want to remove \(childName) from your family? This action cannot be undone.")
+        }
+        .sheet(isPresented: $showingEditName) {
+            EditChildNameView(
+                currentName: childName,
+                isLoading: isLoadingEditName,
+                onSave: { newName in
+                    Task {
+                        await updateChildName(newName)
+                    }
+                }
+            )
         }
         .sheet(isPresented: $showingImagePicker) {
             if #available(iOS 16.0, *) {
@@ -2727,21 +2736,24 @@ struct ChildProfileView: View {
         }
     }
     
-    private func saveNameChange() {
-        Task {
-            do {
-                if let familyId = familyService.currentFamily?.id {
-                    try await familyService.updateFamilyMemberName(
-                        childId: childId,
-                        familyId: familyId,
-                        newName: childName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    )
-                    print("✅ Successfully updated child name to: \(childName)")
-                }
-            } catch {
-                print("❌ Error updating child name: \(error)")
-                // You could add error handling UI here if needed
-            }
+    private func updateChildName(_ newName: String) async {
+        guard let familyId = familyService.currentFamily?.id else { return }
+        
+        isLoadingEditName = true
+        
+        do {
+            try await familyService.updateFamilyMemberName(
+                childId: childId,
+                familyId: familyId,
+                newName: newName.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            childName = newName
+            showingEditName = false
+            isLoadingEditName = false
+            print("✅ Successfully updated child name to: \(newName)")
+        } catch {
+            print("❌ Error updating child name: \(error)")
+            isLoadingEditName = false
         }
     }
     
@@ -2921,6 +2933,11 @@ struct ChildProfileView: View {
     
     private func generateNewInviteCode() {
         Task {
+            await MainActor.run {
+                isGeneratingInvite = true
+                newInviteCode = nil // Clear any existing code
+            }
+            
             do {
                 if let familyId = familyService.currentFamily?.id {
                     let invitationService = FamilyInvitationService()
@@ -2928,10 +2945,14 @@ struct ChildProfileView: View {
                     
                     await MainActor.run {
                         newInviteCode = newCode
+                        isGeneratingInvite = false
                     }
                 }
             } catch {
                 print("❌ Error creating new invitation: \(error)")
+                await MainActor.run {
+                    isGeneratingInvite = false
+                }
             }
         }
     }
@@ -4656,6 +4677,64 @@ struct EditFamilyNameView: View {
                         }
                     }
                     .disabled(familyName.isEmpty || familyName == currentName || isLoading)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Edit Child Name View
+struct EditChildNameView: View {
+    let currentName: String
+    let isLoading: Bool
+    let onSave: (String) async -> Void
+    
+    @State private var childName: String
+    @Environment(\.dismiss) private var dismiss
+    
+    init(currentName: String, isLoading: Bool, onSave: @escaping (String) async -> Void) {
+        self.currentName = currentName
+        self.isLoading = isLoading
+        self.onSave = onSave
+        self._childName = State(initialValue: currentName)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Child's Name")
+                            .font(.radioCanadaBig(13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Enter child's name", text: $childName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.words)
+                            .disableAutocorrection(true)
+                    }
+                    
+                    Spacer(minLength: 20)
+                }
+                .padding(.horizontal, 30)
+                .padding(.top, 20)
+            }
+            .navigationTitle("Edit Child's Name")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        Task {
+                            await onSave(childName)
+                        }
+                    }
+                    .disabled(childName.isEmpty || childName == currentName || isLoading)
                 }
             }
         }
