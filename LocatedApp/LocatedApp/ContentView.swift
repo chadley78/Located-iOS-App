@@ -1985,68 +1985,69 @@ struct ChildrenListView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    if familyService.currentFamily != nil {
-                        familyHeaderView
-                        
-                        // Add Child Button
-                        Button(action: {
-                            showingInviteChild = true
-                        }) {
-                            HStack {
-                                Image(systemName: "person.badge.plus")
-                                Text("Invite Child")
-                            }
-                        }
-                        .primaryAButtonStyle()
-                        .padding(.horizontal)
-                        
-                        familyMembersListView
-                        
-                        Spacer()
-                    } else {
-                        // No Family State
-                        VStack(spacing: 20) {
-                            Image(systemName: "house")
-                                .font(.system(size: 60))
-                                .foregroundColor(.gray)
-                            
-                            Text("No Family")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                            
-                            Text("You haven't created or joined a family yet.")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                            
-                            Text("Go to the Family tab to create a family first.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding()
-                    }
-                }
-                .padding()
-            }
-            .background(
+            ZStack {
                 Color.vibrantPurple.ignoresSafeArea()
-            )
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        if familyService.currentFamily != nil {
+                            familyHeaderView
+                            
+                            // Add Child Button
+                            Button(action: {
+                                showingInviteChild = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "person.badge.plus")
+                                    Text("Invite Child")
+                                }
+                            }
+                            .primaryAButtonStyle()
+                            .padding(.horizontal)
+                            
+                            familyMembersListView
+                            
+                            Spacer()
+                        } else {
+                            // No Family State
+                            VStack(spacing: 20) {
+                                Image(systemName: "house")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.gray)
+                                
+                                Text("No Family")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                
+                                Text("You haven't created or joined a family yet.")
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                
+                                Text("Go to the Family tab to create a family first.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding()
+                        }
+                    }
+                    .padding()
+                }
+            }
             .navigationTitle("My Family")
             .navigationBarTitleDisplayMode(.inline)
-            .background(NavigationConfigurator { navigationController in
+            .onAppear {
                 let appearance = UINavigationBarAppearance()
                 appearance.configureWithOpaqueBackground()
                 appearance.backgroundColor = UIColor(Color.vibrantPurple)
                 appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
                 appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
                 
-                navigationController.navigationBar.standardAppearance = appearance
-                navigationController.navigationBar.scrollEdgeAppearance = appearance
-                navigationController.navigationBar.compactAppearance = appearance
-            })
+                UINavigationBar.appearance().standardAppearance = appearance
+                UINavigationBar.appearance().scrollEdgeAppearance = appearance
+                UINavigationBar.appearance().compactAppearance = appearance
+            }
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
@@ -4860,20 +4861,5 @@ struct ChildRowView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
-    }
-}
-
-// MARK: - Navigation Configurator Helper
-struct NavigationConfigurator: UIViewControllerRepresentable {
-    var configure: (UINavigationController) -> Void
-    
-    func makeUIViewController(context: Context) -> UIViewController {
-        UIViewController()
-    }
-    
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        if let navigationController = uiViewController.navigationController {
-            configure(navigationController)
-        }
     }
 }
