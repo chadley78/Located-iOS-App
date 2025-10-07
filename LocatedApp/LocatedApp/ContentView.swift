@@ -4671,19 +4671,28 @@ struct ChildPinView: View {
             Image(pinImageName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 24, height: 24)
+                .frame(width: 48, height: 48)
             
             // Child photo or initial overlay
             if let imageBase64 = child.imageBase64, !imageBase64.isEmpty {
-                // TODO: Load and display child photo from base64
-                // For now, fall back to initial
-                Text(String(child.name.prefix(1)).uppercased())
-                    .font(.radioCanadaBig(10, weight: .bold))
-                    .foregroundColor(.white)
+                // Load and display child photo from base64
+                if let imageData = Data(base64Encoded: imageBase64),
+                   let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 32, height: 32)
+                        .clipShape(Circle())
+                } else {
+                    // Fallback to initial if base64 decode fails
+                    Text(String(child.name.prefix(1)).uppercased())
+                        .font(.radioCanadaBig(20, weight: .bold))
+                        .foregroundColor(.white)
+                }
             } else {
                 // First initial
                 Text(String(child.name.prefix(1)).uppercased())
-                    .font(.radioCanadaBig(10, weight: .bold))
+                    .font(.radioCanadaBig(20, weight: .bold))
                     .foregroundColor(.white)
             }
         }
@@ -4728,12 +4737,12 @@ struct ChildRowView: View {
                     // Child info
                     VStack(alignment: .leading, spacing: 2) {
                         Text(child.name)
-                            .font(.radioCanadaBig(16, weight: .regular))
-                            .tracking(-0.8) // 5% reduced letter spacing (16 * 0.05 = 0.8)
+                            .font(.radioCanadaBig(32, weight: .regular))
+                            .tracking(-1.6) // 5% reduced letter spacing (32 * 0.05 = 1.6)
                             .foregroundColor(.primary)
                         
                         Text(statusText)
-                            .font(.radioCanadaBig(12, weight: .regular))
+                            .font(.radioCanadaBig(24, weight: .regular))
                             .foregroundColor(.secondary)
                     }
                     
@@ -4746,7 +4755,7 @@ struct ChildRowView: View {
             // Divider
             if showDivider {
                 Divider()
-                    .padding(.leading, 36) // Align with text, not pin
+                    .padding(.leading, 60) // Align with text, not pin (48pt pin + 12pt spacing)
             }
         }
     }
