@@ -2033,41 +2033,10 @@ struct ChildrenListView: View {
                 }
                 .padding()
             }
+            .background(NavigationBarConfigurator(backgroundColor: .vibrantPurple, titleColor: .white, tintColor: .white))
         }
         .navigationTitle("My Family")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            let appearance = UINavigationBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = UIColor(Color.vibrantPurple)
-            appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-            
-            // Find the navigation controller and set the tint color
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = windowScene.windows.first,
-               let navigationController = window.rootViewController?.children.first as? UINavigationController {
-                navigationController.navigationBar.tintColor = UIColor.white
-                navigationController.navigationBar.standardAppearance = appearance
-                navigationController.navigationBar.scrollEdgeAppearance = appearance
-                navigationController.navigationBar.compactAppearance = appearance
-            }
-        }
-        .onDisappear {
-            // Reset to default tint color when leaving this view
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = windowScene.windows.first,
-               let navigationController = window.rootViewController?.children.first as? UINavigationController {
-                navigationController.navigationBar.tintColor = UIColor.systemBlue
-                
-                // Reset to default appearance
-                let defaultAppearance = UINavigationBarAppearance()
-                defaultAppearance.configureWithDefaultBackground()
-                navigationController.navigationBar.standardAppearance = defaultAppearance
-                navigationController.navigationBar.scrollEdgeAppearance = defaultAppearance
-                navigationController.navigationBar.compactAppearance = defaultAppearance
-            }
-        }
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
                 .environmentObject(familyService)
@@ -4869,5 +4838,57 @@ struct ChildRowView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Navigation Bar Configurator
+struct NavigationBarConfigurator: UIViewControllerRepresentable {
+    let backgroundColor: Color
+    let titleColor: Color
+    let tintColor: Color
+    
+    func makeUIViewController(context: Context) -> NavigationBarConfiguratorViewController {
+        NavigationBarConfiguratorViewController(backgroundColor: backgroundColor, titleColor: titleColor, tintColor: tintColor)
+    }
+    
+    func updateUIViewController(_ uiViewController: NavigationBarConfiguratorViewController, context: Context) {
+        uiViewController.updateNavigationBar()
+    }
+}
+
+class NavigationBarConfiguratorViewController: UIViewController {
+    let backgroundColor: Color
+    let titleColor: Color
+    let tintColor: Color
+    
+    init(backgroundColor: Color, titleColor: Color, tintColor: Color) {
+        self.backgroundColor = backgroundColor
+        self.titleColor = titleColor
+        self.tintColor = tintColor
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateNavigationBar()
+    }
+    
+    func updateNavigationBar() {
+        guard let navigationController = navigationController else { return }
+        
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(backgroundColor)
+        appearance.titleTextAttributes = [.foregroundColor: UIColor(titleColor)]
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(titleColor)]
+        
+        navigationController.navigationBar.standardAppearance = appearance
+        navigationController.navigationBar.scrollEdgeAppearance = appearance
+        navigationController.navigationBar.compactAppearance = appearance
+        navigationController.navigationBar.tintColor = UIColor(tintColor)
     }
 }
