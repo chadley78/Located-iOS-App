@@ -87,6 +87,9 @@ struct FamilySetupView: View {
             .background(Color.vibrantPurple)
             .navigationTitle("Family Setup")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.vibrantPurple.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -446,6 +449,9 @@ struct InviteChildView: View {
             .background(Color.vibrantPurple)
             .navigationTitle("Invite Child")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.vibrantPurple.opacity(0.95), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
