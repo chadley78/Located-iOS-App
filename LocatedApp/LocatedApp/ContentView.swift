@@ -2036,9 +2036,6 @@ struct ChildrenListView: View {
         }
         .navigationTitle("My Family")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            configureNavigationBar()
-        }
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
                 .environmentObject(familyService)
@@ -2378,44 +2375,6 @@ struct ChildrenListView: View {
             
             // If same role, sort alphabetically by name
             return firstMember.name.localizedCaseInsensitiveCompare(secondMember.name) == .orderedAscending
-        }
-    }
-    
-    private func configureNavigationBar() {
-        // Get all navigation controllers and find the one that's currently visible
-        for scene in UIApplication.shared.connectedScenes {
-            if let windowScene = scene as? UIWindowScene {
-                for window in windowScene.windows {
-                    if let rootVC = window.rootViewController {
-                        configureNavBar(for: rootVC)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func configureNavBar(for viewController: UIViewController) {
-        if let navController = viewController as? UINavigationController {
-            let appearance = UINavigationBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = UIColor(Color.vibrantPurple)
-            appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-            
-            navController.navigationBar.standardAppearance = appearance
-            navController.navigationBar.scrollEdgeAppearance = appearance
-            navController.navigationBar.compactAppearance = appearance
-            navController.navigationBar.tintColor = UIColor.white
-        }
-        
-        // Check children
-        for child in viewController.children {
-            configureNavBar(for: child)
-        }
-        
-        // Check presented view controller
-        if let presented = viewController.presentedViewController {
-            configureNavBar(for: presented)
         }
     }
     
