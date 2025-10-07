@@ -2003,6 +2003,7 @@ struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var invitationService: FamilyInvitationService
+    @StateObject private var mapViewModel = ParentMapViewModel()
     @State private var showingInviteChild = false
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
@@ -2104,44 +2105,7 @@ struct ChildrenListView: View {
                                         }) {
                                         HStack {
                                             // Custom pin with child photo or initial
-                                            ZStack {
-                                                // Determine pin color based on location status
-                                                let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
-                                                let hasRecentLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -300)
-                                                let hasOldLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -1800) && !hasRecentLocation
-                                                
-                                                let pinImageName: String = {
-                                                    if child.isPending {
-                                                        return "RedPin" // Offline for pending
-                                                    } else if hasRecentLocation {
-                                                        return "GreenPin" // Recent location
-                                                    } else if hasOldLocation {
-                                                        return "OrangePin" // Old location
-                                                    } else {
-                                                        return "RedPin" // Offline
-                                                    }
-                                                }()
-                                                
-                                                Image(pinImageName)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: 40, height: 40)
-                                                
-                                                // Child photo or initial in center of pin
-                                                if let imageBase64 = child.imageBase64,
-                                                   let imageData = Data(base64Encoded: imageBase64),
-                                                   let uiImage = UIImage(data: imageData) {
-                                                    Image(uiImage: uiImage)
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fill)
-                                                        .frame(width: 20, height: 20)
-                                                        .clipShape(Circle())
-                                                } else {
-                                                    Text(String(child.name.prefix(1)).uppercased())
-                                                        .font(.radioCanadaBig(14, weight: .semibold))
-                                                        .foregroundColor(.white)
-                                                }
-                                            }
+                                            ChildPinView(child: child, mapViewModel: mapViewModel)
                                             
                                             VStack(alignment: .leading, spacing: 2) {
                                                 Text(child.name)
@@ -2436,6 +2400,53 @@ struct ChildrenListView: View {
         }
     }
     
+}
+
+// MARK: - Child Pin View
+struct ChildPinView: View {
+    let child: ChildDisplayItem
+    let mapViewModel: ParentMapViewModel
+    
+    var body: some View {
+        ZStack {
+            // Determine pin color based on location status
+            let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+            let hasRecentLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -300)
+            let hasOldLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -1800) && !hasRecentLocation
+            
+            let pinImageName: String = {
+                if child.isPending {
+                    return "RedPin" // Offline for pending
+                } else if hasRecentLocation {
+                    return "GreenPin" // Recent location
+                } else if hasOldLocation {
+                    return "OrangePin" // Old location
+                } else {
+                    return "RedPin" // Offline
+                }
+            }()
+            
+            Image(pinImageName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 40, height: 40)
+            
+            // Child photo or initial in center of pin
+            if let imageBase64 = child.imageBase64,
+               let imageData = Data(base64Encoded: imageBase64),
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 20, height: 20)
+                    .clipShape(Circle())
+            } else {
+                Text(String(child.name.prefix(1)).uppercased())
+                    .font(.radioCanadaBig(14, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+        }
+    }
 }
 
 // MARK: - Child Profile View
