@@ -23,6 +23,7 @@ struct GeofenceManagementView: View {
                 if geofenceService.isLoading {
                     Spacer()
                     ProgressView("Loading location alerts...")
+                        .font(.radioCanadaBig(16, weight: .regular))
                     Spacer()
                 } else if geofenceService.geofences.isEmpty {
                     // Empty State
@@ -35,11 +36,10 @@ struct GeofenceManagementView: View {
                         
                         VStack(spacing: 8) {
                             Text("No Location Alerts Yet")
-                                .font(.title3)
-                                .fontWeight(.semibold)
+                                .font(.radioCanadaBig(20, weight: .semibold))
                             
                             Text("Create your first location alert to get notified when family members enter or leave specific areas.")
-                                .font(.subheadline)
+                                .font(.radioCanadaBig(14, weight: .regular))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                         }
@@ -138,11 +138,11 @@ struct GeofenceCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(geofence.name)
-                        .font(.headline)
+                        .font(.radioCanadaBig(18, weight: .semibold))
                         .foregroundColor(.primary)
                     
                     Text("\(Int(geofence.radius))m radius")
-                        .font(.caption)
+                        .font(.radioCanadaBig(12, weight: .regular))
                         .foregroundColor(.secondary)
                 }
                 
@@ -162,10 +162,10 @@ struct GeofenceCard: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Lat: \(geofence.latitude, specifier: "%.6f")")
-                        .font(.caption2)
+                        .font(.radioCanadaBig(10, weight: .regular))
                         .foregroundColor(.secondary)
                     Text("Lng: \(geofence.longitude, specifier: "%.6f")")
-                        .font(.caption2)
+                        .font(.radioCanadaBig(10, weight: .regular))
                         .foregroundColor(.secondary)
                 }
                 
@@ -192,7 +192,7 @@ struct GeofenceCard: View {
                         Image(systemName: "info.circle")
                         Text("Details")
                     }
-                    .font(.caption)
+                    .font(.radioCanadaBig(12, weight: .regular))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Color.blue.opacity(0.1))
@@ -209,7 +209,7 @@ struct GeofenceCard: View {
                         Image(systemName: "trash")
                         Text("Delete")
                     }
-                    .font(.caption)
+                    .font(.radioCanadaBig(12, weight: .regular))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Color.red.opacity(0.1))
@@ -251,8 +251,7 @@ struct GeofenceDetailsView: View {
                     // Geofence Info
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Location Alert Details")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(.radioCanadaBig(22, weight: .semibold))
                         
                         VStack(alignment: .leading, spacing: 12) {
                             DetailRow(title: "Name", value: geofence.name)
@@ -262,14 +261,14 @@ struct GeofenceDetailsView: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Location")
-                                    .font(.headline)
+                                    .font(.radioCanadaBig(18, weight: .semibold))
                                     .foregroundColor(.primary)
                                 
                                 Text("Latitude: \(geofence.latitude, specifier: "%.6f")")
-                                    .font(.caption)
+                                    .font(.radioCanadaBig(12, weight: .regular))
                                     .foregroundColor(.secondary)
                                 Text("Longitude: \(geofence.longitude, specifier: "%.6f")")
-                                    .font(.caption)
+                                    .font(.radioCanadaBig(12, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -296,20 +295,20 @@ struct GeofenceDetailsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Recent Events")
-                                .font(.headline)
+                                .font(.radioCanadaBig(18, weight: .semibold))
                             
                             Spacer()
                             
                             Button("View All") {
                                 showingEvents = true
                             }
-                            .font(.caption)
+                            .font(.radioCanadaBig(12, weight: .regular))
                             .foregroundColor(.blue)
                         }
                         
                         if geofenceService.geofenceEvents.isEmpty {
                             Text("No events yet")
-                                .font(.subheadline)
+                                .font(.radioCanadaBig(14, weight: .regular))
                                 .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding()
@@ -355,13 +354,13 @@ struct DetailRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.headline)
+                .font(.radioCanadaBig(16, weight: .semibold))
                 .foregroundColor(.primary)
             
             Spacer()
             
             Text(value)
-                .font(.subheadline)
+                .font(.radioCanadaBig(14, weight: .regular))
                 .foregroundColor(.secondary)
         }
     }
@@ -380,11 +379,10 @@ struct EventRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.eventType.displayName + " " + event.geofenceName)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.radioCanadaBig(14, weight: .medium))
                 
                 Text(event.timestamp.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption)
+                    .font(.radioCanadaBig(12, weight: .regular))
                     .foregroundColor(.secondary)
             }
             
@@ -408,6 +406,7 @@ struct GeofenceEventsView: View {
                 if geofenceService.isLoading {
                     Spacer()
                     ProgressView("Loading events...")
+                        .font(.radioCanadaBig(16, weight: .regular))
                     Spacer()
                 } else if geofenceService.geofenceEvents.isEmpty {
                     VStack(spacing: 20) {
@@ -418,11 +417,10 @@ struct GeofenceEventsView: View {
                             .foregroundColor(.gray)
                         
                         Text("No Events Yet")
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                            .font(.radioCanadaBig(20, weight: .semibold))
                         
                         Text("Events will appear here when family members enter or leave the '\(geofenceName)' geofence.")
-                            .font(.subheadline)
+                            .font(.radioCanadaBig(14, weight: .regular))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                         
