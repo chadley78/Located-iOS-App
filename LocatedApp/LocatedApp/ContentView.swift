@@ -2043,6 +2043,14 @@ struct ChildrenListView: View {
             appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
             appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
             
+            // Set back button color to white
+            let backButtonAppearance = UIBarButtonItemAppearance()
+            backButtonAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.white]
+            appearance.backButtonAppearance = backButtonAppearance
+            
+            // Set the tint color for the back arrow
+            UINavigationBar.appearance().tintColor = UIColor.white
+            
             UINavigationBar.appearance().standardAppearance = appearance
             UINavigationBar.appearance().scrollEdgeAppearance = appearance
             UINavigationBar.appearance().compactAppearance = appearance
@@ -2115,24 +2123,13 @@ struct ChildrenListView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(height: 120)
                     
-                    HStack {
-                        Spacer()
-                        
-                        Text(family.name)
-                            .font(.radioCanadaBig(28, weight: .bold))
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Button(action: {
+                    Text(family.name)
+                        .font(.radioCanadaBig(28, weight: .bold))
+                        .foregroundColor(.white)
+                        .onTapGesture {
                             editingFamilyName = family.name
                             showingEditFamilyName = true
-                        }) {
-                            Image(systemName: "pencil")
-                                .font(.system(size: 16))
-                                .foregroundColor(.white)
                         }
-                    }
                 }
             }
         }
