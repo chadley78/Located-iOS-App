@@ -2351,7 +2351,6 @@ struct ChildrenListView: View {
                             }
                             .frame(maxHeight: 300)
                         }
-                    }
         }
     }
     
