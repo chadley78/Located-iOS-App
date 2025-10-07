@@ -2971,6 +2971,7 @@ struct ChildProfileView: View {
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthenticationService
     @StateObject private var invitationService = InvitationService()
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationView {
@@ -3056,6 +3057,10 @@ struct SettingsView: View {
                         print("🔐 Sign out button tapped")
                         await authService.signOut()
                         print("🔐 Sign out process completed")
+                        // Dismiss the settings sheet after sign out
+                        await MainActor.run {
+                            dismiss()
+                        }
                     }
                 }
                 .primaryBButtonStyle()
