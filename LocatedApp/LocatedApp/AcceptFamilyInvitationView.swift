@@ -151,46 +151,47 @@ struct ChildWelcomeView: View {
         VStack(spacing: 40) {
             Spacer()
             
-            // App Logo
+            // App Logo - matching parent loading screen
             VStack(spacing: 24) {
                 Circle()
-                    .fill(Color.white)
+                    .fill(Color.vibrantYellow)
                     .frame(width: 120, height: 120)
                     .overlay(
-                        Text("L")
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(.blue)
+                        Image("AppSplash")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
                     )
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                 
                 // Welcome Text
                 VStack(spacing: 16) {
                     if isSettingUp {
                         Text("Setting up your account...")
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(.white)
+                            .font(.radioCanadaBig(32, weight: .bold))
+                            .foregroundColor(.black)
                             .multilineTextAlignment(.center)
                         
                         Text("Please wait while we prepare everything for you")
-                            .font(.system(size: 18))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.radioCanadaBig(18, weight: .regular))
+                            .foregroundColor(.black.opacity(0.8))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                         
                         // Loading indicator
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .progressViewStyle(CircularProgressViewStyle(tint: .black))
                             .scaleEffect(1.2)
                             .padding(.top, 20)
                     } else {
                         Text("Welcome to Located!")
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(.white)
+                            .font(.radioCanadaBig(32, weight: .bold))
+                            .foregroundColor(.black)
                             .multilineTextAlignment(.center)
                         
                         Text("You're all set to start sharing your location with your family")
-                            .font(.system(size: 18))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.radioCanadaBig(18, weight: .regular))
+                            .foregroundColor(.black.opacity(0.8))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                     }
@@ -204,18 +205,12 @@ struct ChildWelcomeView: View {
                 Button(action: onNext) {
                     HStack(spacing: 12) {
                         Text("Next")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.radioCanadaBig(18, weight: .semibold))
                         Image(systemName: "arrow.right")
                             .font(.system(size: 16, weight: .semibold))
                     }
-                    .foregroundColor(.blue)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.white)
-                    .cornerRadius(28)
-                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                 }
-                .padding(.horizontal, 40)
+                .primaryAButtonStyle()
                 .padding(.bottom, 50)
             }
         }
@@ -228,16 +223,7 @@ struct ChildWelcomeView: View {
                 }
             }
         }
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue,
-                    Color.blue.opacity(0.8)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(Color.vibrantYellow)
         .ignoresSafeArea()
     }
 }
@@ -250,28 +236,29 @@ struct ChildWelcomeBackView: View {
         VStack(spacing: 40) {
             Spacer()
             
-            // App Logo
+            // App Logo - matching parent loading screen
             VStack(spacing: 24) {
                 Circle()
-                    .fill(Color.white)
+                    .fill(Color.vibrantYellow)
                     .frame(width: 120, height: 120)
                     .overlay(
-                        Text("L")
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(.blue)
+                        Image("AppSplash")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
                     )
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                 
                 // Welcome Back Text
                 VStack(spacing: 16) {
                     Text("Welcome back!")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
+                        .font(.radioCanadaBig(32, weight: .bold))
+                        .foregroundColor(.black)
                         .multilineTextAlignment(.center)
                     
                     Text("You've successfully rejoined your family")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white.opacity(0.9))
+                        .font(.radioCanadaBig(18, weight: .regular))
+                        .foregroundColor(.black.opacity(0.8))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
                 }
@@ -283,31 +270,16 @@ struct ChildWelcomeBackView: View {
             Button(action: onNext) {
                 HStack(spacing: 12) {
                     Text("Next")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.radioCanadaBig(18, weight: .semibold))
                     Image(systemName: "arrow.right")
                         .font(.system(size: 16, weight: .semibold))
                 }
-                .foregroundColor(.blue)
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(Color.white)
-                .cornerRadius(28)
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
             }
-            .padding(.horizontal, 40)
+            .primaryAButtonStyle()
             .padding(.bottom, 50)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue,
-                    Color.blue.opacity(0.8)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(Color.vibrantYellow)
         .ignoresSafeArea()
     }
 }
