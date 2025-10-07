@@ -24,11 +24,10 @@ struct FamilySetupView: View {
                         .foregroundColor(.blue)
                     
                     Text("Create Your Family")
-                        .font(.title)
-                        .fontWeight(.bold)
+                        .font(.radioCanadaBig(28, weight: .bold))
                     
                     Text("Set up your family group to start tracking your children's locations and creating geofences.")
-                        .font(.body)
+                        .font(.radioCanadaBig(16, weight: .regular))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
@@ -37,7 +36,7 @@ struct FamilySetupView: View {
                 // Family Name Input
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Family Name")
-                        .font(.headline)
+                        .font(.radioCanadaBig(16, weight: .medium))
                         .foregroundColor(.primary)
                     
                     TextField("e.g., The Smith Family", text: $familyName)
@@ -51,7 +50,7 @@ struct FamilySetupView: View {
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
-                        .font(.caption)
+                        .font(.radioCanadaBig(12, weight: .regular))
                         .padding(.horizontal)
                 }
                 
@@ -78,7 +77,7 @@ struct FamilySetupView: View {
                 Button("Cancel") {
                     dismiss()
                 }
-                .font(.subheadline)
+                .font(.radioCanadaBig(14, weight: .regular))
                 .foregroundColor(.secondary)
                 .padding(.bottom)
                 }
@@ -150,11 +149,10 @@ struct FamilyManagementView: View {
                             .foregroundColor(.blue)
                         
                         Text(family.name)
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(.radioCanadaBig(22, weight: .semibold))
                         
                         Text("\(familyService.getFamilyMembers().count) members")
-                            .font(.subheadline)
+                            .font(.radioCanadaBig(14, weight: .regular))
                             .foregroundColor(.secondary)
                     }
                     .padding()
@@ -164,7 +162,7 @@ struct FamilyManagementView: View {
                     // Family Members
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Family Members")
-                            .font(.headline)
+                            .font(.radioCanadaBig(18, weight: .semibold))
                             .padding(.horizontal)
                         
                         ForEach(familyService.getFamilyMembers(), id: \.0) { userId, member in
@@ -193,7 +191,7 @@ struct FamilyManagementView: View {
                                 Image(systemName: "gear")
                                 Text("Family Settings")
                             }
-                            .font(.headline)
+                            .font(.radioCanadaBig(16, weight: .semibold))
                             .foregroundColor(.blue)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
@@ -210,11 +208,10 @@ struct FamilyManagementView: View {
                             .foregroundColor(.gray)
                         
                         Text("No Family")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(.radioCanadaBig(22, weight: .semibold))
                         
                         Text("You haven't created or joined a family yet.")
-                            .font(.body)
+                            .font(.radioCanadaBig(16, weight: .regular))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                         
@@ -261,17 +258,17 @@ struct FamilyMemberRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.name)
-                    .font(.headline)
+                    .font(.radioCanadaBig(16, weight: .semibold))
                 
                 Text(member.role.displayName)
-                    .font(.caption)
+                    .font(.radioCanadaBig(12, weight: .regular))
                     .foregroundColor(.secondary)
             }
             
             Spacer()
             
             Text(formatJoinDate(member.joinedAt))
-                .font(.caption)
+                .font(.radioCanadaBig(12, weight: .regular))
                 .foregroundColor(.secondary)
             
             // Navigation indicator for children
@@ -317,11 +314,10 @@ struct InviteChildView: View {
                         .foregroundColor(.blue)
                     
                     Text("Invite Your Child")
-                        .font(.title)
-                        .fontWeight(.bold)
+                        .font(.radioCanadaBig(28, weight: .bold))
                     
                     Text("Enter your child's name to generate an invitation code they can use to join your family.")
-                        .font(.body)
+                        .font(.radioCanadaBig(16, weight: .regular))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
@@ -330,7 +326,7 @@ struct InviteChildView: View {
                 // Child Name Input
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Child's Name")
-                        .font(.headline)
+                        .font(.radioCanadaBig(16, weight: .medium))
                         .foregroundColor(.primary)
                     
                     TextField("e.g., Emma Smith", text: $childName)
@@ -344,7 +340,7 @@ struct InviteChildView: View {
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
-                        .font(.caption)
+                        .font(.radioCanadaBig(12, weight: .regular))
                         .padding(.horizontal)
                 }
                 
@@ -352,12 +348,11 @@ struct InviteChildView: View {
                 if let inviteCode = inviteCode {
                     VStack(spacing: 16) {
                         Text("Invitation Created!")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(.radioCanadaBig(22, weight: .semibold))
                             .foregroundColor(.green)
                         
                         Text("Share this code with your child:")
-                            .font(.body)
+                            .font(.radioCanadaBig(16, weight: .regular))
                             .foregroundColor(.secondary)
                         
                         Text(inviteCode)
@@ -368,7 +363,7 @@ struct InviteChildView: View {
                             .cornerRadius(8)
                         
                         Text("This code expires in 24 hours")
-                            .font(.caption)
+                            .font(.radioCanadaBig(12, weight: .regular))
                             .foregroundColor(.secondary)
                         
                         // Share buttons
@@ -381,7 +376,7 @@ struct InviteChildView: View {
                                     Image(systemName: "doc.on.doc")
                                     Text("Copy")
                                 }
-                                .font(.caption)
+                                .font(.radioCanadaBig(12, weight: .regular))
                                 .foregroundColor(.blue)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
@@ -408,7 +403,7 @@ struct InviteChildView: View {
                                     Image(systemName: "square.and.arrow.up")
                                     Text("Share")
                                 }
-                                .font(.caption)
+                                .font(.radioCanadaBig(12, weight: .regular))
                                 .foregroundColor(.blue)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
@@ -437,7 +432,7 @@ struct InviteChildView: View {
                         }
                         Text(isLoading ? "Creating Invitation..." : "Create Invitation")
                     }
-                    .font(.headline)
+                    .font(.radioCanadaBig(16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
@@ -518,7 +513,7 @@ struct FamilySettingsView: View {
                     // Family Name Section
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Family Name")
-                            .font(.headline)
+                            .font(.radioCanadaBig(18, weight: .semibold))
                         
                         HStack {
                             if isEditingName {
@@ -540,7 +535,7 @@ struct FamilySettingsView: View {
                                 .foregroundColor(.red)
                             } else {
                                 Text(family.name)
-                                    .font(.title2)
+                                    .font(.radioCanadaBig(22, weight: .semibold))
                                     .foregroundColor(.primary)
                                 
                                 Spacer()
@@ -559,13 +554,14 @@ struct FamilySettingsView: View {
                     if let errorMessage = errorMessage {
                         Text(errorMessage)
                             .foregroundColor(.red)
-                            .font(.caption)
+                            .font(.radioCanadaBig(12, weight: .regular))
                             .padding(.horizontal)
                     }
                     
                     Spacer()
                 } else {
                     Text("No family found")
+                        .font(.radioCanadaBig(16, weight: .regular))
                         .foregroundColor(.secondary)
                     
                     Spacer()
