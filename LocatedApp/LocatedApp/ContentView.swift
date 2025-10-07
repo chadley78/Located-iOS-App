@@ -4674,8 +4674,8 @@ struct ChildPinView: View {
                 .frame(width: 24, height: 24)
             
             // Child photo or initial overlay
-            if let photoURL = child.photoURL, !photoURL.isEmpty {
-                // TODO: Load and display child photo
+            if let imageBase64 = child.imageBase64, !imageBase64.isEmpty {
+                // TODO: Load and display child photo from base64
                 // For now, fall back to initial
                 Text(String(child.name.prefix(1)).uppercased())
                     .font(.radioCanadaBig(10, weight: .bold))
