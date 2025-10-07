@@ -1038,6 +1038,8 @@ struct ParentHomeView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var panelHeight: CGFloat = 0.25
     @State private var isPanelExpanded: Bool = false
+    @State private var buttonPosition: CGFloat = 0 // 0 = right side, 1 = left side
+    @State private var isAnimating: Bool = false
     
     var body: some View {
         ZStack {
@@ -1106,23 +1108,63 @@ struct ParentHomeView: View {
                 Spacer()
                 
                 VStack(spacing: 0) {
-                    // Panel Header with Hamburger Menu
+                    // Panel Header with Animated Hamburger Menu
                     HStack {
-                        // Hamburger Menu Button (attached to panel)
+                        // Animated Hamburger Menu Button
                         Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
+                            withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
                                 isPanelExpanded.toggle()
                                 panelHeight = isPanelExpanded ? 0.7 : 0.25
+                                buttonPosition = isPanelExpanded ? 1 : 0
+                            }
+                            
+                            // Transform to X after roll completes
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
+                                withAnimation(.easeInOut(duration: 0.1)) {
+                                    // X transformation happens here
+                                }
                             }
                         }) {
-                            Image(systemName: isPanelExpanded ? "xmark" : "line.3.horizontal")
-                                .font(.system(size: 24, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 60, height: 60)
-                                .background(Color.blue)
-                                .clipShape(Circle())
+                            // Hamburger lines with rotation
+                            ZStack {
+                                if isPanelExpanded {
+                                    // X shape - two lines crossing
+                                    ZStack {
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                            .rotationEffect(.degrees(45))
+                                        
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                            .rotationEffect(.degrees(-45))
+                                    }
+                                } else {
+                                    // Hamburger lines
+                                    VStack(spacing: 4) {
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                        
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                        
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                    }
+                                }
+                            }
+                            .rotationEffect(.degrees(-buttonPosition * 360)) // Rotate with the circle
+                            .frame(width: 60, height: 60)
+                            .background(Color.vibrantRed)
+                            .clipShape(Circle())
                         }
-                        .offset(y: -30) // Position above panel by 30px
+                        .buttonStyle(PlainButtonStyle())
+                        .offset(x: buttonPosition == 0 ? UIScreen.main.bounds.width - 100 : 0)
+                        .offset(y: -30)
                         
                         Spacer()
                     }
@@ -1188,12 +1230,12 @@ struct ParentHomeView: View {
                                                     showingInviteChild = true
                                                 }
                                                 .primaryAButtonStyle()
-                                                .padding(.horizontal, 40)
-                                                .padding(.bottom, UIScreen.main.bounds.height < 700 ? 30 : 80)
+                                                .padding(.horizontal, 15)
+                                                .padding(.bottom, UIScreen.main.bounds.height < 700 ? 50 : 80)
                                             }
                                         }
                                     }
-                                    .frame(minHeight: 200, maxHeight: 280)
+                                    .frame(height: UIScreen.main.bounds.height < 700 ? 200 : 220)
                                     .background(Color(UIColor.systemGray6))
                                     .cornerRadius(12)
                                 } else {
@@ -1324,17 +1366,17 @@ struct ParentHomeView: View {
                                         HStack {
                                             Image(systemName: "person.2.fill")
                                                 .font(.title2)
-                                                .foregroundColor(.blue)
-                                            Text("My Family")
+                                                .foregroundColor(.vibrantPurple)
+                                            Text("Family Members")
                                                 .font(.headline)
-                                                .foregroundColor(.blue)
+                                                .foregroundColor(.vibrantPurple)
                                             Spacer()
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
-                                                .foregroundColor(.blue)
+                                                .foregroundColor(.vibrantPurple)
                                         }
                                         .padding()
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(Color.familyMembersBg)
                                         .cornerRadius(12)
                                     }
                                     
@@ -1343,17 +1385,17 @@ struct ParentHomeView: View {
                                         HStack {
                                             Image(systemName: "location.circle")
                                                 .font(.title2)
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(.vibrantGreenDark)
                                             Text("Location Alerts")
                                                 .font(.headline)
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(.vibrantGreenDark)
                                             Spacer()
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(.vibrantGreenDark)
                                         }
                                         .padding()
-                                        .background(Color.orange.opacity(0.1))
+                                        .background(Color.locationAlertsBg)
                                         .cornerRadius(12)
                                     }
                                 }
@@ -1363,17 +1405,17 @@ struct ParentHomeView: View {
                                     HStack {
                                         Image(systemName: "gear")
                                             .font(.title2)
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.vibrantBlue)
                                         Text("Settings")
                                             .font(.headline)
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.vibrantBlue)
                                         Spacer()
                                         Image(systemName: "chevron.right")
                                             .font(.caption)
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.vibrantBlue)
                                     }
                                     .padding()
-                                    .background(Color.gray.opacity(0.1))
+                                    .background(Color.settingsBg)
                                     .cornerRadius(12)
                                 }
                             }
@@ -1444,9 +1486,11 @@ struct ParentHomeView: View {
                 if familyService.currentFamily == nil {
                     isPanelExpanded = true
                     panelHeight = 0.7
+                    buttonPosition = 1 // Button should be on left when panel is expanded
                 } else if let family = familyService.currentFamily, familyService.getAllChildren().isEmpty {
                     isPanelExpanded = true
                     panelHeight = 0.7
+                    buttonPosition = 1 // Button should be on left when panel is expanded
                 }
             }
             .onChange(of: familyService.currentFamily?.id) { familyId in
@@ -1458,15 +1502,18 @@ struct ParentHomeView: View {
                     if allChildren.isEmpty {
                         isPanelExpanded = true
                         panelHeight = 0.7
+                        buttonPosition = 1 // Button on left when expanded
                     } else {
                         isPanelExpanded = false
                         panelHeight = 0.25
+                        buttonPosition = 0 // Button on right when collapsed
                     }
                 } else {
                     geofenceStatusService.stopListening()
                     // Expand panel when family is removed (user becomes new again)
                     isPanelExpanded = true
                     panelHeight = 0.7
+                    buttonPosition = 1 // Button on left when expanded
                 }
             }
             .onChange(of: locationService.currentLocation) { newLocation in

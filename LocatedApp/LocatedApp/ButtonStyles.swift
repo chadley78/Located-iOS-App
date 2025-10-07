@@ -7,7 +7,14 @@ extension Color {
     static let vibrantGreen = Color(red: 0.54, green: 0.79, blue: 0.15) // #8AC926
     static let vibrantBlue = Color(red: 0.10, green: 0.51, blue: 0.77) // #1982C4
     static let vibrantPurple = Color(red: 0.42, green: 0.30, blue: 0.58) // #6A4C93
-    static let vibrantOrange = Color(red: 1.0, green: 0.65, blue: 0.0) // #FFA500
+    
+    // Button background colors
+    static let familyMembersBg = Color(red: 0.88, green: 0.84, blue: 0.94) // #E1D5F0
+    static let locationAlertsBg = Color(red: 0.89, green: 0.97, blue: 0.79) // #E4F8C9
+    static let settingsBg = Color(red: 0.80, green: 0.91, blue: 0.98) // #CBE9FB
+    
+    // Darker text colors for better contrast
+    static let vibrantGreenDark = Color(red: 0.35, green: 0.55, blue: 0.10) // #5A8A1A - darker shade of vibrant green
 }
 
 // MARK: - Primary A Button Style (Vibrant Red Buttons) - Main Action Buttons
