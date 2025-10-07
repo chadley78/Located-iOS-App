@@ -4681,7 +4681,7 @@ struct ChildPinView: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 37, height: 37)
+                        .frame(width: 36, height: 36)
                         .clipShape(Circle())
                         .offset(y: -5) // Raise to center on widest part of pin
                 } else {
