@@ -2003,7 +2003,6 @@ struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var invitationService: FamilyInvitationService
-    @StateObject private var mapViewModel = ParentMapViewModel()
     @State private var showingInviteChild = false
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
@@ -2103,31 +2102,43 @@ struct ChildrenListView: View {
                                                 print("🔍 ChildrenListView - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
                                             }
                                         }) {
-                                        HStack(spacing: 12) {
-                                            // Pin with child photo or initial
+                                        HStack {
+                                            // Custom pin with child photo or initial
                                             ZStack {
-                                                Image(getPinImage(for: child, childrenLocations: mapViewModel.childrenLocations))
+                                                // Determine pin color based on location status
+                                                let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
+                                                let hasRecentLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -300)
+                                                let hasOldLocation = childLocation != nil && (childLocation!.lastSeen.timeIntervalSinceNow > -1800) && !hasRecentLocation
+                                                
+                                                let pinImageName: String = {
+                                                    if child.isPending {
+                                                        return "RedPin" // Offline for pending
+                                                    } else if hasRecentLocation {
+                                                        return "GreenPin" // Recent location
+                                                    } else if hasOldLocation {
+                                                        return "OrangePin" // Old location
+                                                    } else {
+                                                        return "RedPin" // Offline
+                                                    }
+                                                }()
+                                                
+                                                Image(pinImageName)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fit)
                                                     .frame(width: 40, height: 40)
                                                 
-                                                // Child photo or initial
-                                                if let imageBase64 = child.imageBase64, !imageBase64.isEmpty {
-                                                    if let imageData = Data(base64Encoded: imageBase64),
-                                                       let uiImage = UIImage(data: imageData) {
-                                                        Image(uiImage: uiImage)
-                                                            .resizable()
-                                                            .aspectRatio(contentMode: .fill)
-                                                            .frame(width: 24, height: 24)
-                                                            .clipShape(Circle())
-                                                    } else {
-                                                        Text(String(child.name.prefix(1)).uppercased())
-                                                            .font(.radioCanadaBig(16, weight: .semibold))
-                                                            .foregroundColor(.white)
-                                                    }
+                                                // Child photo or initial in center of pin
+                                                if let imageBase64 = child.imageBase64,
+                                                   let imageData = Data(base64Encoded: imageBase64),
+                                                   let uiImage = UIImage(data: imageData) {
+                                                    Image(uiImage: uiImage)
+                                                        .resizable()
+                                                        .aspectRatio(contentMode: .fill)
+                                                        .frame(width: 20, height: 20)
+                                                        .clipShape(Circle())
                                                 } else {
                                                     Text(String(child.name.prefix(1)).uppercased())
-                                                        .font(.radioCanadaBig(16, weight: .semibold))
+                                                        .font(.radioCanadaBig(14, weight: .semibold))
                                                         .foregroundColor(.white)
                                                 }
                                             }
@@ -2135,17 +2146,32 @@ struct ChildrenListView: View {
                                             VStack(alignment: .leading, spacing: 2) {
                                                 Text(child.name)
                                                     .font(.radioCanadaBig(16, weight: .regular))
-                                                    .tracking(-0.8) // 5% reduction in letter spacing
+                                                    .tracking(-0.8) // 5% reduced letter spacing
                                                 
-                                                Text(getChildStatusText(for: child, childrenLocations: mapViewModel.childrenLocations))
-                                                    .font(.radioCanadaBig(12, weight: .regular))
-                                                    .foregroundColor(.secondary)
+                                                HStack(spacing: 4) {
+                                                    Text("Child")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                    
+                                                    if child.isPending {
+                                                        Text("• \(child.status.displayName)")
+                                                            .font(.caption)
+                                                            .foregroundColor(.orange)
+                                                            .font(.system(size: 12, weight: .medium))
+                                                    }
+                                                }
                                             }
                                             
                                             Spacer()
+                                            
+                                            if !child.isPending {
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
                                         }
-                                        .padding(.vertical, 12)
-                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
                                         .background(Color(UIColor.systemBackground))
                                         .cornerRadius(8)
                                         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
@@ -2153,10 +2179,10 @@ struct ChildrenListView: View {
                                         .opacity(removedChildId == child.id ? 0.0 : 1.0)
                                         .animation(.easeInOut(duration: 0.8), value: removedChildId)
                                         
-                                        // Dividing line
+                                        // Dividing line (except for last child)
                                         if child.id != allChildren.last?.id {
                                             Divider()
-                                                .padding(.horizontal, 16)
+                                                .padding(.horizontal, 12)
                                         }
                                     }
                                     .buttonStyle(PlainButtonStyle())
@@ -2211,61 +2237,49 @@ struct ChildrenListView: View {
                                                     print("🔍 ChildrenListView (ScrollView) - Set selectedPendingChild: \(selectedPendingChild?.name ?? "nil")")
                                                 }
                                             }) {
-                                            HStack(spacing: 12) {
-                                                // Pin with child photo or initial
-                                                ZStack {
-                                                    Image(getPinImage(for: child, childrenLocations: mapViewModel.childrenLocations))
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fit)
-                                                        .frame(width: 40, height: 40)
-                                                    
-                                                    // Child photo or initial
-                                                    if let imageBase64 = child.imageBase64, !imageBase64.isEmpty {
-                                                        if let imageData = Data(base64Encoded: imageBase64),
-                                                           let uiImage = UIImage(data: imageData) {
-                                                            Image(uiImage: uiImage)
-                                                                .resizable()
-                                                                .aspectRatio(contentMode: .fill)
-                                                                .frame(width: 24, height: 24)
-                                                                .clipShape(Circle())
-                                                        } else {
-                                                            Text(String(child.name.prefix(1)).uppercased())
-                                                                .font(.radioCanadaBig(16, weight: .semibold))
-                                                                .foregroundColor(.white)
-                                                        }
-                                                    } else {
-                                                        Text(String(child.name.prefix(1)).uppercased())
-                                                            .font(.radioCanadaBig(16, weight: .semibold))
-                                                            .foregroundColor(.white)
-                                                    }
-                                                }
+                                            HStack {
+                                                Image(systemName: child.isPending ? "person.badge.clock" : "person.fill")
+                                                    .foregroundColor(child.isPending ? .orange : .green)
+                                                    .frame(width: 24)
                                                 
                                                 VStack(alignment: .leading, spacing: 2) {
                                                     Text(child.name)
-                                                        .font(.radioCanadaBig(16, weight: .regular))
-                                                        .tracking(-0.8) // 5% reduction in letter spacing
+                                                        .font(.headline)
                                                     
-                                                    Text(getChildStatusText(for: child, childrenLocations: mapViewModel.childrenLocations))
-                                                        .font(.radioCanadaBig(12, weight: .regular))
-                                                        .foregroundColor(.secondary)
+                                                    HStack(spacing: 4) {
+                                                        Text("Child")
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                        
+                                                        if child.isPending {
+                                                            Text("• \(child.status.displayName)")
+                                                                .font(.caption)
+                                                                .foregroundColor(.orange)
+                                                                .font(.system(size: 12, weight: .medium))
+                                                        }
+                                                    }
                                                 }
                                                 
                                                 Spacer()
+                                                
+                                                Circle()
+                                                    .fill(child.isPending ? .orange : .green)
+                                                    .frame(width: 8, height: 8)
+                                                
+                                                if !child.isPending {
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
                                             }
-                                            .padding(.vertical, 12)
-                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 4)
+                                            .padding(.horizontal, 12)
                                             .background(Color(UIColor.systemBackground))
                                             .cornerRadius(8)
                                             .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                                             .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
                                             .opacity(removedChildId == child.id ? 0.0 : 1.0)
                                             .animation(.easeInOut(duration: 0.8), value: removedChildId)
-                                            
-                                            // Dividing line
-                                            if child.id != allChildren.last?.id {
-                                                Divider()
-                                                    .padding(.horizontal, 16)
-                                            }
                                         }
                                         .buttonStyle(PlainButtonStyle())
                                         }
@@ -2379,11 +2393,6 @@ struct ChildrenListView: View {
                 print("🔍 ChildrenListView - Family members: \(familyService.getFamilyMembers().count)")
                 print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
                 print("🔍 ChildrenListView - All children: \(familyService.getAllChildren().count)")
-                
-                // Start listening for children locations when view appears
-                if let parentId = authService.currentUser?.id, !parentId.isEmpty {
-                    mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
-                }
             }
         }
     }
@@ -2425,49 +2434,6 @@ struct ChildrenListView: View {
             // If same role, sort alphabetically by name
             return firstMember.name.localizedCaseInsensitiveCompare(secondMember.name) == .orderedAscending
         }
-    }
-    
-    private func getPinImage(for child: ChildDisplayItem, childrenLocations: [ChildLocationData]) -> String {
-        if child.isPending {
-            return "OrangePin" // Pending invitation
-        }
-        
-        // Check if child is offline (no recent location)
-        let childLocation = childrenLocations.first { $0.childId == child.id }
-        if let childLocation = childLocation {
-            let timeSinceLastSeen = Date().timeIntervalSince(childLocation.lastSeen)
-            let fiveMinutes: TimeInterval = 5 * 60
-            
-            if timeSinceLastSeen > fiveMinutes {
-                return "RedPin" // Offline/old location
-            } else {
-                return "GreenPin" // Successfully tracked
-            }
-        }
-        
-        return "RedPin" // No location data
-    }
-    
-    private func getChildStatusText(for child: ChildDisplayItem, childrenLocations: [ChildLocationData]) -> String {
-        if child.isPending {
-            return "Invite not accepted"
-        }
-        
-        let childLocation = childrenLocations.first { $0.childId == child.id }
-        if let childLocation = childLocation {
-            let timeSinceLastSeen = Date().timeIntervalSince(childLocation.lastSeen)
-            let fiveMinutes: TimeInterval = 5 * 60
-            
-            if timeSinceLastSeen > fiveMinutes {
-                return "Offline"
-            } else {
-                let formatter = DateFormatter()
-                formatter.timeStyle = .short
-                return "Located \(formatter.string(from: childLocation.lastSeen))"
-            }
-        }
-        
-        return "No location data"
     }
     
 }
