@@ -12,10 +12,11 @@ struct FamilySetupView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showingSuccess = false
+    @State private var scrollOffset: CGFloat = 0
     
     var body: some View {
         NavigationView {
-            ScrollView(.vertical, showsIndicators: true) {
+            ScrollView {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
@@ -83,21 +84,30 @@ struct FamilySetupView: View {
                 .padding(.bottom)
                 }
                 .padding()
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear
+                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                    }
+                )
+            }
+            .coordinateSpace(name: "scroll")
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                scrollOffset = value
             }
             .background(Color.vibrantPurple)
             .navigationTitle("Family Setup")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.vibrantPurple.opacity(0.95), for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(scrollOffset < -20 ? .vibrantPurple : .white)
                 }
             }
+            .toolbarBackground(scrollOffset < -20 ? .visible : .hidden, for: .navigationBar)
+            .toolbarBackground(.white, for: .navigationBar)
             .alert("Family Created!", isPresented: $showingSuccess) {
                 Button("Continue") {
                     dismiss()
@@ -308,10 +318,11 @@ struct InviteChildView: View {
     @State private var errorMessage: String?
     @State private var showingSuccess = false
     @State private var inviteCode: String?
+    @State private var scrollOffset: CGFloat = 0
     
     var body: some View {
         NavigationView {
-            ScrollView(.vertical, showsIndicators: true) {
+            ScrollView {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
@@ -445,28 +456,37 @@ struct InviteChildView: View {
                 .padding(.horizontal)
                 }
                 .padding()
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear
+                            .preference(key: ScrollOffsetPreferenceKey.self, value: geometry.frame(in: .named("scroll")).minY)
+                    }
+                )
+            }
+            .coordinateSpace(name: "scroll")
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                scrollOffset = value
             }
             .background(Color.vibrantPurple)
             .navigationTitle("Invite Child")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.vibrantPurple.opacity(0.95), for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(scrollOffset < -20 ? .vibrantPurple : .white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(scrollOffset < -20 ? .vibrantPurple : .white)
                     .disabled(inviteCode == nil)
                 }
             }
+            .toolbarBackground(scrollOffset < -20 ? .visible : .hidden, for: .navigationBar)
+            .toolbarBackground(.white, for: .navigationBar)
         }
     }
     
