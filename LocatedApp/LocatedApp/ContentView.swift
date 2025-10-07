@@ -1020,6 +1020,7 @@ struct MainTabView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
+        .accentColor(.white)
     }
 }
 
@@ -2036,7 +2037,6 @@ struct ChildrenListView: View {
         }
         .navigationTitle("My Family")
         .navigationBarTitleDisplayMode(.inline)
-        .accentColor(.white)
         .onAppear {
             let appearance = UINavigationBarAppearance()
             appearance.configureWithOpaqueBackground()
