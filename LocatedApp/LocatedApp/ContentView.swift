@@ -2143,6 +2143,10 @@ struct ChildrenListView: View {
                                                     .font(.radioCanadaBig(24, weight: .regular))
                                                     .tracking(-1.2)
                                                     .foregroundColor(.white)
+                                                
+                                                Text("Parent")
+                                                    .font(.radioCanadaBig(16, weight: .regular))
+                                                    .foregroundColor(.white.opacity(0.7))
                                             }
                                             
                                             Spacer()
@@ -2243,6 +2247,10 @@ struct ChildrenListView: View {
                                                         .font(.radioCanadaBig(24, weight: .regular))
                                                         .tracking(-1.2)
                                                         .foregroundColor(.white)
+                                                    
+                                                    Text("Parent")
+                                                        .font(.radioCanadaBig(16, weight: .regular))
+                                                        .foregroundColor(.white.opacity(0.7))
                                                 }
                                                 
                                                 Spacer()
