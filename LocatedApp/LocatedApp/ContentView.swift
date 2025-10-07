@@ -1107,79 +1107,26 @@ struct ParentHomeView: View {
             VStack {
                 Spacer()
                 
-                VStack(spacing: 0) {
-                    // Panel Header with Animated Hamburger Menu
-                    HStack {
-                        // Animated Hamburger Menu Button
-                        Button(action: {
-                            withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
-                                isPanelExpanded.toggle()
-                                panelHeight = isPanelExpanded ? 0.7 : 0.25
-                                buttonPosition = isPanelExpanded ? 1 : 0
-                            }
-                            
-                            // Transform to X after roll completes
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
-                                withAnimation(.easeInOut(duration: 0.1)) {
-                                    // X transformation happens here
+                ZStack(alignment: .topLeading) {
+                    VStack(spacing: 0) {
+                        // Panel Header (tap area)
+                        HStack {
+                            Spacer()
+                        }
+                        .frame(height: 20)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 20)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            // Tap anywhere on header to expand (only when collapsed)
+                            if !isPanelExpanded {
+                                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
+                                    isPanelExpanded = true
+                                    panelHeight = 0.7
+                                    buttonPosition = 1
                                 }
                             }
-                        }) {
-                            // Hamburger lines with rotation
-                            ZStack {
-                                if isPanelExpanded {
-                                    // X shape - two lines crossing
-                                    ZStack {
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                            .rotationEffect(.degrees(45))
-                                        
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                            .rotationEffect(.degrees(-45))
-                                    }
-                                } else {
-                                    // Hamburger lines
-                                    VStack(spacing: 4) {
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                        
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                        
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                    }
-                                }
-                            }
-                            .rotationEffect(.degrees(-buttonPosition * 360)) // Rotate with the circle
-                            .frame(width: 60, height: 60)
-                            .background(Color.vibrantRed)
-                            .clipShape(Circle())
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        .offset(x: buttonPosition == 0 ? UIScreen.main.bounds.width - 100 : 0)
-                        .offset(y: -30)
-                        
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 20)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        // Tap anywhere on header to expand (only when collapsed)
-                        if !isPanelExpanded {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                isPanelExpanded = true
-                                panelHeight = 0.7
-                            }
-                        }
-                    }
                     
                     ScrollViewReader { proxy in
                         ScrollView {
@@ -1441,13 +1388,70 @@ struct ParentHomeView: View {
                             }
                         }
                     }
+                    }
+                    .background(
+                        Color(UIColor.systemBackground)
+                            .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
+                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
+                    )
+                    .frame(height: UIScreen.main.bounds.height * panelHeight)
+                    
+                    // Animated Hamburger Menu Button (overlaid on top)
+                    Button(action: {
+                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
+                            isPanelExpanded.toggle()
+                            panelHeight = isPanelExpanded ? 0.7 : 0.25
+                            buttonPosition = isPanelExpanded ? 1 : 0
+                        }
+                        
+                        // Transform to X after roll completes
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
+                            withAnimation(.easeInOut(duration: 0.1)) {
+                                // X transformation happens here
+                            }
+                        }
+                    }) {
+                        // Hamburger lines with rotation
+                        ZStack {
+                            if isPanelExpanded {
+                                // X shape - two lines crossing
+                                ZStack {
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                        .rotationEffect(.degrees(45))
+                                    
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                        .rotationEffect(.degrees(-45))
+                                }
+                            } else {
+                                // Hamburger lines
+                                VStack(spacing: 4) {
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                    
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                    
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                }
+                            }
+                        }
+                        .rotationEffect(.degrees(-buttonPosition * 360)) // Rotate with the circle
+                        .frame(width: 60, height: 60)
+                        .background(Color.vibrantRed)
+                        .clipShape(Circle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .offset(x: buttonPosition == 0 ? UIScreen.main.bounds.width - 80 : 20)
+                    .offset(y: -30)
                 }
-                .background(
-                    Color(UIColor.systemBackground)
-                        .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
-                )
-                .frame(height: UIScreen.main.bounds.height * panelHeight)
             }
         }
             .navigationTitle("")
