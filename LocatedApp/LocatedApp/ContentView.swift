@@ -4671,7 +4671,7 @@ struct ChildPinView: View {
             Image(pinImageName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 48, height: 48)
+                .frame(width: 55, height: 55)
             
             // Child photo or initial overlay
             if let imageBase64 = child.imageBase64, !imageBase64.isEmpty {
@@ -4681,7 +4681,7 @@ struct ChildPinView: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 37, height: 37)
                         .clipShape(Circle())
                 } else {
                     // Fallback to initial if base64 decode fails
@@ -4735,27 +4735,27 @@ struct ChildRowView: View {
                     ChildPinView(child: child, lastSeen: lastSeen)
                     
                     // Child info
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 1) {
                         Text(child.name)
-                            .font(.radioCanadaBig(32, weight: .regular))
+                            .font(.radioCanadaBig(24, weight: .regular))
                             .tracking(-1.6) // 5% reduced letter spacing (32 * 0.05 = 1.6)
                             .foregroundColor(.primary)
                         
                         Text(statusText)
-                            .font(.radioCanadaBig(24, weight: .regular))
+                            .font(.radioCanadaBig(16, weight: .regular))
                             .foregroundColor(.secondary)
                     }
                     
                     Spacer()
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 12)
             }
             .buttonStyle(PlainButtonStyle())
             
             // Divider
             if showDivider {
                 Divider()
-                    .padding(.leading, 60) // Align with text, not pin (48pt pin + 12pt spacing)
+                    .padding(.horizontal, 15) // 15pt from each side
             }
         }
     }
