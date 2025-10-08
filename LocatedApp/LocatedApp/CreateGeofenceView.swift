@@ -162,9 +162,6 @@ struct CreateGeofenceView: View {
             .background(Color.vibrantBlue)
             .navigationTitle("New Location Alert")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbarBackground(Color.vibrantBlue, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {

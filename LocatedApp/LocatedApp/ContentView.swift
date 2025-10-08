@@ -2036,9 +2036,6 @@ struct ChildrenListView: View {
         }
         .navigationTitle("My Family")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
-        .toolbarBackground(Color.vibrantPurple, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
                 .environmentObject(familyService)
