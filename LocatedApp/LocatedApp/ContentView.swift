@@ -1040,6 +1040,7 @@ struct ParentHomeView: View {
     @State private var isPanelExpanded: Bool = false
     @State private var buttonPosition: CGFloat = 0 // 0 = right side, 1 = left side
     @State private var isAnimating: Bool = false
+    @State private var selectedChildForProfile: ChildDisplayItem?
     
     var body: some View {
         ZStack {
@@ -1209,6 +1210,9 @@ struct ParentHomeView: View {
                                                         mapViewModel.centerOnChild(childId: child.id)
                                                     }
                                                     // For pending children, we don't do anything on tap in the home view
+                                                },
+                                                onSettingsTap: {
+                                                    selectedChildForProfile = child
                                                 },
                                                 showDivider: !isLastChild
                                             )
@@ -1423,6 +1427,12 @@ struct ParentHomeView: View {
             }
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
+                    .environmentObject(familyService)
+            }
+            .sheet(item: $selectedChildForProfile) { child in
+                ChildProfileView(childId: child.id, child: child, onChildRemoved: { _ in
+                    // No removal animation needed from home view
+                })
                     .environmentObject(familyService)
             }
             .onAppear {
@@ -4649,6 +4659,7 @@ struct ChildRowView: View {
     let child: ChildDisplayItem
     let lastSeen: Date?
     let onTap: () -> Void
+    let onSettingsTap: (() -> Void)?
     let showDivider: Bool
     
     var body: some View {
@@ -4670,6 +4681,18 @@ struct ChildRowView: View {
                 }
                 
                 Spacer()
+                
+                // Settings button
+                if let onSettingsTap = onSettingsTap {
+                    Button(action: onSettingsTap) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
             .padding(.vertical, 12)
             .contentShape(Rectangle())
