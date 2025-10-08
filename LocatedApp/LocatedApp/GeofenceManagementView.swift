@@ -19,10 +19,20 @@ struct GeofenceManagementView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // Title
+                Text("Location Alerts")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .padding(.top)
+                    .padding(.bottom, 10)
                 
                 if geofenceService.isLoading {
                     ProgressView("Loading location alerts...")
                         .font(.radioCanadaBig(16, weight: .regular))
+                        .foregroundColor(.white)
                         .padding(.top, 60)
                     Spacer()
                 } else if geofenceService.geofences.isEmpty {
@@ -37,10 +47,11 @@ struct GeofenceManagementView: View {
                         VStack(spacing: 8) {
                             Text("No Location Alerts Yet")
                                 .font(.radioCanadaBig(20, weight: .semibold))
+                                .foregroundColor(.white)
                             
                             Text("Create your first location alert to get notified when family members enter or leave specific areas.")
                                 .font(.radioCanadaBig(14, weight: .regular))
-                                .foregroundColor(.primary.opacity(0.7))
+                                .foregroundColor(.white.opacity(0.8))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
                         }
@@ -52,9 +63,14 @@ struct GeofenceManagementView: View {
                                 Image(systemName: "plus.circle.fill")
                                 Text("Create First Location Alert")
                             }
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.vibrantYellow)
+                            .cornerRadius(25)
                         }
-                        .primaryAButtonStyle()
-                        .padding(.horizontal)
+                        .padding(.horizontal, 30)
                         
                         Spacer()
                     }
@@ -81,6 +97,8 @@ struct GeofenceManagementView: View {
                         .padding(.top, 20)
                     }
                     
+                    Spacer()
+                    
                     // Add Location Alert Button
                     Button(action: {
                         showingCreateGeofence = true
@@ -89,13 +107,17 @@ struct GeofenceManagementView: View {
                             Image(systemName: "plus.circle.fill")
                             Text("Add Location Alert")
                         }
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.vibrantYellow)
+                        .cornerRadius(25)
                     }
-                    .primaryAButtonStyle()
-                    .padding()
+                    .padding(.horizontal, 30)
                 }
             }
-            .background(Color.vibrantBlue)
-            .navigationTitle("Location Alerts")
+            .background(Color.vibrantRed)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 Task {

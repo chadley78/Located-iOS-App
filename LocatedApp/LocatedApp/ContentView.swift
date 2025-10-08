@@ -170,7 +170,6 @@ struct WelcomeView: View {
                     }
                     .primaryAButtonStyle()
                 }
-                .padding(.horizontal, 50)
                 
                 Spacer()
             }
@@ -1994,6 +1993,8 @@ struct ChildrenListView: View {
                     if familyService.currentFamily != nil {
                         familyHeaderView
                         
+                        Spacer()
+                        
                         // Add Child Button
                         Button(action: {
                             showingInviteChild = true
@@ -2004,7 +2005,6 @@ struct ChildrenListView: View {
                             }
                         }
                         .primaryAButtonStyle()
-                        .padding(.horizontal)
                         
                         familyMembersListView
                         
@@ -2995,7 +2995,6 @@ struct ChildProfileView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthenticationService
-    @StateObject private var invitationService = InvitationService()
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -3003,79 +3002,21 @@ struct SettingsView: View {
             VStack(spacing: 20) {
                 Text("Settings")
                     .font(.largeTitle)
-                    .padding()
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .padding(.top)
                 
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("User: \(authService.currentUser?.name ?? "Unknown")")
                     Text("Email: \(authService.currentUser?.email ?? "Unknown")")
                     Text("Type: \(authService.currentUser?.userType.rawValue.capitalized ?? "Unknown")")
                 }
-                .foregroundColor(.secondary)
-                
-                // Debug buttons for user type switching
-                VStack(spacing: 12) {
-                    Text("Debug: Switch User Type")
-                        .font(.headline)
-                        .foregroundColor(.orange)
-                    
-                    HStack(spacing: 12) {
-                        Button("Set as Parent") {
-                            Task {
-                                await authService.updateUserType(.parent)
-                            }
-                        }
-                        .primaryAButtonStyle()
-                        
-                        Button("Set as Child") {
-                            Task {
-                                await authService.updateUserType(.child)
-                            }
-                        }
-                        .primaryAButtonStyle()
-                    }
-                }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(12)
-                
-                // Debug cleanup button for child users
-                if authService.currentUser?.userType == .child {
-                    Button("Cleanup Pending Children") {
-                        Task {
-                            await invitationService.cleanupPendingChildren()
-                        }
-                    }
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 40)
-                    .background(Color.purple)
-                    .cornerRadius(8)
-                }
-                
-                // Debug cleanup button for parent users
-                if authService.currentUser?.userType == .parent {
-                    VStack(spacing: 8) {
-                        Button("Cleanup My Pending Children") {
-                            Task {
-                                await cleanupParentPendingChildren()
-                            }
-                        }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(Color.purple)
-                        .cornerRadius(8)
-                        
-                        Button("Force Complete Invitation") {
-                            Task {
-                                await forceCompleteInvitation()
-                            }
-                        }
-                        .primaryBButtonStyle()
-                    }
-                }
+                .font(.body)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
                 
                 Button("Sign Out") {
                     Task {
@@ -3092,151 +3033,8 @@ struct SettingsView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Settings")
+            .background(Color.vibrantRed)
         }
-    }
-    
-    private func cleanupParentPendingChildren() async {
-        print("🔍 PARENT CLEANUP: Checking for accepted invitations...")
-        
-        guard let parentId = authService.currentUser?.id else {
-            print("❌ No parent ID found")
-            return
-        }
-        
-        let db = Firestore.firestore()
-        
-        // Get all accepted invitations for this parent
-        let query = db.collection("parent_child_invitations")
-            .whereField("parentId", isEqualTo: parentId)
-            .whereField("status", isEqualTo: "accepted")
-        
-        do {
-            let snapshot = try await query.getDocuments()
-            print("🔍 Found \(snapshot.documents.count) accepted invitations for parent")
-            
-            // Debug: Print details of accepted invitations
-            for document in snapshot.documents {
-                let data = document.data()
-                print("🔍 Accepted invitation: \(document.documentID)")
-                print("🔍   - childEmail: \(data["childEmail"] ?? "nil")")
-                print("🔍   - childName: \(data["childName"] ?? "nil")")
-                print("🔍   - parentId: \(data["parentId"] ?? "nil")")
-                print("🔍   - status: \(data["status"] ?? "nil")")
-            }
-            
-            // Get current pending children
-            let parentDoc = try await db.collection("users").document(parentId).getDocument()
-            guard let parentData = parentDoc.data(),
-                  let pendingChildrenData = parentData["pendingChildren"] as? [[String: Any]] else {
-                print("❌ Could not get parent's pending children data")
-                return
-            }
-            
-            print("🔍 Current pending children count: \(pendingChildrenData.count)")
-            
-            // Also check what children are currently in the parent's children list
-            let currentChildren = parentData["children"] as? [String] ?? []
-            print("🔍 Current children list: \(currentChildren)")
-            
-            // Remove accepted invitations from pending list
-            let acceptedInvitationIds = Set(snapshot.documents.map { $0.documentID })
-            let updatedPendingChildren = pendingChildrenData.filter { pendingChildData in
-                let invitationId = pendingChildData["invitationId"] as? String ?? ""
-                let shouldKeep = !acceptedInvitationIds.contains(invitationId)
-                print("🔍 Checking pending child: invitationId=\(invitationId), shouldKeep=\(shouldKeep)")
-                return shouldKeep
-            }
-            
-            print("🔍 Updated pending children count: \(updatedPendingChildren.count)")
-            
-            if updatedPendingChildren.count != pendingChildrenData.count {
-                try await db.collection("users").document(parentId).updateData([
-                    "pendingChildren": updatedPendingChildren
-                ])
-                print("✅ Cleaned up \(pendingChildrenData.count - updatedPendingChildren.count) pending children")
-            } else {
-                print("ℹ️ No cleanup needed - all pending children are still pending")
-            }
-            
-            // Additional step: Check if accepted children are missing from parent's children list
-            print("🔍 Checking if accepted children need to be added to parent's children list...")
-            
-            for document in snapshot.documents {
-                let data = document.data()
-                let childEmail = data["childEmail"] as? String ?? ""
-                
-                // Instead of querying by email (which requires special permissions),
-                // we'll use the child's user ID that should be stored in the invitation
-                // For now, let's skip this step since we can't query users by email
-                print("🔍 Skipping child lookup for email: \(childEmail) - requires special permissions")
-                print("ℹ️ The acceptInvitation method should handle adding children to parent's list")
-            }
-            
-        } catch {
-            print("❌ Error during parent cleanup: \(error)")
-        }
-    }
-    
-    private func forceCompleteInvitation() async {
-        print("🔍 FORCE COMPLETE: Manually completing invitation process...")
-        
-        guard let parentId = authService.currentUser?.id else {
-            print("❌ No parent ID found")
-            return
-        }
-        
-        let db = Firestore.firestore()
-        
-        // Step 1: Clear all pending children
-        print("🔍 Step 1: Clearing all pending children...")
-        try? await db.collection("users").document(parentId).updateData([
-            "pendingChildren": []
-        ])
-        print("✅ Cleared all pending children")
-        
-        // Step 2: Add the child to parent's children list using the known child ID
-        // From the logs, we know the child's user ID is: h29wApYrBBZheUalyvWOEWS8sdf2
-        let childId = "h29wApYrBBZheUalyvWOEWS8sdf2"
-        print("🔍 Step 2: Adding child \(childId) to parent's children list...")
-        
-        try? await db.collection("users").document(parentId).updateData([
-            "children": FieldValue.arrayUnion([childId])
-        ])
-        print("✅ Added child to parent's children list")
-        
-        // Step 3: Add parent to child's parents list
-        print("🔍 Step 3: Adding parent to child's parents list...")
-        try? await db.collection("users").document(childId).updateData([
-            "parents": FieldValue.arrayUnion([parentId])
-        ])
-        print("✅ Added parent to child's parents list")
-        
-        // Step 4: Update child's name in the system (for display purposes)
-        print("🔍 Step 4: Ensuring child name is properly set...")
-        
-        // First, let's check what's currently in the child's document
-        let childDoc = try? await db.collection("users").document(childId).getDocument()
-        if let childData = childDoc?.data() {
-            print("🔍 Child document data: \(childData)")
-            let currentName = childData["name"] as? String ?? "No name field"
-            print("🔍 Current child name: \(currentName)")
-        } else {
-            print("❌ Child document doesn't exist or can't be read")
-        }
-        
-        // Try to update the child's name
-        do {
-            try await db.collection("users").document(childId).updateData([
-                "name": "Aidan Flood"
-            ])
-            print("✅ Updated child's name")
-        } catch {
-            print("❌ Failed to update child's name: \(error)")
-            print("ℹ️ This is expected due to Firestore permissions")
-        }
-        
-        print("🎉 Force complete finished! The invitation should now be properly established.")
     }
 }
 

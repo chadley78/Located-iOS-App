@@ -86,7 +86,6 @@ struct AcceptFamilyInvitationView: View {
                         }
                         .primaryAButtonStyle()
                         .disabled(inviteCode.isEmpty || isLoading)
-                        .padding(.horizontal)
                         
                         // Skip Button
                         Button("Skip for now") {
@@ -329,7 +328,6 @@ struct WelcomeToFamilyView: View {
                 }
             }
             .primaryAButtonStyle()
-            .padding(.horizontal)
             .padding(.bottom)
         }
         .padding()

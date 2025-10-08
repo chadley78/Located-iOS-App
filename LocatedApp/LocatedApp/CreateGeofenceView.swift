@@ -36,7 +36,7 @@ struct CreateGeofenceView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "New Location Alert",
-            backgroundColor: .vibrantBlue,
+            backgroundColor: .vibrantRed,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -69,7 +69,7 @@ struct CreateGeofenceView: View {
                     
                     HStack {
                         Slider(value: $selectedRadius, in: 50...1000, step: 50)
-                            .accentColor(.vibrantRed)
+                            .accentColor(.vibrantYellow)
                         
                         Text("\(Int(selectedRadius))m")
                             .font(.subheadline)
@@ -88,9 +88,9 @@ struct CreateGeofenceView: View {
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(
-                                        selectedRadius == radius ? Color.vibrantRed : Color.white.opacity(0.3)
+                                        selectedRadius == radius ? Color.vibrantYellow : Color.white.opacity(0.3)
                                     )
-                                    .foregroundColor(.white)
+                                    .foregroundColor(selectedRadius == radius ? .black : .white)
                                     .cornerRadius(8)
                             }
                         }
@@ -106,13 +106,15 @@ struct CreateGeofenceView: View {
                     if let coordinate = selectedCoordinate {
                         HStack {
                             Image(systemName: "mappin.circle.fill")
-                                .foregroundColor(.vibrantRed)
+                                .foregroundColor(.vibrantYellow)
                             
                             VStack(alignment: .leading) {
                                 Text("Lat: \(coordinate.latitude, specifier: "%.6f")")
                                     .font(.caption)
+                                    .foregroundColor(.white)
                                 Text("Lng: \(coordinate.longitude, specifier: "%.6f")")
                                     .font(.caption)
+                                    .foregroundColor(.white)
                             }
                             
                             Spacer()
@@ -122,15 +124,15 @@ struct CreateGeofenceView: View {
                             }) {
                                 Text("Change")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(Color.vibrantRed)
+                                    .background(Color.vibrantYellow)
                                     .cornerRadius(8)
                             }
                         }
                         .padding()
-                        .background(Color.white)
+                        .background(Color.white.opacity(0.2))
                         .cornerRadius(8)
                     } else {
                         Button(action: {
@@ -140,8 +142,14 @@ struct CreateGeofenceView: View {
                                 Image(systemName: "plus.circle.fill")
                                 Text("Select Location")
                             }
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.vibrantYellow)
+                            .cornerRadius(25)
                         }
-                        .primaryAButtonStyle()
+                        .padding(.horizontal, 30)
                         .padding(.top, 8)
                     }
                 }

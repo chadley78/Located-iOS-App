@@ -72,7 +72,6 @@ struct FamilySetupView: View {
                 }
                 .primaryAButtonStyle()
                 .disabled(familyName.isEmpty || isLoading)
-                .padding(.horizontal)
                 
                 // Cancel Button
                 Button("Cancel") {
@@ -451,7 +450,6 @@ struct InviteChildView: View {
                 }
                 .primaryAButtonStyle()
                 .disabled(childName.isEmpty || isLoading)
-                .padding(.horizontal)
                 }
                 .padding()
             }
