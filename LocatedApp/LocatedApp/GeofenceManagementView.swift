@@ -21,18 +21,18 @@ struct GeofenceManagementView: View {
             VStack(spacing: 0) {
                 
                 if geofenceService.isLoading {
-                    Spacer()
                     ProgressView("Loading location alerts...")
                         .font(.radioCanadaBig(16, weight: .regular))
+                        .padding(.top, 60)
                     Spacer()
                 } else if geofenceService.geofences.isEmpty {
                     // Empty State
                     VStack(spacing: 20) {
-                        Spacer()
-                        
-                        Image(systemName: "location.circle")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
+                        Image("CreateFamily")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 120)
+                            .padding(.top, 60)
                         
                         VStack(spacing: 8) {
                             Text("No Location Alerts Yet")
@@ -40,11 +40,10 @@ struct GeofenceManagementView: View {
                             
                             Text("Create your first location alert to get notified when family members enter or leave specific areas.")
                                 .font(.radioCanadaBig(14, weight: .regular))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.primary.opacity(0.7))
                                 .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
                         }
-                        
-                        Spacer()
                         
                         Button(action: {
                             showingCreateGeofence = true
@@ -56,6 +55,8 @@ struct GeofenceManagementView: View {
                         }
                         .primaryAButtonStyle()
                         .padding(.horizontal)
+                        
+                        Spacer()
                     }
                 } else {
                     // Location Alerts List
@@ -77,6 +78,7 @@ struct GeofenceManagementView: View {
                             }
                         }
                         .padding()
+                        .padding(.top, 20)
                     }
                     
                     // Add Location Alert Button
@@ -92,6 +94,7 @@ struct GeofenceManagementView: View {
                     .padding()
                 }
             }
+            .background(Color.vibrantYellow)
             .navigationTitle("Location Alerts")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -221,7 +224,7 @@ struct GeofenceCard: View {
         }
         .buttonStyle(PlainButtonStyle())
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(red: 1.0, green: 0.95, blue: 0.78)) // #FFF3C7
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         .alert("Delete Location Alert", isPresented: $showingDeleteAlert) {
