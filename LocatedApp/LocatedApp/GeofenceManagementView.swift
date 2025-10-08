@@ -97,6 +97,9 @@ struct GeofenceManagementView: View {
             .background(Color.vibrantBlue)
             .navigationTitle("Location Alerts")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(Color.vibrantBlue, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .onAppear {
                 Task {
                     await geofenceService.fetchGeofences(for: familyId)

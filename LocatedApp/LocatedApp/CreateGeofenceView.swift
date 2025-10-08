@@ -162,16 +162,21 @@ struct CreateGeofenceView: View {
             .background(Color.vibrantBlue)
             .navigationTitle("New Location Alert")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(Color.vibrantBlue, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(existingGeofence != nil ? "Update" : "Done") {
                         createGeofence()
                     }
+                    .foregroundColor(.white)
                     .disabled(!canCreateGeofence || isLoading)
                 }
             }
