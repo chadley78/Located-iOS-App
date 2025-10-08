@@ -307,7 +307,19 @@ struct InviteChildView: View {
     @State private var inviteCode: String?
     
     var body: some View {
-        NavigationView {
+        CustomNavigationContainer(
+            title: "Invite Child",
+            backgroundColor: .vibrantPurple,
+            leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
+                dismiss()
+            },
+            trailingButton: CustomNavigationBar.NavigationButton(
+                title: "Done",
+                isDisabled: inviteCode == nil
+            ) {
+                dismiss()
+            }
+        ) {
             ScrollView {
                 VStack(spacing: 24) {
                 // Header
@@ -442,24 +454,6 @@ struct InviteChildView: View {
                 .padding(.horizontal)
                 }
                 .padding()
-            }
-            .background(Color.vibrantPurple)
-            .navigationTitle("Invite Child")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                    .disabled(inviteCode == nil)
-                }
             }
         }
     }

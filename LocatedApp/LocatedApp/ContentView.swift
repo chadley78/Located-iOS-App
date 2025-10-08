@@ -1020,6 +1020,7 @@ struct MainTabView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
+        .accentColor(.white)
     }
 }
 
@@ -1289,17 +1290,17 @@ struct ParentHomeView: View {
                                         HStack {
                                             Image(systemName: "location.circle")
                                                 .font(.title2)
-                                                .foregroundColor(.vibrantGreenDark)
+                                                .foregroundColor(.vibrantBlue)
                                             Text("Location Alerts")
                                                 .font(.headline)
-                                                .foregroundColor(.vibrantGreenDark)
+                                                .foregroundColor(.vibrantBlue)
                                             Spacer()
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
-                                                .foregroundColor(.vibrantGreenDark)
+                                                .foregroundColor(.vibrantBlue)
                                         }
                                         .padding()
-                                        .background(Color.locationAlertsBg)
+                                        .background(Color.settingsBg)
                                         .cornerRadius(12)
                                     }
                                 }
@@ -1309,17 +1310,17 @@ struct ParentHomeView: View {
                                     HStack {
                                         Image(systemName: "gear")
                                             .font(.title2)
-                                            .foregroundColor(.vibrantBlue)
+                                            .foregroundColor(Color(white: 0.4))
                                         Text("Settings")
                                             .font(.headline)
-                                            .foregroundColor(.vibrantBlue)
+                                            .foregroundColor(Color(white: 0.4))
                                         Spacer()
                                         Image(systemName: "chevron.right")
                                             .font(.caption)
-                                            .foregroundColor(.vibrantBlue)
+                                            .foregroundColor(Color(white: 0.4))
                                     }
                                     .padding()
-                                    .background(Color.settingsBg)
+                                    .background(Color(white: 0.92))
                                     .cornerRadius(12)
                                 }
                             }
@@ -1984,9 +1985,10 @@ struct ChildrenListView: View {
     @State private var isLoadingEditName = false
     
     var body: some View {
-        ZStack {
-            Color.vibrantPurple.ignoresSafeArea()
-            
+        CustomNavigationContainer(
+            title: "",
+            backgroundColor: .vibrantPurple
+        ) {
             ScrollView {
                 VStack(spacing: 20) {
                     if familyService.currentFamily != nil {
@@ -2034,8 +2036,6 @@ struct ChildrenListView: View {
                 .padding()
             }
         }
-        .navigationTitle("My Family")
-        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
                 .environmentObject(familyService)

@@ -34,7 +34,19 @@ struct CreateGeofenceView: View {
     }
     
     var body: some View {
-        NavigationView {
+        CustomNavigationContainer(
+            title: "New Location Alert",
+            backgroundColor: .vibrantBlue,
+            leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
+                dismiss()
+            },
+            trailingButton: CustomNavigationBar.NavigationButton(
+                title: existingGeofence != nil ? "Update" : "Done",
+                isDisabled: !canCreateGeofence || isLoading
+            ) {
+                createGeofence()
+            }
+        ) {
             ScrollView {
                 VStack(spacing: 20) {
                 // Location Alert Name
@@ -158,24 +170,6 @@ struct CreateGeofenceView: View {
                 
                 }
                 .padding()
-            }
-            .background(Color.vibrantBlue)
-            .navigationTitle("New Location Alert")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(existingGeofence != nil ? "Update" : "Done") {
-                        createGeofence()
-                    }
-                    .foregroundColor(.white)
-                    .disabled(!canCreateGeofence || isLoading)
-                }
             }
             .sheet(isPresented: $showingLocationPicker) {
                 LocationPickerView(selectedCoordinate: $selectedCoordinate)
