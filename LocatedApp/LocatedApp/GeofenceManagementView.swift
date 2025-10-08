@@ -94,7 +94,7 @@ struct GeofenceManagementView: View {
                     .padding()
                 }
             }
-            .background(Color.vibrantYellow)
+            .background(Color.vibrantBlue)
             .navigationTitle("Location Alerts")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -224,7 +224,7 @@ struct GeofenceCard: View {
         }
         .buttonStyle(PlainButtonStyle())
         .padding()
-        .background(Color(red: 1.0, green: 0.95, blue: 0.78)) // #FFF3C7
+        .background(Color.white)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         .alert("Delete Location Alert", isPresented: $showingDeleteAlert) {
