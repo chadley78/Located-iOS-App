@@ -1024,6 +1024,7 @@ struct ParentHomeView: View {
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var geofenceStatusService: GeofenceStatusService
     @EnvironmentObject var locationService: LocationService
+    @EnvironmentObject var notificationService: NotificationService
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var mapViewModel = ParentMapViewModel()
     
@@ -1432,6 +1433,12 @@ struct ParentHomeView: View {
                     .environmentObject(familyService)
             }
             .onAppear {
+                // Register for push notifications (geofence alerts)
+                Task {
+                    await notificationService.registerFCMToken()
+                    print("📱 Parent registered for geofence notifications")
+                }
+                
                 // Start listening for children locations when view appears
                 if let parentId = authService.currentUser?.id, !parentId.isEmpty {
                     mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
