@@ -1209,7 +1209,8 @@ struct ParentHomeView: View {
                                                 onSettingsTap: {
                                                     selectedChildForProfile = child
                                                 },
-                                                showDivider: !isLastChild
+                                                showDivider: !isLastChild,
+                                                geofenceStatus: geofenceStatusService.getStatusForChild(childId: child.id)
                                             )
                                         }
                                     }
@@ -4657,6 +4658,7 @@ struct ChildRowView: View {
     let onTap: () -> Void
     let onSettingsTap: (() -> Void)?
     let showDivider: Bool
+    let geofenceStatus: GeofenceStatus? // New parameter
     
     var body: some View {
         VStack(spacing: 0) {
@@ -4707,6 +4709,16 @@ struct ChildRowView: View {
     private var statusText: String {
         if child.isPending {
             return "Invite not accepted"
+        }
+        
+        // Check if child is in a geofence (only show if last event was "enter")
+        if let status = geofenceStatus, status.lastEvent == .enter {
+            // Child is currently inside a geofence
+            if let lastSeen = lastSeen {
+                return "In \"\(status.geofenceName)\" • \(formatTime(lastSeen))"
+            } else {
+                return "In \"\(status.geofenceName)\""
+            }
         }
         
         guard let lastSeen = lastSeen else {

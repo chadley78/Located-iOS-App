@@ -47,6 +47,10 @@ class LocationService: NSObject, ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var periodicLocationTimer: Timer?
     
+    // Geofence state tracking
+    private var lastKnownGeofenceId: String? // Track which geofence child is currently in
+    private var cachedGeofences: [Geofence] = [] // Cache of active geofences for this family
+    
     // Location update settings
     private let locationUpdateInterval: TimeInterval = 30 // 30 seconds
     private let significantLocationChangeThreshold: CLLocationDistance = 100 // 100 meters
@@ -157,6 +161,11 @@ class LocationService: NSObject, ObservableObject {
         
         // Start periodic location timer for regular updates
         setupPeriodicLocationTimer()
+        
+        // Fetch geofences for containment checking
+        Task {
+            await fetchGeofences()
+        }
         
         isLocationSharingEnabled = true
         print("📍 Location updates started successfully")
@@ -290,6 +299,9 @@ class LocationService: NSObject, ObservableObject {
             try await Firestore.firestore().collection("locations").document(userId).setData(data)
             lastFirestoreUpdateTime = Date() // Track when we last updated Firestore
             print("📍 Location saved to Firestore: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+            
+            // Check geofence containment after saving location
+            await checkGeofenceContainment(location: location)
         } catch {
             print("❌ Error saving location to Firestore: \(error)")
         }
@@ -433,6 +445,125 @@ class LocationService: NSObject, ObservableObject {
             print("📍 No current location, requesting fresh location")
             // Request a fresh location update
             locationManager.requestLocation()
+        }
+    }
+    
+    // MARK: - Geofence Containment Checking
+    
+    /// Fetch active geofences for the child's family
+    func fetchGeofences() async {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("❌ No authenticated user for geofence fetch")
+            return
+        }
+        
+        do {
+            // Get user's familyId
+            let userDoc = try await Firestore.firestore().collection("users").document(userId).getDocument()
+            guard let familyId = userDoc.data()?["familyId"] as? String else {
+                print("📍 No family ID for user - skipping geofence fetch")
+                return
+            }
+            
+            // Fetch active geofences for this family
+            let snapshot = try await Firestore.firestore().collection("geofences")
+                .whereField("familyId", isEqualTo: familyId)
+                .whereField("isActive", isEqualTo: true)
+                .getDocuments()
+            
+            let geofences = snapshot.documents.compactMap { doc -> Geofence? in
+                try? doc.data(as: Geofence.self)
+            }
+            
+            await MainActor.run {
+                self.cachedGeofences = geofences
+                print("📍 Fetched \(geofences.count) geofences for family \(familyId)")
+            }
+            
+        } catch {
+            print("❌ Error fetching geofences: \(error)")
+        }
+    }
+    
+    /// Check if current location is inside any geofences and log events if state changed
+    private func checkGeofenceContainment(location: CLLocation) async {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Find which geofence (if any) the child is currently in
+        var currentGeofenceId: String? = nil
+        var currentGeofence: Geofence? = nil
+        
+        for geofence in cachedGeofences {
+            let geofenceCenter = CLLocation(latitude: geofence.latitude, longitude: geofence.longitude)
+            let distance = location.distance(from: geofenceCenter)
+            
+            if distance <= geofence.radius {
+                // Child is inside this geofence
+                currentGeofenceId = geofence.id
+                currentGeofence = geofence
+                print("📍 Child is inside geofence: \(geofence.name) (distance: \(Int(distance))m, radius: \(Int(geofence.radius))m)")
+                break // Only track one geofence at a time
+            }
+        }
+        
+        // Check if state changed
+        if currentGeofenceId != lastKnownGeofenceId {
+            // State changed - log events
+            
+            if let lastId = lastKnownGeofenceId, let exitedGeofence = cachedGeofences.first(where: { $0.id == lastId }) {
+                // Child exited a geofence
+                print("📍 Synthetic EXIT event: \(exitedGeofence.name)")
+                await logSyntheticGeofenceEvent(geofence: exitedGeofence, eventType: .exit, location: location)
+            }
+            
+            if let enteredGeofence = currentGeofence {
+                // Child entered a geofence
+                print("📍 Synthetic ENTER event: \(enteredGeofence.name)")
+                await logSyntheticGeofenceEvent(geofence: enteredGeofence, eventType: .enter, location: location)
+            }
+            
+            // Update last known state
+            await MainActor.run {
+                self.lastKnownGeofenceId = currentGeofenceId
+            }
+        }
+    }
+    
+    /// Log a synthetic geofence event (triggered by location check, not iOS boundary crossing)
+    private func logSyntheticGeofenceEvent(geofence: Geofence, eventType: GeofenceEventType, location: CLLocation) async {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        do {
+            // Get user's name
+            let userDoc = try await Firestore.firestore().collection("users").document(userId).getDocument()
+            let userName = userDoc.data()?["name"] as? String ?? "Unknown"
+            
+            let event: [String: Any] = [
+                "id": UUID().uuidString,
+                "familyId": geofence.familyId,
+                "childId": userId,
+                "childName": userName,
+                "geofenceId": geofence.id,
+                "geofenceName": geofence.name,
+                "eventType": eventType.rawValue,
+                "timestamp": Timestamp(date: Date()),
+                "location": [
+                    "lat": location.coordinate.latitude,
+                    "lng": location.coordinate.longitude,
+                    "timestamp": Timestamp(date: location.timestamp),
+                    "accuracy": location.horizontalAccuracy,
+                    "batteryLevel": getCurrentBatteryLevel(),
+                    "isMoving": location.speed > 1.0,
+                    "lastUpdated": Timestamp(date: Date()),
+                    "familyId": geofence.familyId
+                ]
+            ]
+            
+            try await Firestore.firestore().collection("geofence_events").document(event["id"] as! String).setData(event)
+            print("✅ Logged synthetic geofence event: \(eventType.rawValue) \(geofence.name)")
+            
+        } catch {
+            print("❌ Error logging synthetic geofence event: \(error)")
         }
     }
 }
