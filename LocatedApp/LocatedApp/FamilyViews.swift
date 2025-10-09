@@ -19,10 +19,10 @@ struct FamilySetupView: View {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
-                    Image("CreateFamily")
+                    Image("RhinoFamily")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 120)
+                        .frame(height: 240)
                     
                     Text("Create Your Family")
                         .font(.radioCanadaBig(28, weight: .bold))
@@ -84,7 +84,6 @@ struct FamilySetupView: View {
                 .padding()
             }
             .background(Color.vibrantPurple)
-            .navigationTitle("Family Setup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -323,10 +322,10 @@ struct InviteChildView: View {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
-                    Image("CreateFamily")
+                    Image("FlyingMotherNoBG")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 120)
+                        .frame(height: 200)
                     
                     Text("Invite Your Child")
                         .font(.radioCanadaBig(28, weight: .bold))
@@ -445,7 +444,7 @@ struct InviteChildView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(0.8)
                     } else {
-                        Text("Create Invitation")
+                        Text(inviteCode == nil ? "Create Invitation" : "Reissue Invitation")
                     }
                 }
                 .primaryAButtonStyle()

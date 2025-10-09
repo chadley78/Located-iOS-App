@@ -38,11 +38,12 @@ struct GeofenceManagementView: View {
                 } else if geofenceService.geofences.isEmpty {
                     // Empty State
                     VStack(spacing: 20) {
-                        Image("CreateFamily")
+                        Image("Tiger1")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(height: 120)
-                            .padding(.top, 60)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, -16)
+                            .padding(.top, 20)
                         
                         VStack(spacing: 8) {
                             Text("No Location Alerts Yet")

@@ -124,17 +124,12 @@ struct WelcomeView: View {
                         .font(.radioCanadaBig(40, weight: .bold))
                         .foregroundColor(.primary)
                     
-                    // App Splash Icon from Assets
-                    Circle()
-                        .fill(Color.vibrantYellow)
-                        .frame(width: 120, height: 120)
-                        .overlay(
-                            Image("AppSplash")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                        )
+                    // Parrot image full bleed
+                    Image("Parrot")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, -16)
                     
                     VStack(spacing: 2) {
                         Text("Providing a parents")
@@ -2109,11 +2104,6 @@ struct ChildrenListView: View {
         Group {
             if let family = familyService.currentFamily {
                 VStack(spacing: 16) {
-                    Image("CreateFamily")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 120)
-                    
                     Text(family.name)
                         .font(.radioCanadaBig(28, weight: .bold))
                         .foregroundColor(.white)
