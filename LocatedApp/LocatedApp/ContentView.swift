@@ -3586,22 +3586,15 @@ struct MapViewRepresentable: UIViewRepresentable {
                 let pinSize: CGFloat = 60
                 customView.frame = CGRect(x: 0, y: 0, width: pinSize, height: pinSize)
                 
-                // Use the child's specific color, but make it red if location is old
-                let baseColor = childAnnotation.pinColor
-                let isRecent = isLocationRecent(childAnnotation.lastSeen)
-                let pinColor = isRecent ? baseColor : .systemRed
-                
-                
                 // Clear any existing subviews to prevent overlapping
                 customView.subviews.forEach { $0.removeFromSuperview() }
                 
                 // Determine location age
                 let locationAge = getLocationAge(childAnnotation.lastSeen)
                 
-                // Create the custom pin view
+                // Create the custom pin view (no per-child colors, just status-based pin images)
                 let pinView = createCustomPinView(
                     size: pinSize,
-                    color: pinColor,
                     childName: childAnnotation.childName,
                     imageBase64: childAnnotation.imageBase64,
                     locationAge: locationAge
@@ -3642,64 +3635,77 @@ struct MapViewRepresentable: UIViewRepresentable {
             case old        // Older than 30 minutes
         }
         
-        private func createCustomPinView(size: CGFloat, color: UIColor, childName: String, imageBase64: String?, locationAge: LocationAge) -> UIView {
+        /// Determines the pin image name based on location status
+        private func getPinImageName(for locationAge: LocationAge) -> String {
+            switch locationAge {
+            case .veryRecent, .recent:
+                return "GreenPin" // Successfully tracked
+            case .old:
+                return "OrangePin" // Old location
+            }
+        }
+        
+        private func createCustomPinView(size: CGFloat, childName: String, imageBase64: String?, locationAge: LocationAge) -> UIView {
             let containerView = UIView(frame: CGRect(x: 0, y: 0, width: size, height: size))
             containerView.backgroundColor = .clear
             
-            // Create the main circular pin
-            let pinView = UIView(frame: CGRect(x: 0, y: 0, width: size, height: size))
-            pinView.layer.cornerRadius = size / 2
-            pinView.layer.borderWidth = 3
-            pinView.layer.borderColor = UIColor.white.cgColor
+            // Get the appropriate pin image based on location status
+            let pinImageName = getPinImageName(for: locationAge)
+            
+            // Create pin background using the pin image
+            let pinImageView = UIImageView(frame: CGRect(x: 0, y: 0, width: size, height: size))
+            pinImageView.image = UIImage(named: pinImageName)
+            pinImageView.contentMode = .scaleAspectFit
+            containerView.addSubview(pinImageView)
             
             // Check if child has a photo
             let hasPhoto = imageBase64 != nil && Data(base64Encoded: imageBase64!) != nil
             
+            // Calculate overlay size and position (centered on the wider part of the pin)
+            let overlaySize: CGFloat = size * 0.58 // Slightly smaller than the circle was
+            let overlayYOffset: CGFloat = -size * 0.1 // Raise it to center on the widest part of pin
+            
             if hasPhoto {
-                // With photo: use neutral background, photo covers most of it
-                pinView.backgroundColor = UIColor.systemGray5
-                
                 // Add photo in the center
-                let photoSize: CGFloat = size * 0.8
                 let photoImageView = UIImageView(frame: CGRect(
-                    x: (size - photoSize) / 2,
-                    y: (size - photoSize) / 2,
-                    width: photoSize,
-                    height: photoSize
+                    x: (size - overlaySize) / 2,
+                    y: (size - overlaySize) / 2 + overlayYOffset,
+                    width: overlaySize,
+                    height: overlaySize
                 ))
-                photoImageView.layer.cornerRadius = photoSize / 2
+                photoImageView.layer.cornerRadius = overlaySize / 2
                 photoImageView.clipsToBounds = true
                 photoImageView.contentMode = .scaleAspectFill
+                photoImageView.layer.borderWidth = 2
+                photoImageView.layer.borderColor = UIColor.white.cgColor
                 
                 if let imageData = Data(base64Encoded: imageBase64!), let childImage = UIImage(data: imageData) {
                     photoImageView.image = childImage
                 }
                 
-                pinView.addSubview(photoImageView)
+                containerView.addSubview(photoImageView)
             } else {
-                // Without photo: use child's unique color as background with person icon
-                pinView.backgroundColor = color
-                
-                // Add person icon in the center
-                let iconSize: CGFloat = size * 0.4
-                let iconImageView = UIImageView(frame: CGRect(
-                    x: (size - iconSize) / 2,
-                    y: (size - iconSize) / 2,
-                    width: iconSize,
-                    height: iconSize
+                // Add initial letter in a circle
+                let initialView = UIView(frame: CGRect(
+                    x: (size - overlaySize) / 2,
+                    y: (size - overlaySize) / 2 + overlayYOffset,
+                    width: overlaySize,
+                    height: overlaySize
                 ))
-                iconImageView.image = UIImage(systemName: "person.fill")
-                iconImageView.tintColor = .white
-                iconImageView.contentMode = .scaleAspectFit
+                initialView.layer.cornerRadius = overlaySize / 2
+                initialView.backgroundColor = .white
+                initialView.layer.borderWidth = 2
+                initialView.layer.borderColor = UIColor.lightGray.cgColor
                 
+                let initialLabel = UILabel(frame: CGRect(x: 0, y: 0, width: overlaySize, height: overlaySize))
+                initialLabel.text = String(childName.prefix(1)).uppercased()
+                initialLabel.textAlignment = .center
+                initialLabel.font = UIFont.systemFont(ofSize: overlaySize * 0.5, weight: .bold)
+                initialLabel.textColor = .darkGray
                 
-                pinView.addSubview(iconImageView)
+                initialView.addSubview(initialLabel)
+                containerView.addSubview(initialView)
             }
-            
-            containerView.addSubview(pinView)
-            
-            // Add status indicator overlay
-            addStatusIndicator(to: containerView, size: size, locationAge: locationAge)
             
             return containerView
         }
