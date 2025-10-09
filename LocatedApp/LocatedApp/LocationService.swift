@@ -45,11 +45,21 @@ class LocationService: NSObject, ObservableObject {
     private let locationManager = CLLocationManager()
     private let geocoder = CLGeocoder()
     private var cancellables = Set<AnyCancellable>()
+    private var periodicLocationTimer: Timer?
     
     // Location update settings
     private let locationUpdateInterval: TimeInterval = 30 // 30 seconds
     private let significantLocationChangeThreshold: CLLocationDistance = 100 // 100 meters
     private var lastSignificantLocation: CLLocation?
+    private var lastFirestoreUpdateTime: Date?
+    
+    // Periodic update intervals for different scenarios
+    private let periodicUpdateIntervalMoving: TimeInterval = 120 // 2 minutes when moving
+    private let periodicUpdateIntervalStationary: TimeInterval = 300 // 5 minutes when stationary
+    private let periodicUpdateIntervalLowBattery: TimeInterval = 600 // 10 minutes when battery < 20%
+    private let periodicUpdateIntervalVeryLowBattery: TimeInterval = 900 // 15 minutes when battery < 10%
+    private let lowBatteryThreshold: Int = 20 // Battery percentage threshold
+    private let veryLowBatteryThreshold: Int = 10 // Critical battery threshold
     
     override init() {
         super.init()
@@ -145,6 +155,9 @@ class LocationService: NSObject, ObservableObject {
         // Start significant location change monitoring for battery efficiency
         locationManager.startMonitoringSignificantLocationChanges()
         
+        // Start periodic location timer for regular updates
+        setupPeriodicLocationTimer()
+        
         isLocationSharingEnabled = true
         print("📍 Location updates started successfully")
     }
@@ -152,6 +165,11 @@ class LocationService: NSObject, ObservableObject {
     func stopLocationUpdates() {
         locationManager.stopUpdatingLocation()
         locationManager.stopMonitoringSignificantLocationChanges()
+        
+        // Stop and cleanup periodic timer
+        periodicLocationTimer?.invalidate()
+        periodicLocationTimer = nil
+        print("⏰ Periodic location timer stopped")
         
         // Disable background location updates
         locationManager.allowsBackgroundLocationUpdates = false
@@ -270,6 +288,7 @@ class LocationService: NSObject, ObservableObject {
         do {
             let data = try Firestore.Encoder().encode(locationData)
             try await Firestore.firestore().collection("locations").document(userId).setData(data)
+            lastFirestoreUpdateTime = Date() // Track when we last updated Firestore
             print("📍 Location saved to Firestore: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         } catch {
             print("❌ Error saving location to Firestore: \(error)")
@@ -313,6 +332,89 @@ class LocationService: NSObject, ObservableObject {
             return "Always"
         @unknown default:
             return "Unknown"
+        }
+    }
+    
+    // MARK: - Periodic Location Updates
+    
+    /// Determines the appropriate update interval based on movement and battery state
+    private func getCurrentMovementState() -> TimeInterval {
+        let batteryLevel = getCurrentBatteryLevel()
+        
+        // Check battery level first (highest priority)
+        if batteryLevel < veryLowBatteryThreshold {
+            print("🔋 Very low battery (\(batteryLevel)%) - using \(periodicUpdateIntervalVeryLowBattery)s interval")
+            return periodicUpdateIntervalVeryLowBattery
+        } else if batteryLevel < lowBatteryThreshold {
+            print("🔋 Low battery (\(batteryLevel)%) - using \(periodicUpdateIntervalLowBattery)s interval")
+            return periodicUpdateIntervalLowBattery
+        }
+        
+        // Check if moving (based on last known location speed)
+        if let location = currentLocation, location.speed > 1.0 {
+            print("🚶 Child moving - using \(periodicUpdateIntervalMoving)s interval")
+            return periodicUpdateIntervalMoving
+        } else {
+            print("🛑 Child stationary - using \(periodicUpdateIntervalStationary)s interval")
+            return periodicUpdateIntervalStationary
+        }
+    }
+    
+    /// Requests a periodic location update and saves to Firestore
+    private func requestPeriodicLocationUpdate() {
+        print("⏰ Periodic location update triggered")
+        
+        // Check if enough time has passed since last Firestore update
+        // Allow 30 second tolerance to account for timer precision and race conditions
+        let timingTolerance: TimeInterval = 30
+        
+        if let lastUpdate = lastFirestoreUpdateTime {
+            let timeSinceLastUpdate = Date().timeIntervalSince(lastUpdate)
+            let requiredInterval = getCurrentMovementState()
+            
+            // Skip only if we're more than 30 seconds early
+            if timeSinceLastUpdate < (requiredInterval - timingTolerance) {
+                print("⏰ Skipping update - only \(Int(timeSinceLastUpdate))s since last update (need \(Int(requiredInterval))s)")
+                return
+            }
+        }
+        
+        if let currentLocation = currentLocation {
+            print("⏰ Using current location for periodic update")
+            // Use current location and save to Firestore
+            Task {
+                await saveLocationToFirestore(location: currentLocation, address: nil)
+            }
+        } else {
+            print("⏰ No current location, requesting fresh location")
+            // Request a fresh location update
+            locationManager.requestLocation()
+        }
+    }
+    
+    /// Sets up the periodic location timer with adaptive intervals
+    private func setupPeriodicLocationTimer() {
+        // Invalidate any existing timer
+        periodicLocationTimer?.invalidate()
+        
+        // Get the appropriate interval based on current state
+        let interval = getCurrentMovementState()
+        
+        print("⏰ Setting up periodic location timer with interval: \(Int(interval))s")
+        
+        // Create a repeating timer on the main run loop
+        // Using .common mode ensures it runs even during UI interactions
+        periodicLocationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.requestPeriodicLocationUpdate()
+                // Restart timer with potentially new interval (adaptive behavior)
+                self?.setupPeriodicLocationTimer()
+            }
+        }
+        
+        // Ensure timer continues in background
+        if let timer = periodicLocationTimer {
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
     
