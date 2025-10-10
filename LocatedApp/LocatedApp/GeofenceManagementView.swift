@@ -156,10 +156,20 @@ struct GeofenceCard: View {
     let onDelete: () -> Void
     
     @State private var showingDeleteAlert = false
+    @StateObject private var geofenceService = GeofenceService()
+    @State private var notifyOnEnter: Bool
+    @State private var notifyOnExit: Bool
+    
+    init(geofence: Geofence, onTap: @escaping () -> Void, onDelete: @escaping () -> Void) {
+        self.geofence = geofence
+        self.onTap = onTap
+        self.onDelete = onDelete
+        _notifyOnEnter = State(initialValue: geofence.notifyOnEnter)
+        _notifyOnExit = State(initialValue: geofence.notifyOnExit)
+    }
     
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -211,6 +221,58 @@ struct GeofenceCard: View {
             .frame(height: 120)
             .cornerRadius(8)
             
+            // Notification Settings
+            VStack(spacing: 8) {
+                HStack {
+                    Image(systemName: "bell.fill")
+                        .foregroundColor(.blue)
+                        .font(.caption)
+                    Text("Notifications")
+                        .font(.radioCanadaBig(14, weight: .semibold))
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                
+                HStack {
+                    Text("Enters Alert")
+                        .font(.radioCanadaBig(12, weight: .regular))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Toggle("", isOn: $notifyOnEnter)
+                        .labelsHidden()
+                        .onChange(of: notifyOnEnter) { newValue in
+                            Task {
+                                try? await geofenceService.updateNotificationSettings(
+                                    geofenceId: geofence.id,
+                                    notifyOnEnter: newValue,
+                                    notifyOnExit: notifyOnExit
+                                )
+                            }
+                        }
+                }
+                
+                HStack {
+                    Text("Leaves Alert")
+                        .font(.radioCanadaBig(12, weight: .regular))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Toggle("", isOn: $notifyOnExit)
+                        .labelsHidden()
+                        .onChange(of: notifyOnExit) { newValue in
+                            Task {
+                                try? await geofenceService.updateNotificationSettings(
+                                    geofenceId: geofence.id,
+                                    notifyOnEnter: notifyOnEnter,
+                                    notifyOnExit: newValue
+                                )
+                            }
+                        }
+                }
+            }
+            .padding(12)
+            .background(Color.blue.opacity(0.05))
+            .cornerRadius(8)
+            
             // Actions
             HStack {
                 Button(action: onTap) {
@@ -243,9 +305,7 @@ struct GeofenceCard: View {
                     .cornerRadius(6)
                 }
             }
-            }
         }
-        .buttonStyle(PlainButtonStyle())
         .padding()
         .background(Color.white)
         .cornerRadius(12)

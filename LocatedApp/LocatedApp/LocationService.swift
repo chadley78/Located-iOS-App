@@ -50,6 +50,7 @@ class LocationService: NSObject, ObservableObject {
     // Geofence state tracking
     private var lastKnownGeofenceId: String? // Track which geofence child is currently in
     private var cachedGeofences: [Geofence] = [] // Cache of active geofences for this family
+    private var geofenceListener: ListenerRegistration? // Real-time listener for geofence changes
     
     // Location update settings
     private let locationUpdateInterval: TimeInterval = 30 // 30 seconds
@@ -134,6 +135,12 @@ class LocationService: NSObject, ObservableObject {
         print("📍 Attempting to start location updates...")
         print("📍 Current permission status: \(locationPermissionStatus.rawValue)")
         
+        // Prevent duplicate starts
+        if isUpdatingLocation {
+            print("⚠️ Location updates already running - skipping duplicate start")
+            return
+        }
+        
         guard locationPermissionStatus == .authorizedAlways else {
             print("❌ Cannot start location updates: permission not granted")
             errorMessage = "Always location permission is required for background tracking"
@@ -162,9 +169,9 @@ class LocationService: NSObject, ObservableObject {
         // Start periodic location timer for regular updates
         setupPeriodicLocationTimer()
         
-        // Fetch geofences for containment checking
+        // Set up real-time geofence listener
         Task {
-            await fetchGeofences()
+            await setupGeofenceListener()
         }
         
         isLocationSharingEnabled = true
@@ -179,6 +186,11 @@ class LocationService: NSObject, ObservableObject {
         periodicLocationTimer?.invalidate()
         periodicLocationTimer = nil
         print("⏰ Periodic location timer stopped")
+        
+        // Stop geofence listener
+        geofenceListener?.remove()
+        geofenceListener = nil
+        print("📍 Geofence listener stopped")
         
         // Disable background location updates
         locationManager.allowsBackgroundLocationUpdates = false
@@ -485,9 +497,92 @@ class LocationService: NSObject, ObservableObject {
         }
     }
     
+    /// Set up real-time listener for geofence changes
+    private func setupGeofenceListener() async {
+        // Prevent duplicate listeners
+        if geofenceListener != nil {
+            print("⚠️ Geofence listener already active - skipping duplicate setup")
+            return
+        }
+        
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("❌ No authenticated user for geofence listener")
+            return
+        }
+        
+        do {
+            // Get user's familyId
+            let userDoc = try await Firestore.firestore().collection("users").document(userId).getDocument()
+            guard let familyId = userDoc.data()?["familyId"] as? String else {
+                print("📍 No family ID for user - skipping geofence listener setup")
+                return
+            }
+            
+            print("📍 Setting up real-time geofence listener for family \(familyId)")
+            
+            // Set up Firestore snapshot listener
+            let listener = Firestore.firestore().collection("geofences")
+                .whereField("familyId", isEqualTo: familyId)
+                .whereField("isActive", isEqualTo: true)
+                .addSnapshotListener { [weak self] snapshot, error in
+                    guard let self = self else { return }
+                    
+                    if let error = error {
+                        print("❌ Geofence listener error: \(error)")
+                        return
+                    }
+                    
+                    guard let snapshot = snapshot else {
+                        print("❌ No snapshot in geofence listener")
+                        return
+                    }
+                    
+                    // Parse geofences from snapshot
+                    let geofences = snapshot.documents.compactMap { doc -> Geofence? in
+                        try? doc.data(as: Geofence.self)
+                    }
+                    
+                    Task { @MainActor in
+                        let oldCount = self.cachedGeofences.count
+                        self.cachedGeofences = geofences
+                        let newCount = geofences.count
+                        
+                        if newCount != oldCount {
+                            print("📍 ✨ Geofences updated via real-time listener: \(oldCount) → \(newCount)")
+                        } else {
+                            print("📍 Geofences refreshed via real-time listener: \(newCount) geofences")
+                        }
+                        
+                        // Log the names of current geofences
+                        for geofence in geofences {
+                            print("📍   - \(geofence.name) (\(Int(geofence.radius))m)")
+                        }
+                        
+                        // Immediately check if current location is inside any new geofences
+                        if let currentLocation = self.currentLocation {
+                            print("📍 Checking current location against updated geofences...")
+                            await self.checkGeofenceContainment(location: currentLocation)
+                        } else {
+                            print("📍 No current location available for immediate geofence check")
+                        }
+                    }
+                }
+            
+            await MainActor.run {
+                self.geofenceListener = listener
+                print("✅ Real-time geofence listener active")
+            }
+            
+        } catch {
+            print("❌ Error setting up geofence listener: \(error)")
+        }
+    }
+    
     /// Check if current location is inside any geofences and log events if state changed
     private func checkGeofenceContainment(location: CLLocation) async {
         guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        print("📍 Checking containment - Last known geofence: \(lastKnownGeofenceId ?? "none")")
         
         // Find which geofence (if any) the child is currently in
         var currentGeofenceId: String? = nil
@@ -509,6 +604,7 @@ class LocationService: NSObject, ObservableObject {
         // Check if state changed
         if currentGeofenceId != lastKnownGeofenceId {
             // State changed - log events
+            print("📍 ⚡ State changed: \(lastKnownGeofenceId ?? "none") → \(currentGeofenceId ?? "none")")
             
             if let lastId = lastKnownGeofenceId, let exitedGeofence = cachedGeofences.first(where: { $0.id == lastId }) {
                 // Child exited a geofence
@@ -526,6 +622,8 @@ class LocationService: NSObject, ObservableObject {
             await MainActor.run {
                 self.lastKnownGeofenceId = currentGeofenceId
             }
+        } else {
+            print("📍 No state change - already in \(currentGeofenceId ?? "no geofence")")
         }
     }
     

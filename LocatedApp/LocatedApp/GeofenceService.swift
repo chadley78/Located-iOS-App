@@ -15,9 +15,43 @@ struct Geofence: Codable, Identifiable {
     let isActive: Bool
     let createdAt: Date
     let createdBy: String // parent user ID
+    let notifyOnEnter: Bool // Send notification when child enters
+    let notifyOnExit: Bool // Send notification when child exits
     
     enum CodingKeys: String, CodingKey {
-        case id, familyId, name, latitude, longitude, radius, isActive, createdAt, createdBy
+        case id, familyId, name, latitude, longitude, radius, isActive, createdAt, createdBy, notifyOnEnter, notifyOnExit
+    }
+    
+    // Custom initializer for backward compatibility with existing geofences
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        familyId = try container.decode(String.self, forKey: .familyId)
+        name = try container.decode(String.self, forKey: .name)
+        latitude = try container.decode(Double.self, forKey: .latitude)
+        longitude = try container.decode(Double.self, forKey: .longitude)
+        radius = try container.decode(Double.self, forKey: .radius)
+        isActive = try container.decode(Bool.self, forKey: .isActive)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        createdBy = try container.decode(String.self, forKey: .createdBy)
+        // Default to true for backward compatibility
+        notifyOnEnter = try container.decodeIfPresent(Bool.self, forKey: .notifyOnEnter) ?? true
+        notifyOnExit = try container.decodeIfPresent(Bool.self, forKey: .notifyOnExit) ?? true
+    }
+    
+    // Standard initializer
+    init(id: String, familyId: String, name: String, latitude: Double, longitude: Double, radius: Double, isActive: Bool, createdAt: Date, createdBy: String, notifyOnEnter: Bool = true, notifyOnExit: Bool = true) {
+        self.id = id
+        self.familyId = familyId
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+        self.radius = radius
+        self.isActive = isActive
+        self.createdAt = createdAt
+        self.createdBy = createdBy
+        self.notifyOnEnter = notifyOnEnter
+        self.notifyOnExit = notifyOnExit
     }
 }
 
@@ -83,7 +117,9 @@ class GeofenceService: NSObject, ObservableObject {
         name: String,
         latitude: Double,
         longitude: Double,
-        radius: Double
+        radius: Double,
+        notifyOnEnter: Bool = true,
+        notifyOnExit: Bool = true
     ) async throws {
         guard let currentUser = Auth.auth().currentUser else {
             throw GeofenceError.notAuthenticated
@@ -131,7 +167,9 @@ class GeofenceService: NSObject, ObservableObject {
             radius: radius,
             isActive: true,
             createdAt: Date(),
-            createdBy: currentUser.uid
+            createdBy: currentUser.uid,
+            notifyOnEnter: notifyOnEnter,
+            notifyOnExit: notifyOnExit
         )
         
         let geofenceData: [String: Any] = [
@@ -143,7 +181,9 @@ class GeofenceService: NSObject, ObservableObject {
             "radius": geofence.radius,
             "isActive": geofence.isActive,
             "createdAt": geofence.createdAt,
-            "createdBy": geofence.createdBy
+            "createdBy": geofence.createdBy,
+            "notifyOnEnter": geofence.notifyOnEnter,
+            "notifyOnExit": geofence.notifyOnExit
         ]
         
         print("🔍 Geofence data: \(geofenceData)")
@@ -205,7 +245,9 @@ class GeofenceService: NSObject, ObservableObject {
         name: String,
         latitude: Double,
         longitude: Double,
-        radius: Double
+        radius: Double,
+        notifyOnEnter: Bool,
+        notifyOnExit: Bool
     ) async throws {
         guard let currentUser = Auth.auth().currentUser else {
             throw GeofenceError.notAuthenticated
@@ -235,6 +277,8 @@ class GeofenceService: NSObject, ObservableObject {
             "latitude": latitude,
             "longitude": longitude,
             "radius": radius,
+            "notifyOnEnter": notifyOnEnter,
+            "notifyOnExit": notifyOnExit,
             "updatedAt": Timestamp()
         ])
         
@@ -256,6 +300,43 @@ class GeofenceService: NSObject, ObservableObject {
         
         // Stop monitoring the region
         stopMonitoringGeofence(geofence)
+    }
+    
+    /// Update notification settings for a geofence
+    func updateNotificationSettings(
+        geofenceId: String,
+        notifyOnEnter: Bool,
+        notifyOnExit: Bool
+    ) async throws {
+        try await db.collection("geofences").document(geofenceId).updateData([
+            "notifyOnEnter": notifyOnEnter,
+            "notifyOnExit": notifyOnExit
+        ])
+        
+        print("✅ Notification settings updated for geofence: \(geofenceId)")
+        print("   Enter notifications: \(notifyOnEnter ? "ON" : "OFF")")
+        print("   Exit notifications: \(notifyOnExit ? "ON" : "OFF")")
+        
+        // Update local geofences array
+        await MainActor.run {
+            if let index = geofences.firstIndex(where: { $0.id == geofenceId }) {
+                let oldGeofence = geofences[index]
+                let updatedGeofence = Geofence(
+                    id: oldGeofence.id,
+                    familyId: oldGeofence.familyId,
+                    name: oldGeofence.name,
+                    latitude: oldGeofence.latitude,
+                    longitude: oldGeofence.longitude,
+                    radius: oldGeofence.radius,
+                    isActive: oldGeofence.isActive,
+                    createdAt: oldGeofence.createdAt,
+                    createdBy: oldGeofence.createdBy,
+                    notifyOnEnter: notifyOnEnter,
+                    notifyOnExit: notifyOnExit
+                )
+                geofences[index] = updatedGeofence
+            }
+        }
     }
     
     // MARK: - Geofence Monitoring

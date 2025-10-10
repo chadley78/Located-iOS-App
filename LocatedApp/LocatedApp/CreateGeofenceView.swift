@@ -216,16 +216,20 @@ struct CreateGeofenceView: View {
                         name: geofenceName.trimmingCharacters(in: .whitespacesAndNewlines),
                         latitude: coordinate.latitude,
                         longitude: coordinate.longitude,
-                        radius: selectedRadius
+                        radius: selectedRadius,
+                        notifyOnEnter: existingGeofence.notifyOnEnter,
+                        notifyOnExit: existingGeofence.notifyOnExit
                     )
                 } else {
-                    // Create new geofence
+                    // Create new geofence (defaults to notifications enabled)
                     try await geofenceService.createGeofence(
                         familyId: familyId,
                         name: geofenceName.trimmingCharacters(in: .whitespacesAndNewlines),
                         latitude: coordinate.latitude,
                         longitude: coordinate.longitude,
-                        radius: selectedRadius
+                        radius: selectedRadius,
+                        notifyOnEnter: true,
+                        notifyOnExit: true
                     )
                 }
                 

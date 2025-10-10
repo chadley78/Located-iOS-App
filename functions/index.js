@@ -51,6 +51,62 @@ exports.onGeofenceEvent = onDocumentCreated(
           return;
         }
 
+        // Get geofence document to check notification settings
+        if (!geofenceId) {
+          logger.error(`No geofenceId found in geofence event: ${eventId}`);
+          return;
+        }
+
+        const geofenceDoc = await admin.firestore()
+            .collection("geofences")
+            .doc(geofenceId)
+            .get();
+
+        if (!geofenceDoc.exists) {
+          logger.error(`Geofence document not found: ${geofenceId}`);
+          return;
+        }
+
+        const geofenceData = geofenceDoc.data();
+        // Default true for backward compatibility
+        const notifyOnEnter = geofenceData.notifyOnEnter !== false;
+        const notifyOnExit = geofenceData.notifyOnExit !== false;
+
+        // Check if notifications are enabled for this event type
+        if (eventType === "enter" && !notifyOnEnter) {
+          logger.info(
+              `Notifications disabled for ENTER events ` +
+              `on geofence: ${geofenceName}`,
+              {
+                geofenceId: geofenceId,
+                eventId: eventId,
+              },
+          );
+          return;
+        }
+
+        if (eventType === "exit" && !notifyOnExit) {
+          logger.info(
+              `Notifications disabled for EXIT events ` +
+              `on geofence: ${geofenceName}`,
+              {
+                geofenceId: geofenceId,
+                eventId: eventId,
+              },
+          );
+          return;
+        }
+
+        logger.info(
+            `Notification enabled for ${eventType.toUpperCase()} ` +
+            `event on geofence: ${geofenceName}`,
+            {
+              geofenceId: geofenceId,
+              notifyOnEnter: notifyOnEnter,
+              notifyOnExit: notifyOnExit,
+            },
+        );
+
         // Get family information to find authorized parents
         const familyId = eventData.familyId;
         if (!familyId) {
