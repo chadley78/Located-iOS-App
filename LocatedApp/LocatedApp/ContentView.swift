@@ -235,6 +235,8 @@ struct ChildSignUpView: View {
             if showingWelcome {
                 if isExistingChild {
                     ChildWelcomeBackView {
+                        // Force location update so parent map shows child immediately
+                        locationService.forceLocationUpdate()
                         // Complete the welcome flow and show main view
                         authService.completeWelcomeFlow()
                     }

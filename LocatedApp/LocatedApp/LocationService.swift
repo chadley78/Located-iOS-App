@@ -52,6 +52,9 @@ class LocationService: NSObject, ObservableObject {
     private var cachedGeofences: [Geofence] = [] // Cache of active geofences for this family
     private var geofenceListener: ListenerRegistration? // Real-time listener for geofence changes
     
+    // Flag to force save next location (used after accepting invitation)
+    private var shouldSaveNextLocation = false
+    
     // Location update settings
     private let locationUpdateInterval: TimeInterval = 30 // 30 seconds
     private let significantLocationChangeThreshold: CLLocationDistance = 100 // 100 meters
@@ -206,8 +209,15 @@ class LocationService: NSObject, ObservableObject {
         print("📍 Location accuracy: \(location.horizontalAccuracy)m")
         print("📍 Location timestamp: \(location.timestamp)")
         
-        // Check if this is a significant location change
-        guard isSignificantLocationChange(location) else {
+        // Check if we should force save this location (e.g., after accepting invitation)
+        let shouldForceSave = shouldSaveNextLocation
+        if shouldForceSave {
+            print("📍 Force save flag set - will save this location immediately")
+            shouldSaveNextLocation = false // Reset flag
+        }
+        
+        // Check if this is a significant location change (or forced)
+        guard shouldForceSave || isSignificantLocationChange(location) else {
             print("📍 Location change not significant - ignoring")
             return
         }
@@ -454,8 +464,12 @@ class LocationService: NSObject, ObservableObject {
                 await saveLocationToFirestore(location: currentLocation, address: nil)
             }
         } else {
-            print("📍 No current location, requesting fresh location")
+            print("📍 No current location, requesting fresh location and will save when received")
             // Request a fresh location update
+            // Set a flag so the next location received will be saved immediately
+            Task { @MainActor in
+                self.shouldSaveNextLocation = true
+            }
             locationManager.requestLocation()
         }
     }
