@@ -3003,6 +3003,7 @@ struct ChildProfileView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var notificationService: NotificationService
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -3026,6 +3027,52 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
                 
+                // Test notification button (child only)
+                if authService.currentUser?.userType == .child {
+                    Button(action: {
+                        Task {
+                            await notificationService.sendTestGeofenceNotification()
+                        }
+                    }) {
+                        HStack {
+                            if notificationService.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                Text("Sending...")
+                            } else {
+                                Image(systemName: "bell.badge")
+                                Text("Test Parent Notification")
+                            }
+                        }
+                    }
+                    .primaryBButtonStyle()
+                    .disabled(notificationService.isLoading)
+                    .padding(.horizontal)
+                }
+                
+                // Test self-notification button (parent only)
+                if authService.currentUser?.userType == .parent {
+                    Button(action: {
+                        Task {
+                            await notificationService.sendTestSelfNotification()
+                        }
+                    }) {
+                        HStack {
+                            if notificationService.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                Text("Sending...")
+                            } else {
+                                Image(systemName: "bell.badge.fill")
+                                Text("Test Self Notification")
+                            }
+                        }
+                    }
+                    .primaryBButtonStyle()
+                    .disabled(notificationService.isLoading)
+                    .padding(.horizontal)
+                }
+                
                 Button("Sign Out") {
                     Task {
                         print("🔐 Sign out button tapped")
@@ -3042,6 +3089,22 @@ struct SettingsView: View {
                 Spacer()
             }
             .background(Color.vibrantRed)
+            .alert(
+                notificationService.errorMessage != nil ? "Error" : "Success",
+                isPresented: $notificationService.showTestAlert
+            ) {
+                Button("OK") {
+                    notificationService.showTestAlert = false
+                    notificationService.errorMessage = nil
+                    notificationService.successMessage = nil
+                }
+            } message: {
+                if let errorMessage = notificationService.errorMessage {
+                    Text(errorMessage)
+                } else if let successMessage = notificationService.successMessage {
+                    Text(successMessage)
+                }
+            }
         }
     }
 }

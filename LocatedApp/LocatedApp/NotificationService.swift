@@ -13,6 +13,8 @@ class NotificationService: NSObject, ObservableObject {
     @Published var isRegistered = false
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var successMessage: String?
+    @Published var showTestAlert = false
     
     override init() {
         super.init()
@@ -79,28 +81,21 @@ class NotificationService: NSObject, ObservableObject {
             return
         }
         
-        // Get the actual FCM token from Firebase Messaging
-        var fcmToken: String?
-        do {
-            fcmToken = try await Messaging.messaging().token()
-            guard let fcmToken = fcmToken else {
-                await MainActor.run {
-                    self.errorMessage = "Failed to get FCM token"
-                }
-                return
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = "Failed to get FCM token: \(error.localizedDescription)"
-            }
-            return
-        }
+        print("⏳ Waiting for FCM token to be generated...")
+        print("💡 The FCM token will be automatically saved when Firebase Messaging receives the APNs token")
         
+        // Don't try to fetch the token immediately - let the MessagingDelegate handle it
+        // The token will be saved to Firestore when didReceiveRegistrationToken is called
+        
+        // Try to get token if it already exists (for subsequent calls)
         do {
-            // Add token to user's FCM tokens array in Firestore
-            try await db.collection("users").document(currentUser.uid).updateData([
-                "fcmTokens": FieldValue.arrayUnion([fcmToken])
-            ])
+            // Add a small delay to allow APNs token to be received
+            try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            
+            let fcmToken = try await Messaging.messaging().token()
+            
+            // Save token to Firestore
+            try await saveFCMTokenToFirestore(fcmToken, userId: currentUser.uid)
             
             await MainActor.run {
                 self.isRegistered = true
@@ -108,14 +103,111 @@ class NotificationService: NSObject, ObservableObject {
                 print("✅ FCM token registered: \(fcmToken)")
             }
         } catch {
+            // If we can't get the token yet, that's okay - the delegate will handle it
+            print("ℹ️ FCM token not ready yet: \(error.localizedDescription)")
+            print("ℹ️ Token will be automatically registered when available via MessagingDelegate")
+            
             await MainActor.run {
-                self.errorMessage = "Failed to register FCM token: \(error.localizedDescription)"
-                print("❌ Failed to register FCM token: \(error)")
+                // Don't show this as an error to the user since it's expected
+                self.isRegistered = false
             }
         }
     }
     
+    /// Save FCM token to Firestore
+    func saveFCMTokenToFirestore(_ fcmToken: String, userId: String) async throws {
+        // Add token to user's FCM tokens array in Firestore
+        try await db.collection("users").document(userId).updateData([
+            "fcmTokens": FieldValue.arrayUnion([fcmToken])
+        ])
+        print("✅ FCM token saved to Firestore: \(fcmToken)")
+    }
+    
     // MARK: - Test Notification
+    
+    /// Send a test notification to the same device (parent-to-self testing)
+    func sendTestSelfNotification() async {
+        print("🧪 Test self-notification requested")
+        
+        await MainActor.run {
+            self.isLoading = true
+            self.errorMessage = nil
+            self.successMessage = nil
+            self.showTestAlert = false
+        }
+        
+        guard let currentUser = Auth.auth().currentUser else {
+            await MainActor.run {
+                self.errorMessage = "❌ Not logged in"
+                self.isLoading = false
+                self.showTestAlert = true
+            }
+            print("❌ Test failed: User not authenticated")
+            return
+        }
+        
+        // Get user info
+        do {
+            let userDoc = try await db.collection("users").document(currentUser.uid).getDocument()
+            guard let userData = userDoc.data(),
+                  let userName = userData["name"] as? String,
+                  let userType = userData["userType"] as? String,
+                  let familyId = userData["familyId"] as? String else {
+                await MainActor.run {
+                    self.errorMessage = "❌ User profile incomplete"
+                    self.isLoading = false
+                    self.showTestAlert = true
+                }
+                print("❌ Test failed: User profile incomplete")
+                return
+            }
+            
+            print("🧪 Sending test self-notification for \(userName) in family \(familyId)")
+            
+            // Create test event that targets the same user
+            let testEventId = "test-self-\(UUID().uuidString)"
+            let event: [String: Any] = [
+                "id": testEventId,
+                "familyId": familyId,
+                "childId": currentUser.uid, // Same user ID
+                "childName": userName,
+                "geofenceId": "test-self-geofence",
+                "geofenceName": "🧪 Test Self Notification",
+                "eventType": "enter",
+                "timestamp": Timestamp(date: Date()),
+                "location": [
+                    "lat": 53.29526, "lng": -6.301476, "address": "Test Self Location, Dublin",
+                    "accuracy": 5.0, "batteryLevel": getCurrentBatteryLevel(), "isMoving": false,
+                    "lastUpdated": Timestamp(date: Date()), "familyId": familyId
+                ]
+            ]
+            
+            // Create the test event in Firestore (this will trigger the Cloud Function)
+            try await db.collection("geofence_events").document(testEventId).setData(event)
+            print("✅ Test self-event created in Firestore: \(testEventId)")
+            
+            // Auto-cleanup after 1 second
+            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            try? await db.collection("geofence_events").document(testEventId).delete()
+            print("🧹 Test self-event cleaned up")
+            
+            await MainActor.run {
+                self.successMessage = "✅ Test self-notification sent!\n\nCheck this device for notification."
+                self.errorMessage = nil
+                self.isLoading = false
+                self.showTestAlert = true
+            }
+            print("✅ Test self-notification completed successfully")
+            
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "❌ Test failed: \(error.localizedDescription)"
+                self.isLoading = false
+                self.showTestAlert = true
+            }
+            print("❌ Test self-notification failed: \(error)")
+        }
+    }
     
     /// Send a test notification with debug info to parent devices
     func sendTestNotification() async {
@@ -297,6 +389,111 @@ class NotificationService: NSObject, ObservableObject {
         case "iPad14,2": return "iPad mini (6th generation)"
         default: return modelName
         }
+    }
+    
+    // MARK: - Test Geofence Notification
+    
+    /// Send a test geofence notification to parent devices
+    func sendTestGeofenceNotification() async {
+        print("🧪 Test notification requested")
+        
+        await MainActor.run {
+            self.isLoading = true
+            self.errorMessage = nil
+            self.successMessage = nil
+            self.showTestAlert = false
+        }
+        
+        guard let currentUser = Auth.auth().currentUser else {
+            await MainActor.run {
+                self.errorMessage = "❌ Not logged in"
+                self.isLoading = false
+                self.showTestAlert = true
+            }
+            print("❌ Test failed: User not authenticated")
+            return
+        }
+        
+        // Get user info
+        do {
+            let userDoc = try await db.collection("users").document(currentUser.uid).getDocument()
+            guard let userData = userDoc.data(),
+                  let familyId = userData["familyId"] as? String,
+                  let childName = userData["name"] as? String else {
+                await MainActor.run {
+                    self.errorMessage = "❌ Could not find family information"
+                    self.isLoading = false
+                    self.showTestAlert = true
+                }
+                print("❌ Test failed: Missing user or family data")
+                return
+            }
+            
+            print("🧪 Sending test notification for \(childName) in family \(familyId)")
+            
+            // Use a unique ID for this test
+            let testEventId = "test-\(UUID().uuidString)"
+            
+            // Create a test geofence event in Firestore
+            let event: [String: Any] = [
+                "id": testEventId,
+                "familyId": familyId,
+                "childId": currentUser.uid,
+                "childName": childName,
+                "geofenceId": "test-geofence",
+                "geofenceName": "🧪 Test Notification",
+                "eventType": "enter",
+                "timestamp": Timestamp(date: Date()),
+                "location": [
+                    "lat": 53.29526,
+                    "lng": -6.301476,
+                    "address": "Test Location, Dublin",
+                    "accuracy": 5.0,
+                    "batteryLevel": getCurrentBatteryLevel(),
+                    "isMoving": false,
+                    "lastUpdated": Timestamp(date: Date()),
+                    "familyId": familyId
+                ]
+            ]
+            
+            // Create the event
+            try await db.collection("geofence_events").document(testEventId).setData(event)
+            print("✅ Test event created in Firestore: \(testEventId)")
+            
+            // Wait a moment for Cloud Function to process
+            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            
+            // Clean up the test event
+            try? await db.collection("geofence_events").document(testEventId).delete()
+            print("🧹 Test event cleaned up")
+            
+            await MainActor.run {
+                self.successMessage = "✅ Test notification sent!\n\nCheck parent device for notification."
+                self.errorMessage = nil
+                self.isLoading = false
+                self.showTestAlert = true
+            }
+            print("✅ Test notification completed successfully")
+            
+        } catch {
+            await MainActor.run {
+                self.errorMessage = "❌ Failed: \(error.localizedDescription)"
+                self.isLoading = false
+                self.showTestAlert = true
+            }
+            print("❌ Test failed with error: \(error)")
+        }
+    }
+    
+    // Helper to get current battery level
+    private func getCurrentBatteryLevel() -> Int {
+        #if canImport(UIKit)
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let batteryLevel = UIDevice.current.batteryLevel
+        return Int(batteryLevel * 100)
+        #else
+        return 100
+        #endif
     }
 }
 

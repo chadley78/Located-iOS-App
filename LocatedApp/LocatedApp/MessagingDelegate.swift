@@ -2,6 +2,8 @@ import Foundation
 import FirebaseMessaging
 import UserNotifications
 import UIKit
+import FirebaseAuth
+import FirebaseFirestore
 
 // MARK: - Firebase Messaging Delegate
 class FirebaseMessagingDelegate: NSObject, MessagingDelegate {
@@ -20,7 +22,30 @@ class FirebaseMessagingDelegate: NSObject, MessagingDelegate {
         // Store the token for later use
         if let token = fcmToken {
             UserDefaults.standard.set(token, forKey: "fcm_token")
-            print("✅ FCM token stored: \(token)")
+            print("✅ FCM token stored locally: \(token)")
+            
+            // Automatically save to Firestore if user is authenticated
+            Task {
+                await saveFCMTokenToFirestore(token)
+            }
+        }
+    }
+    
+    /// Save FCM token to Firestore
+    private func saveFCMTokenToFirestore(_ fcmToken: String) async {
+        guard let currentUser = Auth.auth().currentUser else {
+            print("⚠️ Cannot save FCM token - user not authenticated")
+            return
+        }
+        
+        do {
+            let db = Firestore.firestore()
+            try await db.collection("users").document(currentUser.uid).updateData([
+                "fcmTokens": FieldValue.arrayUnion([fcmToken])
+            ])
+            print("✅ FCM token automatically saved to Firestore: \(fcmToken)")
+        } catch {
+            print("❌ Failed to save FCM token to Firestore: \(error.localizedDescription)")
         }
     }
     

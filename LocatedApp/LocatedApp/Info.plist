@@ -6,6 +6,7 @@
 	<array>
 		<string>processing</string>
 		<string>location</string>
+		<string>remote-notification</string>
 	</array>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs location access to provide safety features like geofencing and live location tracking for child safety.</string>

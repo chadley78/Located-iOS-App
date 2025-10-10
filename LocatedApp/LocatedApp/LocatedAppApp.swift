@@ -5,6 +5,9 @@ import UserNotifications
 
 @main
 struct LocatedAppApp: App {
+    // Register AppDelegate for handling APNs token
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     @StateObject private var familyService = FamilyService()
     @StateObject private var notificationService = NotificationService()
     @State private var deepLinkInvitationCode: String?

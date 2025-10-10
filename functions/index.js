@@ -110,20 +110,24 @@ exports.onGeofenceEvent = onDocumentCreated(
           return;
         }
 
-        // Check if we have simulated tokens (for testing)
+        // Check if we have old simulated/test tokens
+        // Real FCM tokens contain "APA91b"
+        // Old test tokens were manually generated and lack this
         const hasSimulatedTokens = parentTokens.some((token) =>
           token.startsWith("simulated_fcm_token_") ||
-          token.includes("_") && token.split("_").length >= 3,
+          (!token.includes("APA91b") && token.includes(":")),
         );
 
-        logger.info("Simulated Token Detection", {
+        logger.info("Token Validation", {
           hasSimulatedTokens: hasSimulatedTokens,
           tokenChecks: parentTokens.map((token) => ({
-            token: token,
+            token: token.substring(0, 50) + "...",
             startsWithSimulated: token.startsWith("simulated_fcm_token_"),
-            hasUnderscores: token.includes("_"),
+            includesAPA91b: token.includes("APA91b"),
+            isValid: token.includes("APA91b") ||
+              !token.includes(":"),
             isSimulated: token.startsWith("simulated_fcm_token_") ||
-                        (token.includes("_") && token.split("_").length >= 3),
+                        (!token.includes("APA91b") && token.includes(":")),
           })),
         });
 
@@ -173,10 +177,35 @@ exports.onGeofenceEvent = onDocumentCreated(
             location: JSON.stringify(location || {}),
           },
           tokens: parentTokens,
+          apns: {
+            payload: {
+              aps: {
+                sound: "default",
+                badge: 1,
+              },
+            },
+          },
         };
 
-        // Send notification
-        const response = await admin.messaging().sendMulticast(message);
+        // Send notification - try send() instead of sendMulticast()
+        let response;
+        if (parentTokens.length === 1) {
+          const singleMessage = {
+            notification: message.notification,
+            data: message.data,
+            apns: message.apns,
+            token: parentTokens[0],
+          };
+          response = await admin.messaging().send(singleMessage);
+          // Convert to multicast format for logging compatibility
+          response = {
+            successCount: 1,
+            failureCount: 0,
+            responses: [{success: true}],
+          };
+        } else {
+          response = await admin.messaging().sendMulticast(message);
+        }
 
         logger.info(`Notification sent for geofence event ${eventId}`, {
           successCount: response.successCount,
@@ -198,7 +227,12 @@ exports.onGeofenceEvent = onDocumentCreated(
           await cleanupFailedTokens(failedTokens);
         }
       } catch (error) {
-        logger.error("Error processing geofence event:", error);
+        logger.error("Error processing geofence event:", {
+          error: error.message,
+          code: error.code,
+          details: error.details,
+          stack: error.stack,
+        });
       }
     },
 );
@@ -222,11 +256,15 @@ async function cleanupFailedTokens(failedTokens) {
       const userData = userDoc.data();
       const fcmTokens = userData.fcmTokens || [];
 
-      // Filter out failed tokens and any remaining invalid old-format tokens
-      const validTokens = fcmTokens.filter((token) =>
-        !failedTokens.includes(token) &&
-        !token.includes(":"), // Old tokens contain colons
-      );
+      // Filter out failed tokens and invalid old-format test tokens
+      // Real FCM tokens contain "APA91b" and are valid even with colons
+      const validTokens = fcmTokens.filter((token) => {
+        const isFailedToken = failedTokens.includes(token);
+        const isRealFCMToken = token.includes("APA91b");
+        const isOldTestToken = !isRealFCMToken && token.includes(":");
+
+        return !isFailedToken && !isOldTestToken;
+      });
 
       if (validTokens.length !== fcmTokens.length) {
         totalRemoved += (fcmTokens.length - validTokens.length);
@@ -403,18 +441,26 @@ exports.sendDebugNotification = onRequest(async (req, res) => {
       });
     }
 
-    // Check if we have invalid old-format tokens (for testing)
-    const invalidTokens = parentTokens.filter((token) => token.includes(":"));
+    // Check if we have old simulated/test tokens
+    // Old test tokens don't start with standard FCM prefixes
+    // Real FCM tokens have format: instanceId:APA91b...
+    const invalidTokens = parentTokens.filter((token) => {
+      // Real FCM tokens contain "APA91b"
+      const isRealFCMToken = token.includes("APA91b");
+      // Old test tokens were manually generated and lack APA91b
+      return !isRealFCMToken && token.includes(":");
+    });
 
     // For real FCM tokens, we'll try to send actual notifications
-    // Real tokens have format: deviceId:randomString:timestamp
-    logger.info("Invalid Token Detection", {
+    logger.info("Token Validation", {
       hasInvalidTokens: invalidTokens.length > 0,
       invalidTokens: invalidTokens, // Log which tokens are invalid
       tokenChecks: parentTokens.map((token) => ({
-        token: token,
+        token: token.substring(0, 50) + "...",
         includesColon: token.includes(":"),
-        isInvalid: token.includes(":"),
+        includesAPA91b: token.includes("APA91b"),
+        isValid: token.includes("APA91b") ||
+          !token.includes(":"),
       })),
     });
 
@@ -634,7 +680,7 @@ exports.generateFCMToken = onRequest(async (req, res) => {
 /**
  * HTTP function to clear all invalid, old-format FCM tokens from all users.
  * This is a utility function to be run manually for cleanup.
- * It identifies invalid tokens by checking for the presence of a colon ":".
+ * It identifies invalid tokens as old test tokens that don't contain "APA91b".
  */
 exports.cleanupInvalidTokens = onRequest(async (req, res) => {
   try {
@@ -649,10 +695,13 @@ exports.cleanupInvalidTokens = onRequest(async (req, res) => {
       const userData = userDoc.data();
       const fcmTokens = userData.fcmTokens || [];
 
-      // Filter out invalid tokens (any token containing a colon is old format)
-      const validTokens = fcmTokens.filter(
-          (token) => !token.includes(":"),
-      );
+      // Filter out invalid old test tokens
+      // Real FCM tokens contain "APA91b" and are valid
+      const validTokens = fcmTokens.filter((token) => {
+        const isRealFCMToken = token.includes("APA91b");
+        const isOldTestToken = !isRealFCMToken && token.includes(":");
+        return !isOldTestToken;
+      });
 
       if (validTokens.length !== fcmTokens.length) {
         const removedCount = fcmTokens.length - validTokens.length;
