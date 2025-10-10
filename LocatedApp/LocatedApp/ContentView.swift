@@ -1037,6 +1037,9 @@ struct ParentHomeView: View {
     @State private var buttonPosition: CGFloat = 0 // 0 = right side, 1 = left side
     @State private var isAnimating: Bool = false
     @State private var selectedChildForProfile: ChildDisplayItem?
+    @State private var showingLocationHistory = false
+    @State private var selectedChildIdForHistory: String?
+    @State private var selectedChildNameForHistory: String?
     
     var body: some View {
         ZStack {
@@ -1046,7 +1049,12 @@ struct ParentHomeView: View {
                     childrenLocations: mapViewModel.childrenLocations,
                     region: $mapViewModel.region,
                     mapViewModel: mapViewModel,
-                    familyService: familyService
+                    familyService: familyService,
+                    onChildPinTapped: { childId, childName in
+                        selectedChildIdForHistory = childId
+                        selectedChildNameForHistory = childName
+                        showingLocationHistory = true
+                    }
                 )
                 .ignoresSafeArea()
                 .padding(.bottom, 50)
@@ -1425,6 +1433,12 @@ struct ParentHomeView: View {
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
+            }
+            .sheet(isPresented: $showingLocationHistory) {
+                if let childId = selectedChildIdForHistory,
+                   let childName = selectedChildNameForHistory {
+                    ChildLocationHistoryView(childId: childId, childName: childName)
+                }
             }
             .sheet(item: $selectedChildForProfile) { child in
                 ChildProfileView(childId: child.id, child: child, onChildRemoved: { _ in
@@ -3116,6 +3130,10 @@ struct ParentMapView: View {
     @EnvironmentObject var familyService: FamilyService
     @StateObject private var mapViewModel = ParentMapViewModel()
     
+    @State private var showingLocationHistory = false
+    @State private var selectedChildIdForHistory: String?
+    @State private var selectedChildNameForHistory: String?
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -3123,7 +3141,12 @@ struct ParentMapView: View {
                     childrenLocations: mapViewModel.childrenLocations,
                     region: $mapViewModel.region,
                     mapViewModel: mapViewModel,
-                    familyService: familyService
+                    familyService: familyService,
+                    onChildPinTapped: { childId, childName in
+                        selectedChildIdForHistory = childId
+                        selectedChildNameForHistory = childName
+                        showingLocationHistory = true
+                    }
                 )
                 .ignoresSafeArea()
                 
@@ -3213,6 +3236,12 @@ struct ParentMapView: View {
             }
             .navigationTitle("Children Map")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingLocationHistory) {
+                if let childId = selectedChildIdForHistory,
+                   let childName = selectedChildNameForHistory {
+                    ChildLocationHistoryView(childId: childId, childName: childName)
+                }
+            }
             .onAppear {
                 if let parentId = authService.currentUser?.id, !parentId.isEmpty {
                     mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
@@ -3586,6 +3615,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     @Binding var region: MKCoordinateRegion
     let mapViewModel: ParentMapViewModel
     let familyService: FamilyService
+    let onChildPinTapped: (String, String) -> Void // (childId, childName)
     
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -3632,6 +3662,16 @@ struct MapViewRepresentable: UIViewRepresentable {
         
         init(_ parent: MapViewRepresentable) {
             self.parent = parent
+        }
+        
+        // Handle annotation selection (tap)
+        func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+            if let childAnnotation = view.annotation as? ChildLocationAnnotation {
+                // Call the callback with childId and name
+                parent.onChildPinTapped(childAnnotation.childId, childAnnotation.childName)
+                // Deselect so it can be tapped again
+                mapView.deselectAnnotation(childAnnotation, animated: false)
+            }
         }
         
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {

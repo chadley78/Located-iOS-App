@@ -308,9 +308,25 @@ class LocationService: NSObject, ObservableObject {
         
         do {
             let data = try Firestore.Encoder().encode(locationData)
+            
+            // Save current location (overwrites previous)
             try await Firestore.firestore().collection("locations").document(userId).setData(data)
             lastFirestoreUpdateTime = Date() // Track when we last updated Firestore
             print("📍 Location saved to Firestore: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+            
+            // Also save to location history (append-only)
+            try await Firestore.firestore().collection("location_history").addDocument(data: [
+                "childId": userId,
+                "familyId": familyId,
+                "lat": location.coordinate.latitude,
+                "lng": location.coordinate.longitude,
+                "accuracy": location.horizontalAccuracy,
+                "timestamp": FieldValue.serverTimestamp(),
+                "address": address ?? "",
+                "batteryLevel": getCurrentBatteryLevel(),
+                "isMoving": location.speed > 1.0
+            ])
+            print("📍 Location history saved")
             
             // Check geofence containment after saving location
             await checkGeofenceContainment(location: location)

@@ -6,6 +6,7 @@
 const {setGlobalOptions} = require("firebase-functions");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {onRequest, onCall} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const {v4: uuidv4} = require("uuid");
@@ -1527,3 +1528,60 @@ function generateInviteCode() {
 
   return result;
 }
+
+/**
+ * Scheduled Cloud Function to clean up old location history
+ * Runs every 24 hours and deletes records older than 24 hours
+ */
+exports.cleanupLocationHistory = onSchedule("every 24 hours", async (event) => {
+  try {
+    // Calculate cutoff time (24 hours ago)
+    const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const cutoffTimestamp = admin.firestore.Timestamp.fromDate(cutoffTime);
+
+    logger.info(
+        `Starting location history cleanup. ` +
+        `Deleting records older than: ${cutoffTime.toISOString()}`,
+    );
+
+    // Query old location history records
+    const snapshot = await admin.firestore()
+        .collection("location_history")
+        .where("timestamp", "<", cutoffTimestamp)
+        .get();
+
+    if (snapshot.empty) {
+      logger.info("No old location history records to delete");
+      return;
+    }
+
+    logger.info(`Found ${snapshot.size} old location history records`);
+
+    // Delete in batches of 500 (Firestore batch write limit)
+    const batchSize = 500;
+    let deletedCount = 0;
+
+    for (let i = 0; i < snapshot.docs.length; i += batchSize) {
+      const batch = admin.firestore().batch();
+      const batchDocs = snapshot.docs.slice(i, i + batchSize);
+
+      batchDocs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+      deletedCount += batchDocs.length;
+      logger.info(`Deleted batch of ${batchDocs.length} records ` +
+                 `(total: ${deletedCount}/${snapshot.size})`);
+    }
+
+    logger.info(
+        `Successfully deleted ${deletedCount} ` +
+        `old location history records`,
+    );
+  } catch (error) {
+    logger.error("Error cleaning up location history:", error);
+    throw error;
+  }
+});
+
