@@ -27,6 +27,7 @@ class GeofenceStatusService: ObservableObject {
     private let db = Firestore.firestore()
     private var listener: ListenerRegistration?
     private var cancellables = Set<AnyCancellable>()
+    private var isFirstSnapshot = true // Track if this is the first snapshot from the listener
     
     deinit {
         listener?.remove()
@@ -41,6 +42,9 @@ class GeofenceStatusService: ObservableObject {
         
         // Remove existing listener
         listener?.remove()
+        
+        // Reset first snapshot flag when starting new listener
+        isFirstSnapshot = true
         
         isLoading = true
         errorMessage = nil
@@ -122,19 +126,21 @@ class GeofenceStatusService: ObservableObject {
                         return
                     }
                     
-                    print("🔍 GeofenceStatusService - Received \(snapshot.documentChanges.count) geofence event changes")
-                    print("🔍 GeofenceStatusService - Total documents in snapshot: \(snapshot.documents.count)")
-                    
-                    // Debug: Print all document IDs in the snapshot
-                    for doc in snapshot.documents {
-                        print("🔍 GeofenceStatusService - Document ID: \(doc.documentID), data: \(doc.data())")
+                    // Skip first snapshot - we already processed all existing events in initial load
+                    if self.isFirstSnapshot {
+                        print("🔍 GeofenceStatusService - Skipping first snapshot (already loaded via initial query)")
+                        self.isFirstSnapshot = false
+                        self.isLoading = false
+                        return
                     }
                     
-                    // Process document changes (only new events since we already loaded existing ones)
+                    print("🔍 GeofenceStatusService - Received \(snapshot.documentChanges.count) geofence event changes")
+                    
+                    // Process only NEW document changes (events added after listener started)
                     for change in snapshot.documentChanges {
                         switch change.type {
                         case .added:
-                            // Only process newly added events (not existing ones we already loaded)
+                            // Process newly added events
                             if let eventData = change.document.data() as? [String: Any] {
                                 print("🔍 GeofenceStatusService - New geofence event added: \(eventData)")
                                 self.processGeofenceEvent(eventData)
