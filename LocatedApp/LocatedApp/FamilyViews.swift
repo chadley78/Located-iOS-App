@@ -26,11 +26,11 @@ struct FamilySetupView: View {
                     
                     Text("Create Your Family")
                         .font(.radioCanadaBig(28, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     Text("Set up your family group to start tracking your children's locations and creating geofences.")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -39,11 +39,11 @@ struct FamilySetupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Family Name")
                         .font(.radioCanadaBig(16, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     TextField("e.g., The Smith Family", text: $familyName)
                         .padding(12)
-                        .background(Color.familyMembersBg)
+                        .background(AppColors.surface1)
                         .cornerRadius(8)
                         .autocapitalization(.words)
                         .disableAutocorrection(true)
@@ -53,7 +53,7 @@ struct FamilySetupView: View {
                 // Error Message
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.errorColor)
                         .font(.radioCanadaBig(12, weight: .regular))
                         .padding(.horizontal)
                 }
@@ -78,19 +78,19 @@ struct FamilySetupView: View {
                     dismiss()
                 }
                 .font(.radioCanadaBig(14, weight: .regular))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(AppColors.overlayLight.opacity(0.7))
                 .padding(.bottom)
                 }
                 .padding()
             }
-            .background(Color.vibrantPurple)
+            .background(AppColors.highlight)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.overlayLight)
                 }
             }
             .alert("Family Created!", isPresented: $showingSuccess) {
@@ -155,7 +155,7 @@ struct FamilyManagementView: View {
                         
                         Text("\(familyService.getFamilyMembers().count) members")
                             .font(.radioCanadaBig(14, weight: .regular))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                     }
                     .padding()
                     .background(Color(UIColor.systemGray6))
@@ -197,7 +197,7 @@ struct FamilyManagementView: View {
                             .foregroundColor(.purple)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(Color.purple.opacity(0.1))
+                            .background(AppColors.highlight.opacity(0.1))
                             .cornerRadius(12)
                         }
                         
@@ -212,7 +212,7 @@ struct FamilyManagementView: View {
                             .foregroundColor(.blue)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(Color.blue.opacity(0.1))
+                            .background(AppColors.systemBlue.opacity(0.1))
                             .cornerRadius(12)
                         }
                     }
@@ -229,7 +229,7 @@ struct FamilyManagementView: View {
                         
                         Text("You haven't created or joined a family yet.")
                             .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                         
                         Button("Create Family") {
@@ -284,19 +284,19 @@ struct FamilyMemberRow: View {
                 
                 Text(member.role.displayName)
                     .font(.radioCanadaBig(12, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
             }
             
             Spacer()
             
             Text(formatJoinDate(member.joinedAt))
                 .font(.radioCanadaBig(12, weight: .regular))
-                .foregroundColor(.secondary)
+                .foregroundColor(AppColors.textSecondary)
             
             // Navigation indicator for children
             if member.role == .child {
                 Image(systemName: "chevron.right")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
                     .font(.caption)
             }
         }
@@ -328,7 +328,7 @@ struct InviteChildView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "Invite Child",
-            backgroundColor: .vibrantPurple,
+            backgroundColor: AppColors.highlight,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -350,11 +350,11 @@ struct InviteChildView: View {
                     
                     Text("Invite Your Child")
                         .font(.radioCanadaBig(28, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     Text("Enter your child's name to generate an invitation code they can use to join your family.")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -363,11 +363,11 @@ struct InviteChildView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Child's Name")
                         .font(.radioCanadaBig(16, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     TextField("e.g., Emma Smith", text: $childName)
                         .padding(12)
-                        .background(Color.familyMembersBg)
+                        .background(AppColors.surface1)
                         .cornerRadius(8)
                         .autocapitalization(.words)
                         .disableAutocorrection(true)
@@ -377,7 +377,7 @@ struct InviteChildView: View {
                 // Error Message
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.errorColor)
                         .font(.radioCanadaBig(12, weight: .regular))
                         .padding(.horizontal)
                 }
@@ -387,22 +387,22 @@ struct InviteChildView: View {
                     VStack(spacing: 16) {
                         Text("Invitation Created!")
                             .font(.radioCanadaBig(22, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                         
                         Text("Share this code with your child:")
                             .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                         
                         Text(inviteCode)
                             .font(.system(size: 24, weight: .bold, design: .monospaced))
-                            .foregroundColor(.vibrantPurple)
+                            .foregroundColor(AppColors.highlight)
                             .padding()
-                            .background(Color.familyMembersBg)
+                            .background(AppColors.surface1)
                             .cornerRadius(8)
                         
                         Text("This code expires in 24 hours")
                             .font(.radioCanadaBig(12, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(AppColors.overlayLight.opacity(0.7))
                         
                         // Share buttons
                         HStack(spacing: 16) {
@@ -415,10 +415,10 @@ struct InviteChildView: View {
                                     Text("Copy")
                                 }
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(.vibrantPurple)
+                                .foregroundColor(AppColors.highlight)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.familyMembersBg)
+                                .background(AppColors.surface1)
                                 .cornerRadius(6)
                             }
                             
@@ -442,16 +442,16 @@ struct InviteChildView: View {
                                     Text("Share")
                                 }
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(.vibrantPurple)
+                                .foregroundColor(AppColors.highlight)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.familyMembersBg)
+                                .background(AppColors.surface1)
                                 .cornerRadius(6)
                             }
                         }
                     }
                     .padding()
-                    .background(Color.white.opacity(0.1))
+                    .background(AppColors.overlayLight.opacity(0.1))
                     .cornerRadius(12)
                     .padding(.horizontal)
                 }
@@ -546,7 +546,7 @@ struct FamilySettingsView: View {
                                 Button("Cancel") {
                                     cancelEditing()
                                 }
-                                .foregroundColor(.red)
+                                .foregroundColor(AppColors.errorColor)
                             } else {
                                 Text(family.name)
                                     .font(.radioCanadaBig(22, weight: .semibold))
@@ -567,7 +567,7 @@ struct FamilySettingsView: View {
                     
                     if let errorMessage = errorMessage {
                         Text(errorMessage)
-                            .foregroundColor(.red)
+                            .foregroundColor(AppColors.errorColor)
                             .font(.radioCanadaBig(12, weight: .regular))
                             .padding(.horizontal)
                     }
@@ -576,7 +576,7 @@ struct FamilySettingsView: View {
                 } else {
                     Text("No family found")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                     
                     Spacer()
                 }

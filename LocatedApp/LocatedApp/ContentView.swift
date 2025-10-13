@@ -22,13 +22,13 @@ struct ContentView: View {
         Group {
             if !showContent {
                 // Show launch screen while transitioning
-                Color.vibrantYellow
+                AppColors.accent
                     .ignoresSafeArea()
             } else if authService.isInitializing {
                 // Show loading screen while checking authentication state
                 VStack(spacing: 20) {
                     Circle()
-                        .fill(Color.vibrantYellow)
+                        .fill(AppColors.accent)
                         .frame(width: 80, height: 80)
                         .overlay(
                             Image("AppSplash")
@@ -43,10 +43,10 @@ struct ContentView: View {
                     
                     Text("Loading...")
                         .font(.headline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.vibrantYellow)
+                .background(AppColors.accent)
             } else if authService.isAuthenticated {
                 if authService.currentUser != nil {
                     MainTabView()
@@ -64,7 +64,7 @@ struct ContentView: View {
                             .padding(.top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.vibrantYellow)
+                    .background(AppColors.accent)
                 }
             } else {
                 WelcomeView(invitationCode: invitationCode)
@@ -170,7 +170,7 @@ struct WelcomeView: View {
             }
             .padding()
             .navigationBarHidden(true)
-            .background(Color.vibrantYellow)
+            .background(AppColors.accent)
         }
     }
 }
@@ -207,7 +207,7 @@ struct AuthenticationView: View {
                     isSignUp.toggle()
                 }
                 .font(.system(size: 16))
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.systemBlue)
                 .padding(.top, 20)
             }
         }
@@ -261,7 +261,7 @@ struct ChildSignUpView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "person.badge.plus")
                             .font(.system(size: 50))
-                            .foregroundColor(.green)
+                            .foregroundColor(AppColors.systemGreen)
                         
                         Text("Join Your Family")
                             .font(.title)
@@ -269,7 +269,7 @@ struct ChildSignUpView: View {
                         
                 Text("Enter the invitation code your parent shared with you.")
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
@@ -279,7 +279,7 @@ struct ChildSignUpView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Invitation Code")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                     
                     TextField("Enter invitation code", text: $inviteCode)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -293,7 +293,7 @@ struct ChildSignUpView: View {
             // Error Message
             if let errorMessage = errorMessage {
                 Text(errorMessage)
-                    .foregroundColor(.red)
+                    .foregroundColor(AppColors.errorColor)
                     .font(.caption)
                     .padding(.horizontal, 30)
             }
@@ -502,7 +502,7 @@ struct SignInView: View {
                     showingForgotPassword = true
                 }
                 .font(.system(size: 16))
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.systemBlue)
                 
                 Spacer()
                 }
@@ -686,7 +686,7 @@ struct SignUpView: View {
                     if case .invalid(let message) = emailValidationState {
                         Text(message)
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(AppColors.errorColor)
                     }
                 }
                 
@@ -721,7 +721,7 @@ struct SignUpView: View {
                     if case .invalid(let message) = passwordValidationState {
                         Text(message)
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(AppColors.errorColor)
                     }
                 }
                 
@@ -760,7 +760,7 @@ struct SignUpView: View {
                     if case .invalid(let message) = confirmPasswordValidationState {
                         Text(message)
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(AppColors.errorColor)
                     }
                 }
             }
@@ -888,12 +888,12 @@ struct ForgotPasswordView: View {
                 VStack(spacing: 12) {
                     Text("Enter your email address and we'll send you a link to reset your password.")
                         .font(.system(size: 16))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                     
                     Text("💡 Check your spam folder if you don't receive the email within a few minutes.")
                         .font(.system(size: 14))
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppColors.warningColor)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
                 }
@@ -902,7 +902,7 @@ struct ForgotPasswordView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email Address")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                     
                     TextField("Enter your email", text: $email)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -1069,7 +1069,7 @@ struct ParentHomeView: View {
                 VStack {
                     Spacer()
                     Rectangle()
-                        .fill(Color(UIColor.systemBackground))
+                        .fill(AppColors.systemBackground)
                         .frame(height: 50)
                         .ignoresSafeArea(.all, edges: .bottom)
                 }
@@ -1086,9 +1086,9 @@ struct ParentHomeView: View {
                             }) {
                                 Image(systemName: "location.fill")
                                     .font(.title2)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                     .frame(width: 44, height: 44)
-                                    .background(Color.blue)
+                                    .background(AppColors.systemBlue)
                                     .clipShape(Circle())
                                     .shadow(radius: 4)
                             }
@@ -1099,9 +1099,9 @@ struct ParentHomeView: View {
                             }) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.title2)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                     .frame(width: 44, height: 44)
-                                    .background(Color.green)
+                                    .background(AppColors.systemGreen)
                                     .clipShape(Circle())
                                     .shadow(radius: 4)
                             }
@@ -1173,7 +1173,7 @@ struct ParentHomeView: View {
                                                 HStack {
                                                     Text("No children to\nlocate yet")
                                                         .font(.radioCanadaBig(28, weight: .bold))
-                                                        .foregroundColor(.white)
+                                                        .foregroundColor(AppColors.overlayLight)
                                                         .multilineTextAlignment(.leading)
                                                         .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
                                                     Spacer()
@@ -1194,7 +1194,7 @@ struct ParentHomeView: View {
                                         }
                                     }
                                     .frame(height: UIScreen.main.bounds.height < 700 ? 200 : 220)
-                                    .background(Color(UIColor.systemGray6))
+                                    .background(AppColors.surfaceGray)
                                     .cornerRadius(12)
                                 } else {
                                     // Children list (pending + accepted)
@@ -1254,7 +1254,7 @@ struct ParentHomeView: View {
                                             HStack {
                                                 Text("Let's get\nstarted")
                                                     .font(.radioCanadaBig(28, weight: .bold))
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(AppColors.overlayLight)
                                                     .multilineTextAlignment(.leading)
                                                     .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
                                                 Spacer()
@@ -1275,10 +1275,10 @@ struct ParentHomeView: View {
                                                     showingJoinFamily = true
                                                 }
                                                 .font(.radioCanadaBig(16, weight: .semibold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(AppColors.overlayLight)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 50)
-                                                .background(Color.white.opacity(0.2))
+                                                .background(AppColors.overlayLight.opacity(0.2))
                                                 .cornerRadius(12)
                                             }
                                             .padding(.horizontal, 40)
@@ -1287,7 +1287,7 @@ struct ParentHomeView: View {
                                     }
                                 }
                                 .frame(height: 280)
-                                .background(Color(UIColor.systemGray6))
+                                .background(AppColors.surfaceGray)
                                 .cornerRadius(12)
                             }
                         }
@@ -1303,17 +1303,17 @@ struct ParentHomeView: View {
                                         HStack {
                                             Image(systemName: "person.2.fill")
                                                 .font(.title2)
-                                                .foregroundColor(.vibrantPurple)
+                                                .foregroundColor(AppColors.highlight)
                                             Text("Family Members")
                                                 .font(.headline)
-                                                .foregroundColor(.vibrantPurple)
+                                                .foregroundColor(AppColors.highlight)
                                             Spacer()
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
-                                                .foregroundColor(.vibrantPurple)
+                                                .foregroundColor(AppColors.highlight)
                                         }
                                         .padding()
-                                        .background(Color.familyMembersBg)
+                                        .background(AppColors.surface1)
                                         .cornerRadius(12)
                                     }
                                     
@@ -1322,17 +1322,17 @@ struct ParentHomeView: View {
                                         HStack {
                                             Image(systemName: "location.circle")
                                                 .font(.title2)
-                                                .foregroundColor(.vibrantBlue)
+                                                .foregroundColor(AppColors.info)
                                             Text("Location Alerts")
                                                 .font(.headline)
-                                                .foregroundColor(.vibrantBlue)
+                                                .foregroundColor(AppColors.info)
                                             Spacer()
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
-                                                .foregroundColor(.vibrantBlue)
+                                                .foregroundColor(AppColors.info)
                                         }
                                         .padding()
-                                        .background(Color.settingsBg)
+                                        .background(AppColors.surface3)
                                         .cornerRadius(12)
                                     }
                                 }
@@ -1380,7 +1380,7 @@ struct ParentHomeView: View {
                     }
                     }
                     .background(
-                        Color(UIColor.systemBackground)
+                        AppColors.systemBackground
                             .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
                             .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
                     )
@@ -1407,12 +1407,12 @@ struct ParentHomeView: View {
                                 // X shape - two lines crossing
                                 ZStack {
                                     Rectangle()
-                                        .fill(Color.white)
+                                        .fill(AppColors.overlayLight)
                                         .frame(width: 20, height: 2)
                                         .rotationEffect(.degrees(45))
                                     
                                     Rectangle()
-                                        .fill(Color.white)
+                                        .fill(AppColors.overlayLight)
                                         .frame(width: 20, height: 2)
                                         .rotationEffect(.degrees(-45))
                                 }
@@ -1420,22 +1420,22 @@ struct ParentHomeView: View {
                                 // Hamburger lines
                                 VStack(spacing: 4) {
                                     Rectangle()
-                                        .fill(Color.white)
+                                        .fill(AppColors.overlayLight)
                                         .frame(width: 20, height: 2)
                                     
                                     Rectangle()
-                                        .fill(Color.white)
+                                        .fill(AppColors.overlayLight)
                                         .frame(width: 20, height: 2)
                                     
                                     Rectangle()
-                                        .fill(Color.white)
+                                        .fill(AppColors.overlayLight)
                                         .frame(width: 20, height: 2)
                                 }
                             }
                         }
                         .rotationEffect(.degrees(-buttonPosition * 360)) // Rotate with the circle
                         .frame(width: 60, height: 60)
-                        .background(Color.vibrantRed)
+                        .background(AppColors.primary)
                         .clipShape(Circle())
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -1548,7 +1548,7 @@ struct ChildStatusRow: View {
     var body: some View {
         HStack {
             Image(systemName: "person.fill")
-                .foregroundColor(.green)
+                .foregroundColor(AppColors.systemGreen)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -1557,18 +1557,18 @@ struct ChildStatusRow: View {
                 
                 Text("Child")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
             }
             
             Spacer()
             
             // Status indicator (could be enhanced with actual location status)
             Circle()
-                .fill(Color.green)
+                .fill(AppColors.systemGreen)
                 .frame(width: 8, height: 8)
         }
         .padding()
-        .background(Color(UIColor.systemGray6))
+        .background(AppColors.surfaceGray)
         .cornerRadius(8)
     }
 }
@@ -1746,21 +1746,21 @@ struct ChildLocationCard: View {
                 
                 Text(formatTimeAgo(childLocation.lastSeen))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
             }
             
             if let address = childLocation.location.address {
                 Text(address)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
             }
             
             Text("📍 \(childLocation.location.lat, specifier: "%.4f"), \(childLocation.location.lng, specifier: "%.4f")")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(AppColors.textSecondary)
         }
         .padding()
-        .background(Color(UIColor.systemBackground))
+        .background(AppColors.systemBackground)
         .cornerRadius(8)
     }
     
@@ -1800,16 +1800,16 @@ struct ChildHomeView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppColors.warningColor)
                             Text("Background Tracking Limited")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppColors.warningColor)
                             Spacer()
                         }
                         
                         Text("Current permission: \(permissionStatusText). For continuous tracking, enable 'Always Allow' in Settings.")
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                         
                         Button(action: {
                             if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
@@ -1822,11 +1822,11 @@ struct ChildHomeView: View {
                                 Image(systemName: "arrow.right")
                                     .font(.system(size: 10, weight: .medium))
                             }
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppColors.systemBlue)
                         }
                     }
                     .padding()
-                    .background(Color.orange.opacity(0.1))
+                    .background(AppColors.warningColor.opacity(0.1))
                     .cornerRadius(12)
                 }
                 
@@ -1835,7 +1835,7 @@ struct ChildHomeView: View {
                     Text("Debug Information")
                         .font(.title2)
                         .fontWeight(.semibold)
-                        .foregroundColor(.orange)
+                        .foregroundColor(AppColors.warningColor)
                     
                     VStack(spacing: 12) {
                         // Child Name
@@ -1845,7 +1845,7 @@ struct ChildHomeView: View {
                             Spacer()
                             Text(authService.currentUser?.name ?? "Not Available")
                                 .font(.system(size: 16))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                         }
                         
                         // Family Name
@@ -1855,7 +1855,7 @@ struct ChildHomeView: View {
                             Spacer()
                             Text(familyService.currentFamily?.name ?? "Not Available")
                                 .font(.system(size: 16))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                         }
                         
                         // Family ID
@@ -1865,7 +1865,7 @@ struct ChildHomeView: View {
                             Spacer()
                             Text(authService.currentUser?.familyId ?? "Not Available")
                                 .font(.system(size: 16))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                         }
                         
                         // User ID
@@ -1875,16 +1875,16 @@ struct ChildHomeView: View {
                             Spacer()
                             Text(authService.currentUser?.id ?? "Not Available")
                                 .font(.system(size: 16))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                         }
                     }
                 }
                 .padding()
-                .background(Color.orange.opacity(0.1))
+                .background(AppColors.warningColor.opacity(0.1))
                 .cornerRadius(12)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                        .stroke(AppColors.warningColor.opacity(0.3), lineWidth: 1)
                 )
                 
                 // Status Card
@@ -1930,14 +1930,14 @@ struct ChildHomeView: View {
                                     .font(.system(size: 16, weight: .medium))
                                 Text("\(location.coordinate.latitude, specifier: "%.6f"), \(location.coordinate.longitude, specifier: "%.6f")")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppColors.textSecondary)
                             }
                         }
                         
                     }
                 }
                 .padding()
-                .background(Color(UIColor.systemGray6))
+                .background(AppColors.surfaceGray)
                 .cornerRadius(12)
                 
                 
@@ -1955,10 +1955,10 @@ struct ChildHomeView: View {
                             Text(locationService.isLocationSharingEnabled ? "Stop Sharing Location" : "Start Sharing Location")
                         }
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(locationService.isLocationSharingEnabled ? Color.red : Color.blue)
+                        .background(locationService.isLocationSharingEnabled ? AppColors.errorColor : AppColors.systemBlue)
                         .cornerRadius(25)
                     }
                     
@@ -1968,7 +1968,7 @@ struct ChildHomeView: View {
                                 .scaleEffect(0.8)
                             Text("Updating location...")
                                 .font(.system(size: 14))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                         }
                     }
                 }
@@ -1977,10 +1977,10 @@ struct ChildHomeView: View {
                 if let errorMessage = locationService.errorMessage {
                     Text(errorMessage)
                         .font(.system(size: 14))
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.errorColor)
                         .multilineTextAlignment(.center)
                         .padding()
-                        .background(Color.red.opacity(0.1))
+                        .background(AppColors.errorColor.opacity(0.1))
                         .cornerRadius(8)
                 }
                 
@@ -2088,7 +2088,7 @@ struct ChildrenListView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "",
-            backgroundColor: .vibrantPurple
+            backgroundColor: AppColors.highlight
         ) {
             ScrollView {
                 VStack(spacing: 20) {
@@ -2119,10 +2119,10 @@ struct ChildrenListView: View {
                                     Text("Invite Parent")
                                 }
                                 .font(.radioCanadaBig(16, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.overlayLight)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
-                                .background(Color.white.opacity(0.2))
+                                .background(AppColors.overlayLight.opacity(0.2))
                                 .cornerRadius(12)
                             }
                         }
@@ -2143,12 +2143,12 @@ struct ChildrenListView: View {
                             
                             Text("You haven't created or joined a family yet.")
                                 .font(.body)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                                 .multilineTextAlignment(.center)
                             
                             Text("Go to the Family tab to create a family first.")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
                         .padding()
@@ -2244,7 +2244,7 @@ struct ChildrenListView: View {
                 VStack(spacing: 16) {
                     Text(family.name)
                         .font(.radioCanadaBig(28, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                         .onTapGesture {
                             editingFamilyName = family.name
                             showingEditFamilyName = true
@@ -2268,19 +2268,19 @@ struct ChildrenListView: View {
                                         HStack(spacing: 12) {
                                             // User icon
                                             Circle()
-                                                .fill(Color.white.opacity(0.2))
+                                                .fill(AppColors.overlayLight.opacity(0.2))
                                                 .frame(width: 55, height: 55)
                                                 .overlay(
                                                     Image(systemName: "person.fill")
                                                         .font(.system(size: 24))
-                                                        .foregroundColor(.white)
+                                                        .foregroundColor(AppColors.overlayLight)
                                                 )
                                             
                                             VStack(alignment: .leading, spacing: 1) {
                                                 Text(member.name)
                                                     .font(.radioCanadaBig(24, weight: .regular))
                                                     .tracking(-1.2)
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(AppColors.overlayLight)
                                                 
                                                 Text("Parent")
                                                     .font(.radioCanadaBig(16, weight: .regular))
@@ -2309,7 +2309,7 @@ struct ChildrenListView: View {
                                             HStack(spacing: 12) {
                                                 // User icon with photo or initial
                                                 Circle()
-                                                    .fill(Color.white.opacity(0.2))
+                                                    .fill(AppColors.overlayLight.opacity(0.2))
                                                     .frame(width: 55, height: 55)
                                                     .overlay(
                                                         Group {
@@ -2324,7 +2324,7 @@ struct ChildrenListView: View {
                                                             } else {
                                                                 Text(String(child.name.prefix(1)).uppercased())
                                                                     .font(.radioCanadaBig(24, weight: .bold))
-                                                                    .foregroundColor(.white)
+                                                                    .foregroundColor(AppColors.overlayLight)
                                                             }
                                                         }
                                                     )
@@ -2333,7 +2333,7 @@ struct ChildrenListView: View {
                                                     Text(child.name)
                                                         .font(.radioCanadaBig(24, weight: .regular))
                                                         .tracking(-1.2)
-                                                        .foregroundColor(.white)
+                                                        .foregroundColor(AppColors.overlayLight)
                                                     
                                                     Text(child.isPending ? "Invite not accepted" : "Child")
                                                         .font(.radioCanadaBig(16, weight: .regular))
@@ -2361,7 +2361,7 @@ struct ChildrenListView: View {
                                             // Divider
                                             if index < allChildren.count - 1 {
                                                 Divider()
-                                                    .background(Color.white.opacity(0.2))
+                                                    .background(AppColors.overlayLight.opacity(0.2))
                                                     .padding(.horizontal, 15)
                                             }
                                         }
@@ -2381,19 +2381,19 @@ struct ChildrenListView: View {
                                             HStack(spacing: 12) {
                                                 // User icon
                                                 Circle()
-                                                    .fill(Color.white.opacity(0.2))
+                                                    .fill(AppColors.overlayLight.opacity(0.2))
                                                     .frame(width: 55, height: 55)
                                                     .overlay(
                                                         Image(systemName: "person.fill")
                                                             .font(.system(size: 24))
-                                                            .foregroundColor(.white)
+                                                            .foregroundColor(AppColors.overlayLight)
                                                     )
                                                 
                                                 VStack(alignment: .leading, spacing: 1) {
                                                     Text(member.name)
                                                         .font(.radioCanadaBig(24, weight: .regular))
                                                         .tracking(-1.2)
-                                                        .foregroundColor(.white)
+                                                        .foregroundColor(AppColors.overlayLight)
                                                     
                                                     Text("Parent")
                                                         .font(.radioCanadaBig(16, weight: .regular))
@@ -2422,7 +2422,7 @@ struct ChildrenListView: View {
                                                 HStack(spacing: 12) {
                                                     // User icon with photo or initial
                                                     Circle()
-                                                        .fill(Color.white.opacity(0.2))
+                                                        .fill(AppColors.overlayLight.opacity(0.2))
                                                         .frame(width: 55, height: 55)
                                                         .overlay(
                                                             Group {
@@ -2437,7 +2437,7 @@ struct ChildrenListView: View {
                                                                 } else {
                                                                     Text(String(child.name.prefix(1)).uppercased())
                                                                         .font(.radioCanadaBig(24, weight: .bold))
-                                                                        .foregroundColor(.white)
+                                                                        .foregroundColor(AppColors.overlayLight)
                                                                 }
                                                             }
                                                         )
@@ -2446,7 +2446,7 @@ struct ChildrenListView: View {
                                                         Text(child.name)
                                                             .font(.radioCanadaBig(24, weight: .regular))
                                                             .tracking(-1.2)
-                                                            .foregroundColor(.white)
+                                                            .foregroundColor(AppColors.overlayLight)
                                                         
                                                         Text(child.isPending ? "Invite not accepted" : "Child")
                                                             .font(.radioCanadaBig(16, weight: .regular))
@@ -2474,7 +2474,7 @@ struct ChildrenListView: View {
                                                 // Divider
                                                 if index < allChildren.count - 1 {
                                                     Divider()
-                                                        .background(Color.white.opacity(0.2))
+                                                        .background(AppColors.overlayLight.opacity(0.2))
                                                         .padding(.horizontal, 15)
                                                 }
                                             }
@@ -2561,7 +2561,7 @@ struct ChildProfileView: View {
     
     var body: some View {
         ZStack {
-            Color.vibrantPurple.ignoresSafeArea()
+            AppColors.highlight.ignoresSafeArea()
             
         VStack(spacing: 0) {
             // Custom Header with Back Button
@@ -2575,14 +2575,14 @@ struct ChildProfileView: View {
                         Text("Back")
                             .font(.radioCanadaBig(17, weight: .regular))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.overlayLight)
                 }
                 
                 Spacer()
                 
                 Text("Child Profile")
                     .font(.radioCanadaBig(17, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.overlayLight)
                 
                 Spacer()
                 
@@ -2623,12 +2623,12 @@ struct ChildProfileView: View {
                             } else {
                                 // Show initial
                                 Circle()
-                                    .fill(Color.white.opacity(0.2))
+                                    .fill(AppColors.overlayLight.opacity(0.2))
                                     .frame(width: 120, height: 120)
                                     .overlay(
                                         Text(String(childName.prefix(1)).uppercased())
                                             .font(.radioCanadaBig(50, weight: .bold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(AppColors.overlayLight)
                                     )
                             }
                             
@@ -2643,9 +2643,9 @@ struct ChildProfileView: View {
                                     }) {
                                         Image(systemName: "camera.fill")
                                             .font(.system(size: 16))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(AppColors.overlayLight)
                                             .frame(width: 32, height: 32)
-                                            .background(Color.vibrantYellow)
+                                            .background(AppColors.accent)
                                             .clipShape(Circle())
                                     }
                                     .disabled(isUploadingImage)
@@ -2658,7 +2658,7 @@ struct ChildProfileView: View {
                         // Name Section
                         Text(childName)
                             .font(.radioCanadaBig(28, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                             .onTapGesture {
                                 editingChildName = childName
                                 showingEditName = true
@@ -2668,10 +2668,10 @@ struct ChildProfileView: View {
                         if child.isPending {
                             Text(child.status.displayName)
                                 .font(.radioCanadaBig(14, weight: .regular))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.overlayLight)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
-                                .background(Color.white.opacity(0.2))
+                                .background(AppColors.overlayLight.opacity(0.2))
                                 .cornerRadius(8)
                         }
                     }
@@ -2722,17 +2722,17 @@ struct ChildProfileView: View {
                             VStack(spacing: 16) {
                                 Text("Invitation Created!")
                                     .font(.radioCanadaBig(22, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                 
                                 Text("Share this code with \(childName):")
                                     .font(.radioCanadaBig(16, weight: .regular))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                 
                                 Text(inviteCode)
                                     .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.vibrantPurple)
+                                    .foregroundColor(AppColors.highlight)
                                     .padding()
-                                    .background(Color.familyMembersBg)
+                                    .background(AppColors.surface1)
                                     .cornerRadius(8)
                                 
                                 Text("This code expires in 24 hours")
@@ -2750,10 +2750,10 @@ struct ChildProfileView: View {
                                             Text("Copy")
                                         }
                                         .font(.radioCanadaBig(12, weight: .regular))
-                                        .foregroundColor(.vibrantPurple)
+                                        .foregroundColor(AppColors.highlight)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Color.familyMembersBg)
+                                        .background(AppColors.surface1)
                                         .cornerRadius(6)
                                     }
                                     
@@ -2774,16 +2774,16 @@ struct ChildProfileView: View {
                                             Text("Share")
                                         }
                                         .font(.radioCanadaBig(12, weight: .regular))
-                                        .foregroundColor(.vibrantPurple)
+                                        .foregroundColor(AppColors.highlight)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Color.familyMembersBg)
+                                        .background(AppColors.surface1)
                                         .cornerRadius(6)
                                     }
                                 }
                             }
                             .padding()
-                            .background(Color.white.opacity(0.1))
+                            .background(AppColors.overlayLight.opacity(0.1))
                             .cornerRadius(12)
                         }
                         
@@ -2849,9 +2849,9 @@ struct ChildProfileView: View {
                                 Image(systemName: "photo")
                                 Text("Select Photo")
                             }
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppColors.systemBlue)
                             .padding()
-                            .background(Color.blue.opacity(0.1))
+                            .background(AppColors.systemBlue.opacity(0.1))
                             .cornerRadius(8)
                         }
                         
@@ -3172,7 +3172,7 @@ struct ParentProfileView: View {
     
     var body: some View {
         ZStack {
-            Color.vibrantPurple.ignoresSafeArea()
+            AppColors.highlight.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Custom Header with Back Button
@@ -3186,14 +3186,14 @@ struct ParentProfileView: View {
                             Text("Back")
                                 .font(.radioCanadaBig(17, weight: .regular))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     }
                     
                     Spacer()
                     
                     Text("Parent Profile")
                         .font(.radioCanadaBig(17, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     Spacer()
                     
@@ -3217,19 +3217,19 @@ struct ParentProfileView: View {
                         VStack(spacing: 16) {
                             // Profile Icon (no photo for parents)
                             Circle()
-                                .fill(Color.white.opacity(0.2))
+                                .fill(AppColors.overlayLight.opacity(0.2))
                                 .frame(width: 120, height: 120)
                                 .overlay(
                                     Text(String(displayName.prefix(1)).uppercased())
                                         .font(.radioCanadaBig(50, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(AppColors.overlayLight)
                                 )
                             
                             // Parent Name with Edit
                             HStack(spacing: 8) {
                                 Text(displayName)
                                     .font(.radioCanadaBig(28, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                 
                                 Button(action: {
                                     editingParentName = displayName
@@ -3251,7 +3251,7 @@ struct ParentProfileView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Parent Information")
                                 .font(.radioCanadaBig(18, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.overlayLight)
                             
                             VStack(spacing: 12) {
                                 HStack {
@@ -3261,11 +3261,11 @@ struct ParentProfileView: View {
                                     Spacer()
                                     Text("Parent")
                                         .font(.radioCanadaBig(16, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(AppColors.overlayLight)
                                 }
                                 
                                 Divider()
-                                    .background(Color.white.opacity(0.2))
+                                    .background(AppColors.overlayLight.opacity(0.2))
                                 
                                 HStack {
                                     Text("Permissions")
@@ -3274,11 +3274,11 @@ struct ParentProfileView: View {
                                     Spacer()
                                     Text("Full Access")
                                         .font(.radioCanadaBig(16, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(AppColors.overlayLight)
                                 }
                             }
                             .padding()
-                            .background(Color.white.opacity(0.1))
+                            .background(AppColors.overlayLight.opacity(0.1))
                             .cornerRadius(12)
                         }
                         
@@ -3386,7 +3386,7 @@ struct EditParentNameView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "Edit Parent Name",
-            backgroundColor: .vibrantPurple,
+            backgroundColor: AppColors.highlight,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -3401,11 +3401,11 @@ struct EditParentNameView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Parent Name")
                         .font(.radioCanadaBig(16, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     TextField("Enter parent name", text: $newName)
                         .padding(12)
-                        .background(Color.familyMembersBg)
+                        .background(AppColors.surface1)
                         .cornerRadius(8)
                         .autocapitalization(.words)
                 }
@@ -3429,7 +3429,7 @@ struct SettingsView: View {
                 Text("Settings")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.overlayLight)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                     .padding(.top)
@@ -3440,7 +3440,7 @@ struct SettingsView: View {
                     Text("Type: \(authService.currentUser?.userType.rawValue.capitalized ?? "Unknown")")
                 }
                 .font(.body)
-                .foregroundColor(.white)
+                .foregroundColor(AppColors.overlayLight)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
                 
@@ -3505,7 +3505,7 @@ struct SettingsView: View {
                 
                 Spacer()
             }
-            .background(Color.vibrantRed)
+            .background(AppColors.primary)
             .alert(
                 notificationService.errorMessage != nil ? "Error" : "Success",
                 isPresented: $notificationService.showTestAlert
@@ -3565,9 +3565,9 @@ struct ParentMapView: View {
                             }) {
                                 Image(systemName: "location.fill")
                                     .font(.title2)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                     .frame(width: 44, height: 44)
-                                    .background(Color.blue)
+                                    .background(AppColors.systemBlue)
                                     .clipShape(Circle())
                                     .shadow(radius: 4)
                             }
@@ -3578,9 +3578,9 @@ struct ParentMapView: View {
                             }) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.title2)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                     .frame(width: 44, height: 44)
-                                    .background(Color.green)
+                                    .background(AppColors.systemGreen)
                                     .clipShape(Circle())
                                     .shadow(radius: 4)
                             }
@@ -3601,7 +3601,7 @@ struct ParentMapView: View {
                             if mapViewModel.childrenLocations.isEmpty {
                                 Text("No children added yet")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppColors.textSecondary)
                             } else {
                                 ForEach(mapViewModel.childrenLocations.prefix(3), id: \.childId) { childLocation in
                                     HStack {
@@ -3617,13 +3617,13 @@ struct ParentMapView: View {
                                         
                                         Text(formatTimeAgo(childLocation.lastSeen))
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(AppColors.textSecondary)
                                     }
                                 }
                             }
                         }
                         .padding()
-                        .background(Color(UIColor.systemBackground).opacity(0.9))
+                        .background(AppColors.systemBackground.opacity(0.9))
                         .cornerRadius(12)
                         .shadow(radius: 4)
                         
@@ -4448,7 +4448,7 @@ struct CustomSecureField: View {
                 isSecure.toggle()
             }) {
                 Image(systemName: isSecure ? "eye.slash" : "eye")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
             }
         }
     }
@@ -4476,7 +4476,7 @@ struct AddChildView: View {
                     
                     Text("Enter your child's information to send them an invitation")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
                 
@@ -4485,7 +4485,7 @@ struct AddChildView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Child's Name")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                         
                         TextField("Enter child's name", text: $childName)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -4497,7 +4497,7 @@ struct AddChildView: View {
                 // Success/Error Messages
                 if let successMessage = successMessage {
                     Text(successMessage)
-                        .foregroundColor(.green)
+                        .foregroundColor(AppColors.systemGreen)
                         .font(.caption)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 30)
@@ -4505,7 +4505,7 @@ struct AddChildView: View {
                 
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.errorColor)
                         .font(.caption)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 30)
@@ -4619,7 +4619,7 @@ struct ChildSelectionView: View {
                 
                 Text("Choose which child's geofences you want to manage")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
@@ -4639,13 +4639,13 @@ struct ChildSelectionView: View {
                                 
                                 Text("Last seen: \(formatTimeAgo(child.lastSeen))")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppColors.textSecondary)
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                                 .font(.caption)
                         }
                         .padding(.vertical, 4)
@@ -4943,7 +4943,7 @@ struct InvitationListView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "envelope.open")
                             .font(.system(size: 50))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                         
                         Text("No Pending Invitations")
                             .font(.title2)
@@ -4951,7 +4951,7 @@ struct InvitationListView: View {
                         
                         Text("You don't have any pending parent invitations at the moment.")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding()
@@ -4990,14 +4990,14 @@ struct InvitationCard: View {
                     
                     Text("wants to monitor your location")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                     
                     Text("Invitation Code: \(invitation.invitationCode)")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.systemBlue)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.1))
+                        .background(AppColors.systemBlue.opacity(0.1))
                         .cornerRadius(4)
                 }
                 
@@ -5012,7 +5012,7 @@ struct InvitationCard: View {
                         isProcessing = false
                     }
                 }
-                .foregroundColor(.red)
+                .foregroundColor(AppColors.errorColor)
                 .disabled(isProcessing)
                 
                 Spacer()
@@ -5024,16 +5024,16 @@ struct InvitationCard: View {
                         isProcessing = false
                     }
                 }
-                .foregroundColor(.white)
+                .foregroundColor(AppColors.overlayLight)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(Color.blue)
+                .background(AppColors.systemBlue)
                 .cornerRadius(8)
                 .disabled(isProcessing)
             }
         }
         .padding()
-        .background(Color(UIColor.systemBackground))
+        .background(AppColors.systemBackground)
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -5086,7 +5086,7 @@ struct EditFamilyNameView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Family Name")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                         
                         TextField("Enter family name", text: $familyName)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -5144,7 +5144,7 @@ struct EditChildNameView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Child's Name")
                             .font(.radioCanadaBig(13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                         
                         TextField("Enter child's name", text: $childName)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -5308,7 +5308,7 @@ struct ChildRowView: View {
                     
                     Text(statusText)
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                 }
                 
                 Spacer()
@@ -5318,7 +5318,7 @@ struct ChildRowView: View {
                     Button(action: onSettingsTap) {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                             .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
                     }

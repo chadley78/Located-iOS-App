@@ -15,7 +15,7 @@ struct InviteParentView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "Invite Parent",
-            backgroundColor: .vibrantPurple,
+            backgroundColor: AppColors.highlight,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -37,11 +37,11 @@ struct InviteParentView: View {
                         
                         Text("Invite Another Parent")
                             .font(.radioCanadaBig(28, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                         
                         Text("Enter a name or description for this parent to generate an invitation code.")
                             .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -50,11 +50,11 @@ struct InviteParentView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Parent Name/Description")
                             .font(.radioCanadaBig(16, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                         
                         TextField("e.g., Mom, Dad, Guardian", text: $parentName)
                             .padding(12)
-                            .background(Color.familyMembersBg)
+                            .background(AppColors.surface1)
                             .cornerRadius(8)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
@@ -64,7 +64,7 @@ struct InviteParentView: View {
                     // Error Message
                     if let errorMessage = errorMessage {
                         Text(errorMessage)
-                            .foregroundColor(.red)
+                            .foregroundColor(AppColors.errorColor)
                             .font(.radioCanadaBig(12, weight: .regular))
                             .padding(.horizontal)
                     }
@@ -74,17 +74,17 @@ struct InviteParentView: View {
                         VStack(spacing: 16) {
                             Text("Invitation Created!")
                                 .font(.radioCanadaBig(22, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.overlayLight)
                             
                             Text("Share this code with another parent:")
                                 .font(.radioCanadaBig(16, weight: .regular))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.overlayLight)
                             
                             Text(inviteCode)
                                 .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                .foregroundColor(.vibrantPurple)
+                                .foregroundColor(AppColors.highlight)
                                 .padding()
-                                .background(Color.familyMembersBg)
+                                .background(AppColors.surface1)
                                 .cornerRadius(8)
                             
                             Text("This code expires in 24 hours")
@@ -102,10 +102,10 @@ struct InviteParentView: View {
                                         Text("Copy")
                                     }
                                     .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(Color.white.opacity(0.2))
+                                    .background(AppColors.overlayLight.opacity(0.2))
                                     .cornerRadius(8)
                                 }
                                 
@@ -125,16 +125,16 @@ struct InviteParentView: View {
                                         Text("Share")
                                     }
                                     .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(Color.white.opacity(0.2))
+                                    .background(AppColors.overlayLight.opacity(0.2))
                                     .cornerRadius(8)
                                 }
                             }
                         }
                         .padding()
-                        .background(Color.white.opacity(0.1))
+                        .background(AppColors.overlayLight.opacity(0.1))
                         .cornerRadius(12)
                         .padding(.horizontal)
                     } else {

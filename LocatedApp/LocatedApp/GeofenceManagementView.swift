@@ -23,7 +23,7 @@ struct GeofenceManagementView: View {
                 Text("Location Alerts")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.overlayLight)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                     .padding(.top)
@@ -32,7 +32,7 @@ struct GeofenceManagementView: View {
                 if geofenceService.isLoading {
                     ProgressView("Loading location alerts...")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                         .padding(.top, 60)
                     Spacer()
                 } else if geofenceService.geofences.isEmpty {
@@ -48,7 +48,7 @@ struct GeofenceManagementView: View {
                         VStack(spacing: 8) {
                             Text("No Location Alerts Yet")
                                 .font(.radioCanadaBig(20, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.overlayLight)
                             
                             Text("Create your first location alert to get notified when family members enter or leave specific areas.")
                                 .font(.radioCanadaBig(14, weight: .regular))
@@ -68,7 +68,7 @@ struct GeofenceManagementView: View {
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(Color.vibrantYellow)
+                            .background(AppColors.accent)
                             .cornerRadius(25)
                         }
                         .padding(.horizontal, 30)
@@ -112,13 +112,13 @@ struct GeofenceManagementView: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(Color.vibrantYellow)
+                        .background(AppColors.accent)
                         .cornerRadius(25)
                     }
                     .padding(.horizontal, 30)
                 }
             }
-            .background(Color.vibrantRed)
+            .background(AppColors.primary)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 Task {
@@ -179,30 +179,30 @@ struct GeofenceCard: View {
                     
                     Text("\(Int(geofence.radius))m radius")
                         .font(.radioCanadaBig(12, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                 }
                 
                 Spacer()
                 
                 // Status indicator
                 Circle()
-                    .fill(geofence.isActive ? Color.green : Color.gray)
+                    .fill(geofence.isActive ? AppColors.systemGreen : AppColors.systemGray)
                     .frame(width: 12, height: 12)
             }
             
             // Location info
             HStack {
                 Image(systemName: "mappin.circle.fill")
-                    .foregroundColor(.red)
+                    .foregroundColor(AppColors.errorColor)
                     .font(.caption)
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Lat: \(geofence.latitude, specifier: "%.6f")")
                         .font(.radioCanadaBig(10, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                     Text("Lng: \(geofence.longitude, specifier: "%.6f")")
                         .font(.radioCanadaBig(10, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                 }
                 
                 Spacer()
@@ -236,7 +236,7 @@ struct GeofenceCard: View {
                 HStack {
                     Text("Enters Alert")
                         .font(.radioCanadaBig(12, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                     Spacer()
                     Toggle("", isOn: $notifyOnEnter)
                         .labelsHidden()
@@ -254,7 +254,7 @@ struct GeofenceCard: View {
                 HStack {
                     Text("Leaves Alert")
                         .font(.radioCanadaBig(12, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                     Spacer()
                     Toggle("", isOn: $notifyOnExit)
                         .labelsHidden()
@@ -270,7 +270,7 @@ struct GeofenceCard: View {
                 }
             }
             .padding(12)
-            .background(Color.blue.opacity(0.05))
+            .background(AppColors.systemBlue.opacity(0.05))
             .cornerRadius(8)
             
             // Actions
@@ -283,7 +283,7 @@ struct GeofenceCard: View {
                     .font(.radioCanadaBig(12, weight: .regular))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color.blue.opacity(0.1))
+                    .background(AppColors.systemBlue.opacity(0.1))
                     .foregroundColor(.blue)
                     .cornerRadius(6)
                 }
@@ -300,14 +300,14 @@ struct GeofenceCard: View {
                     .font(.radioCanadaBig(12, weight: .regular))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundColor(.red)
+                    .background(AppColors.errorColor.opacity(0.1))
+                    .foregroundColor(AppColors.errorColor)
                     .cornerRadius(6)
                 }
             }
         }
         .padding()
-        .background(Color.white)
+        .background(AppColors.overlayLight)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         .alert("Delete Location Alert", isPresented: $showingDeleteAlert) {
@@ -352,10 +352,10 @@ struct GeofenceDetailsView: View {
                                 
                                 Text("Latitude: \(geofence.latitude, specifier: "%.6f")")
                                     .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppColors.textSecondary)
                                 Text("Longitude: \(geofence.longitude, specifier: "%.6f")")
                                     .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppColors.textSecondary)
                             }
                         }
                     }
@@ -395,7 +395,7 @@ struct GeofenceDetailsView: View {
                         if geofenceService.geofenceEvents.isEmpty {
                             Text("No events yet")
                                 .font(.radioCanadaBig(14, weight: .regular))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding()
                         } else {
@@ -447,7 +447,7 @@ struct DetailRow: View {
             
             Text(value)
                 .font(.radioCanadaBig(14, weight: .regular))
-                .foregroundColor(.secondary)
+                .foregroundColor(AppColors.textSecondary)
         }
     }
 }
@@ -469,7 +469,7 @@ struct EventRow: View {
                 
                 Text(event.timestamp.formatted(date: .abbreviated, time: .shortened))
                     .font(.radioCanadaBig(12, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
             }
             
             Spacer()
@@ -507,7 +507,7 @@ struct GeofenceEventsView: View {
                         
                         Text("Events will appear here when family members enter or leave the '\(geofenceName)' geofence.")
                             .font(.radioCanadaBig(14, weight: .regular))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                         
                         Spacer()

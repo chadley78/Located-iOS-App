@@ -44,7 +44,7 @@ struct JoinFamilyView: View {
                             
                             TextField("e.g., ABC123", text: $inviteCode)
                                 .padding(12)
-                                .background(Color.familyMembersBg)
+                                .background(AppColors.surface1)
                                 .cornerRadius(8)
                                 .autocapitalization(.allCharacters)
                                 .disableAutocorrection(true)
@@ -55,7 +55,7 @@ struct JoinFamilyView: View {
                         // Error Message
                         if let errorMessage = errorMessage {
                             Text(errorMessage)
-                                .foregroundColor(.red)
+                                .foregroundColor(AppColors.errorColor)
                                 .font(.radioCanadaBig(12, weight: .regular))
                                 .padding(.horizontal)
                         }
@@ -91,7 +91,7 @@ struct JoinFamilyView: View {
                             // Success Icon
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 80))
-                                .foregroundColor(.green)
+                                .foregroundColor(AppColors.systemGreen)
                             
                             Text("Welcome!")
                                 .font(.radioCanadaBig(32, weight: .bold))
@@ -128,7 +128,7 @@ struct JoinFamilyView: View {
                 }
                 .padding()
             }
-            .background(Color.vibrantPurple)
+            .background(AppColors.highlight)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

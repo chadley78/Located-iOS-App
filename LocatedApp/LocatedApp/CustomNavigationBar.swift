@@ -32,7 +32,7 @@ struct CustomNavigationBar: View {
                     Button(action: leadingButton.action) {
                         Text(leadingButton.title)
                             .font(.radioCanadaBig(17, weight: .regular))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                     }
                     .disabled(leadingButton.isDisabled)
                     .opacity(leadingButton.isDisabled ? 0.5 : 1.0)
@@ -46,7 +46,7 @@ struct CustomNavigationBar: View {
                 // Title
                 Text(title)
                     .font(.radioCanadaBig(17, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.overlayLight)
                 
                 Spacer()
                 
@@ -55,7 +55,7 @@ struct CustomNavigationBar: View {
                     Button(action: trailingButton.action) {
                         Text(trailingButton.title)
                             .font(.radioCanadaBig(17, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                     }
                     .disabled(trailingButton.isDisabled)
                     .opacity(trailingButton.isDisabled ? 0.5 : 1.0)

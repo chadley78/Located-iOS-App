@@ -22,11 +22,11 @@ struct ChildLocationHistoryView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(childName)
                                 .font(.radioCanadaBig(24, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.overlayLight)
                             
                             Text("Location Trail - Last 6 Hours")
                                 .font(.radioCanadaBig(14, weight: .regular))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(AppColors.overlayLight.opacity(0.8))
                         }
                         
                         Spacer()
@@ -34,12 +34,12 @@ struct ChildLocationHistoryView: View {
                         Button(action: { dismiss() }) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.title2)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(AppColors.overlayLight.opacity(0.8))
                         }
                     }
                     .padding()
                 }
-                .background(Color.vibrantRed)
+                .background(AppColors.primary)
                 
                 // Map
                 if historyService.isLoading {
@@ -54,10 +54,10 @@ struct ChildLocationHistoryView: View {
                         Spacer()
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 50))
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppColors.warningColor)
                         Text(errorMessage)
                             .font(.radioCanadaBig(14, weight: .regular))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding()
                         Spacer()
@@ -67,12 +67,12 @@ struct ChildLocationHistoryView: View {
                         Spacer()
                         Image(systemName: "location.slash")
                             .font(.system(size: 50))
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppColors.systemGray)
                         Text("No location history")
                             .font(.radioCanadaBig(18, weight: .semibold))
                         Text("Location updates will appear here once \(childName) starts sharing their location.")
                             .font(.radioCanadaBig(14, weight: .regular))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding()
                         Spacer()
@@ -91,7 +91,7 @@ struct ChildLocationHistoryView: View {
                                 .foregroundColor(.primary)
                             Text("Points")
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                         }
                         
                         Divider()
@@ -105,12 +105,12 @@ struct ChildLocationHistoryView: View {
                                     .foregroundColor(.primary)
                                 Text("Duration")
                                     .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(AppColors.textSecondary)
                             }
                         }
                     }
                     .padding()
-                    .background(Color(.systemBackground))
+                    .background(AppColors.systemBackground)
                 }
             }
             .navigationBarHidden(true)

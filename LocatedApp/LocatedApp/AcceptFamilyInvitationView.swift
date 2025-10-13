@@ -34,7 +34,7 @@ struct AcceptFamilyInvitationView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "person.badge.plus")
                                 .font(.system(size: 50))
-                                .foregroundColor(.green)
+                                .foregroundColor(AppColors.systemGreen)
                             
                             Text("Join Your Family")
                                 .font(.title)
@@ -42,7 +42,7 @@ struct AcceptFamilyInvitationView: View {
                             
                             Text("Enter the invitation code your parent shared with you to join your family on Located.")
                                 .font(.body)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
                         }
@@ -64,7 +64,7 @@ struct AcceptFamilyInvitationView: View {
                         // Error Message
                         if let errorMessage = errorMessage {
                             Text(errorMessage)
-                                .foregroundColor(.red)
+                                .foregroundColor(AppColors.errorColor)
                                 .font(.caption)
                                 .padding(.horizontal)
                         }
@@ -92,7 +92,7 @@ struct AcceptFamilyInvitationView: View {
                             dismiss()
                         }
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                         .padding(.bottom)
                         }
                         .padding()
@@ -160,7 +160,7 @@ struct ChildWelcomeView: View {
             // App Logo - matching parent loading screen
             VStack(spacing: 24) {
                 Circle()
-                    .fill(Color.vibrantYellow)
+                    .fill(AppColors.accent)
                     .frame(width: 120, height: 120)
                     .overlay(
                         Image("AppSplash")
@@ -322,7 +322,7 @@ struct ChildWelcomeView: View {
                 }
             }
         }
-        .background(Color.vibrantYellow)
+        .background(AppColors.accent)
         .ignoresSafeArea()
     }
     
@@ -367,7 +367,7 @@ struct ChildWelcomeBackView: View {
             // App Logo - matching parent loading screen
             VStack(spacing: 24) {
                 Circle()
-                    .fill(Color.vibrantYellow)
+                    .fill(AppColors.accent)
                     .frame(width: 120, height: 120)
                     .overlay(
                         Image("AppSplash")
@@ -407,7 +407,7 @@ struct ChildWelcomeBackView: View {
             .padding(.bottom, 50)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.vibrantYellow)
+        .background(AppColors.accent)
         .ignoresSafeArea()
     }
 }
@@ -435,7 +435,7 @@ struct WelcomeToFamilyView: View {
                 
                 Text("You're now part of the following family:")
                     .font(.title3)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
                 
                 Text(familyName)
@@ -443,7 +443,7 @@ struct WelcomeToFamilyView: View {
                     .fontWeight(.semibold)
                     .foregroundColor(.blue)
                     .padding()
-                    .background(Color.blue.opacity(0.1))
+                    .background(AppColors.systemBlue.opacity(0.1))
                     .cornerRadius(12)
             }
             
@@ -480,7 +480,7 @@ struct ChildInvitationPromptView: View {
                         .font(.headline)
                     Text("Your parent has invited you to join your family on Located")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                 }
                 
                 Spacer()
@@ -492,12 +492,12 @@ struct ChildInvitationPromptView: View {
                 .foregroundColor(.blue)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.blue.opacity(0.1))
+                .background(AppColors.systemBlue.opacity(0.1))
                 .cornerRadius(6)
             }
         }
         .padding()
-        .background(Color.blue.opacity(0.05))
+        .background(AppColors.systemBlue.opacity(0.05))
         .cornerRadius(12)
         .sheet(isPresented: $showingAcceptInvitation) {
             AcceptFamilyInvitationView()

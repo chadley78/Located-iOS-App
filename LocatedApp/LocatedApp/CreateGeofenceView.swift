@@ -36,7 +36,7 @@ struct CreateGeofenceView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "New Location Alert",
-            backgroundColor: .vibrantRed,
+            backgroundColor: AppColors.primary,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -53,11 +53,11 @@ struct CreateGeofenceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Location Alert Name")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     TextField("e.g., School, Home, Park", text: $geofenceName)
                         .padding(12)
-                        .background(Color.white)
+                        .background(AppColors.overlayLight)
                         .cornerRadius(8)
                 }
                 
@@ -65,15 +65,15 @@ struct CreateGeofenceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Radius")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     HStack {
                         Slider(value: $selectedRadius, in: 50...1000, step: 50)
-                            .accentColor(.vibrantYellow)
+                            .accentColor(AppColors.accent)
                         
                         Text("\(Int(selectedRadius))m")
                             .font(.subheadline)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.overlayLight)
                             .frame(width: 60)
                     }
                     
@@ -88,7 +88,7 @@ struct CreateGeofenceView: View {
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(
-                                        selectedRadius == radius ? Color.vibrantYellow : Color.white.opacity(0.3)
+                                        selectedRadius == radius ? AppColors.accent : AppColors.overlayLight.opacity(0.3)
                                     )
                                     .foregroundColor(selectedRadius == radius ? .black : .white)
                                     .cornerRadius(8)
@@ -101,20 +101,20 @@ struct CreateGeofenceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Location")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.overlayLight)
                     
                     if let coordinate = selectedCoordinate {
                         HStack {
                             Image(systemName: "mappin.circle.fill")
-                                .foregroundColor(.vibrantYellow)
+                                .foregroundColor(AppColors.accent)
                             
                             VStack(alignment: .leading) {
                                 Text("Lat: \(coordinate.latitude, specifier: "%.6f")")
                                     .font(.caption)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                                 Text("Lng: \(coordinate.longitude, specifier: "%.6f")")
                                     .font(.caption)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.overlayLight)
                             }
                             
                             Spacer()
@@ -127,12 +127,12 @@ struct CreateGeofenceView: View {
                                     .foregroundColor(.black)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(Color.vibrantYellow)
+                                    .background(AppColors.accent)
                                     .cornerRadius(8)
                             }
                         }
                         .padding()
-                        .background(Color.white.opacity(0.2))
+                        .background(AppColors.overlayLight.opacity(0.2))
                         .cornerRadius(8)
                     } else {
                         Button(action: {
@@ -146,7 +146,7 @@ struct CreateGeofenceView: View {
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(Color.vibrantYellow)
+                            .background(AppColors.accent)
                             .cornerRadius(25)
                         }
                         .padding(.horizontal, 30)
@@ -346,7 +346,7 @@ struct LocationPickerView: View {
                     VStack(spacing: 16) {
                         Text("Tap on the map to select location")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                         
                         if let coordinate = selectedCoordinate {
                             VStack(spacing: 4) {
@@ -358,7 +358,7 @@ struct LocationPickerView: View {
                                     .font(.caption)
                             }
                             .padding()
-                            .background(Color.blue.opacity(0.1))
+                            .background(AppColors.systemBlue.opacity(0.1))
                             .cornerRadius(8)
                         }
                     }
@@ -482,7 +482,7 @@ struct SearchResultRow: View {
                 if !result.subtitle.isEmpty {
                     Text(result.subtitle)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.leading)
                 }
             }
@@ -517,14 +517,14 @@ struct GeofencePreviewMap: View {
             MapAnnotation(coordinate: annotation.coordinate) {
                 VStack {
                     Circle()
-                        .stroke(Color.red, lineWidth: 2)
+                        .stroke(AppColors.errorColor, lineWidth: 2)
                         .frame(width: CGFloat(radius / 10), height: CGFloat(radius / 10))
                         .opacity(0.6)
                     
                     Text(annotation.name)
                         .font(.caption)
                         .padding(4)
-                        .background(Color.white)
+                        .background(AppColors.overlayLight)
                         .cornerRadius(4)
                         .shadow(radius: 2)
                 }
