@@ -1054,11 +1054,11 @@ struct ParentHomeView: View {
                     region: $mapViewModel.region,
                     mapViewModel: mapViewModel,
                     familyService: familyService,
-                    historyTrail: mapViewModel.historyTrail,
+                    childTrails: mapViewModel.childTrails,
                     onChildPinTapped: { childId, childName in
-                        print("🗺️ Pin tapped - loading trail for \(childName)")
+                        print("🗺️ Pin tapped - toggling trail for \(childName)")
                         Task {
-                            await mapViewModel.loadTrailForChild(childId: childId, childName: childName)
+                            await mapViewModel.toggleTrailForChild(childId: childId, childName: childName)
                         }
                     }
                 )
@@ -1080,21 +1080,6 @@ struct ParentHomeView: View {
                         Spacer()
                         
                         VStack(spacing: 12) {
-                            // Clear Trail button (only shown when trail is displayed)
-                            if !mapViewModel.historyTrail.isEmpty {
-                                Button(action: {
-                                    mapViewModel.clearTrail()
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .frame(width: 44, height: 44)
-                                        .background(Color.red)
-                                        .clipShape(Circle())
-                                        .shadow(radius: 4)
-                                }
-                            }
-                            
                             // Center on children button
                             Button(action: {
                                 mapViewModel.centerOnChildren()
@@ -1108,7 +1093,7 @@ struct ParentHomeView: View {
                                     .shadow(radius: 4)
                             }
                             
-                            // Refresh button
+                            // Refresh button (also clears trails)
                             Button(action: {
                                 mapViewModel.refreshChildrenLocations()
                             }) {
@@ -1233,6 +1218,13 @@ struct ParentHomeView: View {
                                                         
                                                         // Center on the child's location
                                                         mapViewModel.centerOnChild(childId: child.id)
+                                                        
+                                                        // Ensure trail is turned on
+                                                        if mapViewModel.childTrails[child.id] == nil {
+                                                            Task {
+                                                                await mapViewModel.toggleTrailForChild(childId: child.id, childName: child.name)
+                                                            }
+                                                        }
                                                     }
                                                     // For pending children, we don't do anything on tap in the home view
                                                 },
@@ -3550,11 +3542,11 @@ struct ParentMapView: View {
                     region: $mapViewModel.region,
                     mapViewModel: mapViewModel,
                     familyService: familyService,
-                    historyTrail: mapViewModel.historyTrail,
+                    childTrails: mapViewModel.childTrails,
                     onChildPinTapped: { childId, childName in
-                        print("🗺️ Pin tapped - loading trail for \(childName)")
+                        print("🗺️ Pin tapped - toggling trail for \(childName)")
                         Task {
-                            await mapViewModel.loadTrailForChild(childId: childId, childName: childName)
+                            await mapViewModel.toggleTrailForChild(childId: childId, childName: childName)
                         }
                     }
                 )
@@ -3673,9 +3665,8 @@ class ParentMapViewModel: ObservableObject {
         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     )
     
-    // Location History Trail
-    @Published var historyTrail: [LocationHistoryPoint] = []
-    @Published var selectedChildForTrail: String? = nil
+    // Location History Trail - support multiple children with different colors
+    @Published var childTrails: [String: [LocationHistoryPoint]] = [:] // childId -> trail points
     @Published var isLoadingTrail = false
     
     // Color palette for different children pins
@@ -3799,12 +3790,19 @@ class ParentMapViewModel: ObservableObject {
                     // Update or add child location
                     DispatchQueue.main.async {
                         let wasEmpty = self.childrenLocations.isEmpty
-                        
+                        let isNewChild = !self.childrenLocations.contains(where: { $0.childId == childId })
                         
                         if let index = self.childrenLocations.firstIndex(where: { $0.childId == childId }) {
                             self.childrenLocations[index] = childLocation
                         } else {
                             self.childrenLocations.append(childLocation)
+                        }
+                        
+                        // Auto-load trail for new child
+                        if isNewChild {
+                            Task { @MainActor in
+                                await self.toggleTrailForChild(childId: childId, childName: childName)
+                            }
                         }
                         
                         // Check if we should center the map now
@@ -3980,48 +3978,50 @@ class ParentMapViewModel: ObservableObject {
     // MARK: - Location History Trail
     
     @MainActor
-    func loadTrailForChild(childId: String, childName: String) async {
+    func toggleTrailForChild(childId: String, childName: String) async {
+        // If trail exists for this child, remove it (toggle off)
+        if childTrails[childId] != nil {
+            print("📍 Removing trail for child: \(childName)")
+            childTrails[childId] = nil
+            return
+        }
+        
+        // Otherwise, load the trail (toggle on)
         print("📍 Loading trail for child: \(childName) (\(childId))")
         isLoadingTrail = true
-        selectedChildForTrail = childId
         
         await historyService.fetchHistory(childId: childId, hours: 6)
-        historyTrail = historyService.historyPoints
+        childTrails[childId] = historyService.historyPoints
         isLoadingTrail = false
         
-        print("📍 Trail loaded: \(historyTrail.count) points")
-        
-        // Adjust map region to show the trail
-        if !historyTrail.isEmpty {
-            let coordinates = historyTrail.map { $0.coordinate }
-            let minLat = coordinates.map { $0.latitude }.min() ?? 0
-            let maxLat = coordinates.map { $0.latitude }.max() ?? 0
-            let minLng = coordinates.map { $0.longitude }.min() ?? 0
-            let maxLng = coordinates.map { $0.longitude }.max() ?? 0
-            
-            let center = CLLocationCoordinate2D(
-                latitude: (minLat + maxLat) / 2,
-                longitude: (minLng + maxLng) / 2
-            )
-            
-            let span = MKCoordinateSpan(
-                latitudeDelta: max(maxLat - minLat, 0.01) * 1.5,
-                longitudeDelta: max(maxLng - minLng, 0.01) * 1.5
-            )
-            
-            region = MKCoordinateRegion(center: center, span: span)
-        }
+        print("📍 Trail loaded: \(childTrails[childId]?.count ?? 0) points")
     }
     
     @MainActor
-    func clearTrail() {
-        print("📍 Clearing trail")
-        historyTrail = []
-        selectedChildForTrail = nil
+    func loadAllChildTrails() async {
+        print("📍 Loading trails for all children")
+        
+        for child in childrenLocations {
+            await historyService.fetchHistory(childId: child.childId, hours: 6)
+            childTrails[child.childId] = historyService.historyPoints
+            print("📍 Loaded trail for \(child.childName): \(historyService.historyPoints.count) points")
+        }
+        
+        print("📍 All trails loaded")
+    }
+    
+    @MainActor
+    func clearAllTrails() {
+        print("📍 Clearing all trails")
+        childTrails.removeAll()
         historyService.clearHistory()
     }
     
     func refreshChildrenLocations() {
+        // Clear all trails when refreshing
+        Task { @MainActor in
+            clearAllTrails()
+        }
         
         // Force refresh by restarting listeners
         listeners.forEach { $0.remove() }
@@ -4070,7 +4070,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     @Binding var region: MKCoordinateRegion
     let mapViewModel: ParentMapViewModel
     let familyService: FamilyService
-    let historyTrail: [LocationHistoryPoint]
+    let childTrails: [String: [LocationHistoryPoint]] // childId -> trail points
     let onChildPinTapped: (String, String) -> Void // (childId, childName)
     
     func makeUIView(context: Context) -> MKMapView {
@@ -4110,15 +4110,19 @@ struct MapViewRepresentable: UIViewRepresentable {
             mapView.addAnnotation(annotation)
         }
         
-        // Draw history trail if available
-        if !historyTrail.isEmpty {
+        // Draw history trails for each child
+        for (childId, trail) in childTrails where !trail.isEmpty {
+            // Get child's color
+            let childColor = mapViewModel.getColorForChild(childId: childId)
+            
             // Create polyline from history points
-            let coordinates = historyTrail.map { $0.coordinate }
-            let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+            let coordinates = trail.map { $0.coordinate }
+            let polyline = ColoredPolyline(coordinates: coordinates, count: coordinates.count)
+            polyline.color = childColor // Store color in the polyline
             mapView.addOverlay(polyline)
             
             // Add start marker (green)
-            if let firstPoint = historyTrail.first {
+            if let firstPoint = trail.first {
                 let startAnnotation = HistoryPointAnnotation(
                     coordinate: firstPoint.coordinate,
                     title: "Start",
@@ -4129,7 +4133,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
             
             // Add end marker (red)
-            if let lastPoint = historyTrail.last, historyTrail.count > 1 {
+            if let lastPoint = trail.last, trail.count > 1 {
                 let endAnnotation = HistoryPointAnnotation(
                     coordinate: lastPoint.coordinate,
                     title: "Current",
@@ -4235,9 +4239,9 @@ struct MapViewRepresentable: UIViewRepresentable {
         
         // Render the polyline overlay for location history trail
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            if let polyline = overlay as? MKPolyline {
-                let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = .systemBlue
+            if let coloredPolyline = overlay as? ColoredPolyline {
+                let renderer = MKPolylineRenderer(polyline: coloredPolyline)
+                renderer.strokeColor = coloredPolyline.color
                 renderer.lineWidth = 3
                 return renderer
             }
@@ -5371,4 +5375,9 @@ struct ChildRowView: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+}
+
+// MARK: - Custom Polyline with Color
+class ColoredPolyline: MKPolyline {
+    var color: UIColor = .systemBlue
 }
