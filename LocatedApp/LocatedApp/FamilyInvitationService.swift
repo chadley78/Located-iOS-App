@@ -138,7 +138,7 @@ class FamilyInvitationService: ObservableObject {
     }
     
     /// Create a family invitation and pending child using Cloud Function via HTTP
-    func createInvitation(familyId: String, childName: String) async throws -> String {
+    func createInvitation(familyId: String, childName: String, role: FamilyRole = .child) async throws -> String {
         guard let userId = Auth.auth().currentUser?.uid else {
             throw FamilyInvitationError.notAuthenticated
         }
@@ -147,7 +147,7 @@ class FamilyInvitationService: ObservableObject {
         errorMessage = nil
         
         do {
-            print("🔍 Creating invitation and pending child using Cloud Function for familyId: \(familyId)")
+            print("🔍 Creating \(role.rawValue) invitation using Cloud Function for familyId: \(familyId)")
             
             // Get Firebase ID token for authentication
             guard let idToken = try await Auth.auth().currentUser?.getIDToken() else {
@@ -164,7 +164,8 @@ class FamilyInvitationService: ObservableObject {
             let requestBody = [
                 "data": [
                     "familyId": familyId,
-                    "childName": childName
+                    "childName": childName,
+                    "role": role.rawValue
                 ]
             ]
             

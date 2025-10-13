@@ -1037,6 +1037,7 @@ struct ParentHomeView: View {
     @State private var showingFamilySetup = false
     @State private var showingFamilyManagement = false
     @State private var showingInviteChild = false
+    @State private var showingJoinFamily = false
     @State private var scrollOffset: CGFloat = 0
     @State private var panelHeight: CGFloat = 0.25
     @State private var isPanelExpanded: Bool = false
@@ -1238,7 +1239,7 @@ struct ParentHomeView: View {
                                         VStack(spacing: 0) {
                                             // Text at the top
                                             HStack {
-                                                Text("Let's create a\nfamily")
+                                                Text("Let's get\nstarted")
                                                     .font(.radioCanadaBig(28, weight: .bold))
                                                     .foregroundColor(.white)
                                                     .multilineTextAlignment(.leading)
@@ -1250,11 +1251,23 @@ struct ParentHomeView: View {
                                             
                                             Spacer()
                                             
-                                            // Button at the bottom
-                                            Button("Create a family") {
-                                                showingFamilySetup = true
+                                            // Buttons at the bottom
+                                            VStack(spacing: 12) {
+                                                Button("Create a Family") {
+                                                    showingFamilySetup = true
+                                                }
+                                                .primaryAButtonStyle()
+                                                
+                                                Button("Join Existing Family") {
+                                                    showingJoinFamily = true
+                                                }
+                                                .font(.radioCanadaBig(16, weight: .semibold))
+                                                .foregroundColor(.white)
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 50)
+                                                .background(Color.white.opacity(0.2))
+                                                .cornerRadius(12)
                                             }
-                                            .primaryAButtonStyle()
                                             .padding(.horizontal, 40)
                                             .padding(.bottom, 40)
                                         }
@@ -1430,6 +1443,11 @@ struct ParentHomeView: View {
             }
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
+                    .environmentObject(familyService)
+            }
+            .sheet(isPresented: $showingJoinFamily) {
+                JoinFamilyView()
+                    .environmentObject(authService)
                     .environmentObject(familyService)
             }
             .sheet(item: $selectedChildForProfile) { child in
@@ -2038,6 +2056,7 @@ struct ChildrenListView: View {
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var invitationService: FamilyInvitationService
     @State private var showingInviteChild = false
+    @State private var showingInviteParent = false
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
     @State private var removedChildId: String? = nil
@@ -2057,16 +2076,35 @@ struct ChildrenListView: View {
                         
                         Spacer()
                         
-                        // Add Child Button
-                        Button(action: {
-                            showingInviteChild = true
-                        }) {
-                            HStack {
-                                Image(systemName: "person.badge.plus")
-                                Text("Invite Child")
+                        // Invite Buttons
+                        VStack(spacing: 12) {
+                            // Add Child Button
+                            Button(action: {
+                                showingInviteChild = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "person.badge.plus")
+                                    Text("Invite Child")
+                                }
+                            }
+                            .primaryAButtonStyle()
+                            
+                            // Add Parent Button
+                            Button(action: {
+                                showingInviteParent = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "person.2.badge.plus")
+                                    Text("Invite Parent")
+                                }
+                                .font(.radioCanadaBig(16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(Color.white.opacity(0.2))
+                                .cornerRadius(12)
                             }
                         }
-                        .primaryAButtonStyle()
                         
                         familyMembersListView
                         
@@ -2100,6 +2138,11 @@ struct ChildrenListView: View {
         }
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
+                .environmentObject(familyService)
+        }
+        .sheet(isPresented: $showingInviteParent) {
+            InviteParentView()
+                .environmentObject(authService)
                 .environmentObject(familyService)
         }
         .fullScreenCover(isPresented: $childProfileData.isPresented) {

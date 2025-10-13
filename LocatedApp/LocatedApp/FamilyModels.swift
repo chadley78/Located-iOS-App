@@ -76,13 +76,29 @@ struct FamilyInvitation: Codable, Identifiable {
     let familyId: String
     let createdBy: String // Parent user ID
     let childName: String
+    let role: FamilyRole // Role for this invitation (parent or child)
     let createdAt: Date
     let expiresAt: Date
-    let usedBy: String? // Child user ID who used the invitation
+    let usedBy: String? // User ID who used the invitation
     let usedAt: Date? // When the invitation was used
     
     enum CodingKeys: String, CodingKey {
-        case id, familyId, createdBy, childName, createdAt, expiresAt, usedBy, usedAt
+        case id, familyId, createdBy, childName, role, createdAt, expiresAt, usedBy, usedAt
+    }
+    
+    // Custom decoder to handle backward compatibility with invitations that don't have role field
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        familyId = try container.decode(String.self, forKey: .familyId)
+        createdBy = try container.decode(String.self, forKey: .createdBy)
+        childName = try container.decode(String.self, forKey: .childName)
+        role = try container.decodeIfPresent(FamilyRole.self, forKey: .role) ?? .child // Default to child for backward compatibility
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        expiresAt = try container.decode(Date.self, forKey: .expiresAt)
+        usedBy = try container.decodeIfPresent(String.self, forKey: .usedBy)
+        usedAt = try container.decodeIfPresent(Date.self, forKey: .usedAt)
     }
     
     var isExpired: Bool {
@@ -95,6 +111,10 @@ struct FamilyInvitation: Codable, Identifiable {
     
     var isValid: Bool {
         !isExpired && !isUsed
+    }
+    
+    var inviteeName: String {
+        childName // Alias for more generic usage
     }
 }
 
