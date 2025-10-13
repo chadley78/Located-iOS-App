@@ -52,6 +52,9 @@ class LocationService: NSObject, ObservableObject {
     private var cachedGeofences: [Geofence] = [] // Cache of active geofences for this family
     private var geofenceListener: ListenerRegistration? // Real-time listener for geofence changes
     
+    // Flag to force save next location (used after accepting invitation)
+    private var shouldSaveNextLocation = false
+    
     // Location update settings
     private let locationUpdateInterval: TimeInterval = 30 // 30 seconds
     private let significantLocationChangeThreshold: CLLocationDistance = 100 // 100 meters
@@ -130,6 +133,20 @@ class LocationService: NSObject, ObservableObject {
         }
     }
     
+    /// Request Always permission - the delegate method will handle starting background location
+    func requestAlwaysPermissionAndStartBackground() {
+        print("📍 Requesting Always permission")
+        
+        let currentStatus = CLLocationManager.authorizationStatus()
+        print("📍 Current authorization status: \(currentStatus.rawValue)")
+        
+        // Request Always authorization
+        // The delegate method (didChangeAuthorization) will handle the response
+        locationManager.requestAlwaysAuthorization()
+        
+        print("📍 Permission request sent - waiting for user response")
+    }
+    
     // MARK: - Location Updates
     func startLocationUpdates() {
         print("📍 Attempting to start location updates...")
@@ -206,8 +223,15 @@ class LocationService: NSObject, ObservableObject {
         print("📍 Location accuracy: \(location.horizontalAccuracy)m")
         print("📍 Location timestamp: \(location.timestamp)")
         
-        // Check if this is a significant location change
-        guard isSignificantLocationChange(location) else {
+        // Check if we should force save this location (e.g., after accepting invitation)
+        let shouldForceSave = shouldSaveNextLocation
+        if shouldForceSave {
+            print("📍 Force save flag set - will save this location immediately")
+            shouldSaveNextLocation = false // Reset flag
+        }
+        
+        // Check if this is a significant location change (or forced)
+        guard shouldForceSave || isSignificantLocationChange(location) else {
             print("📍 Location change not significant - ignoring")
             return
         }
@@ -470,8 +494,12 @@ class LocationService: NSObject, ObservableObject {
                 await saveLocationToFirestore(location: currentLocation, address: nil)
             }
         } else {
-            print("📍 No current location, requesting fresh location")
+            print("📍 No current location, requesting fresh location and will save when received")
             // Request a fresh location update
+            // Set a flag so the next location received will be saved immediately
+            Task { @MainActor in
+                self.shouldSaveNextLocation = true
+            }
             locationManager.requestLocation()
         }
     }
@@ -753,9 +781,29 @@ extension LocationService: @preconcurrency CLLocationManagerDelegate {
             print("📍 Always permission granted, starting location updates")
             startLocationUpdates()
         case .authorizedWhenInUse:
-            print("📍 When in use permission granted, requesting always permission")
-            // Request upgrade to always authorization
-            locationManager.requestAlwaysAuthorization()
+            print("📍 When in use permission granted")
+            print("📍 Starting background location to trigger Always permission upgrade prompt")
+            
+            // CRITICAL: Must actually USE background location to trigger iOS upgrade prompt
+            // Enable background updates - this tells iOS we want to use background location
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.pausesLocationUpdatesAutomatically = false
+            
+            // Start location services - this demonstrates actual background usage
+            locationManager.startUpdatingLocation()
+            locationManager.startMonitoringSignificantLocationChanges()
+            
+            // Request a location update to prove we're using background capability
+            locationManager.requestLocation()
+            
+            // After a short delay, request the upgrade
+            // iOS will show "Change to Always Allow?" because we're actively using background location
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                print("📍 Requesting Always authorization upgrade...")
+                self?.locationManager.requestAlwaysAuthorization()
+            }
+            
+            print("✅ Background location started - iOS should show upgrade prompt when app goes to background")
         case .denied, .restricted:
             print("📍 Location permission denied or restricted")
             stopLocationUpdates()

@@ -794,11 +794,16 @@ exports.cleanupInvalidTokens = onRequest(async (req, res) => {
  */
 exports.createInvitation = onCall(async (request) => {
   try {
-    const {familyId, childName} = request.data;
+    const {familyId, childName, role = "child"} = request.data;
     const parentId = request.auth.uid;
 
     if (!familyId || !childName) {
       throw new Error("familyId and childName are required");
+    }
+
+    // Validate role parameter
+    if (role !== "parent" && role !== "child") {
+      throw new Error("role must be 'parent' or 'child'");
     }
 
     // Verify the user is a parent in this family
@@ -824,19 +829,25 @@ exports.createInvitation = onCall(async (request) => {
       throw new Error("Only parents can create invitations");
     }
 
-    // Check if there's an existing ACCEPTED child with this name
-    const existingAcceptedChild = Object.entries(familyData.members || {})
-        .find(([userId, memberData]) =>
-          memberData.role === "child" &&
-          memberData.name === childName &&
-          memberData.status === "accepted");
+    // For parent invitations, skip child-specific checks
+    let existingAcceptedChild = null;
+    let existingPendingChild = null;
 
-    // Check if there's an existing PENDING child with this name
-    const existingPendingChild = Object.entries(familyData.members || {})
-        .find(([userId, memberData]) =>
-          memberData.role === "child" &&
-          memberData.name === childName &&
-          memberData.status === "pending");
+    if (role === "child") {
+      // Check if there's an existing ACCEPTED child with this name
+      existingAcceptedChild = Object.entries(familyData.members || {})
+          .find(([userId, memberData]) =>
+            memberData.role === "child" &&
+            memberData.name === childName &&
+            memberData.status === "accepted");
+
+      // Check if there's an existing PENDING child with this name
+      existingPendingChild = Object.entries(familyData.members || {})
+          .find(([userId, memberData]) =>
+            memberData.role === "child" &&
+            memberData.name === childName &&
+            memberData.status === "pending");
+    }
 
     // If existing pending child, update it instead of creating new
     if (existingPendingChild) {
@@ -869,6 +880,7 @@ exports.createInvitation = onCall(async (request) => {
         familyId: familyId,
         createdBy: parentId,
         childName: childName,
+        role: role, // Add role field
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         usedBy: null,
@@ -937,14 +949,16 @@ exports.createInvitation = onCall(async (request) => {
       familyId: familyId,
       createdBy: parentId,
       childName: childName,
+      role: role, // Add role field
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       usedBy: null,
       isForExistingChild: !!existingAcceptedChild,
     };
 
-    // Only create pending child for new children, not existing ones
-    if (!existingAcceptedChild) {
+    // Only create pending child for new children,
+    // not existing ones or parent invitations
+    if (!existingAcceptedChild && role === "child") {
       // Create pending child as FamilyMember with status: "pending"
       const pendingChildId = uuidv4();
       const pendingChildData = {
@@ -990,21 +1004,28 @@ exports.createInvitation = onCall(async (request) => {
         familyId: familyId,
         createdBy: parentId,
         childName: childName,
+        role: role,
         pendingChildId: pendingChildId,
         isForExistingChild: false,
       });
     } else {
-      // For existing children, only create the invitation document
+      // For existing children or parent invitations,
+      // only create the invitation document
       await admin.firestore()
           .collection("invitations")
           .doc(inviteCode)
           .set(invitationData);
 
-      logger.info(`Invitation created for existing child: ${inviteCode}`, {
+      const logMessage = role === "parent" ?
+        `Parent invitation created: ${inviteCode}` :
+        `Invitation created for existing child: ${inviteCode}`;
+
+      logger.info(logMessage, {
         familyId: familyId,
         createdBy: parentId,
         childName: childName,
-        isForExistingChild: true,
+        role: role,
+        isForExistingChild: !!existingAcceptedChild,
       });
     }
 
@@ -1057,17 +1078,86 @@ exports.acceptInvitation = onCall(async (request) => {
       throw new Error("Invitation has already been used");
     }
 
-    // Get child's user data
-    const childDoc = await admin.firestore()
+    // Get user's data (could be child or parent)
+    const userDoc = await admin.firestore()
         .collection("users")
         .doc(childId)
         .get();
 
-    if (!childDoc.exists) {
-      throw new Error("Child user not found");
+    if (!userDoc.exists) {
+      throw new Error("User not found");
     }
 
-    const childData = childDoc.data();
+    const userData = userDoc.data();
+    const userType = userData.userType; // "parent" or "child"
+    // Default to "child" for backward compatibility
+    const invitationRole = invitationData.role || "child";
+
+    // Validate user type matches invitation role
+    if (userType !== invitationRole) {
+      if (invitationRole === "parent") {
+        throw new Error(
+            "This invitation is for a parent account. " +
+            "Please sign in with a parent account.",
+        );
+      } else {
+        throw new Error(
+            "This invitation is for a child account. " +
+            "Please sign in with a child account.",
+        );
+      }
+    }
+
+    // Keep backward compatibility with variable name
+    const childData = userData;
+
+    // Handle parent invitations differently
+    if (invitationRole === "parent") {
+      // Add parent to family
+      await admin.firestore()
+          .collection("families")
+          .doc(invitationData.familyId)
+          .update({
+            [`members.${childId}`]: {
+              role: "parent",
+              name: userData.name,
+              joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+              imageURL: null,
+              imageBase64: null,
+              hasImage: false,
+              status: "accepted",
+            },
+          });
+
+      // Update user's familyId
+      await admin.firestore()
+          .collection("users")
+          .doc(childId)
+          .update({
+            familyId: invitationData.familyId,
+          });
+
+      // Mark invitation as used
+      await admin.firestore()
+          .collection("invitations")
+          .doc(inviteCode)
+          .update({
+            usedBy: childId,
+            usedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+      logger.info(`Parent successfully joined family: ${inviteCode}`, {
+        familyId: invitationData.familyId,
+        parentId: childId,
+        parentName: userData.name,
+      });
+
+      return {
+        success: true,
+        familyId: invitationData.familyId,
+        message: "Successfully joined family as parent",
+      };
+    }
 
     // Check if this is for an existing child
     if (invitationData.isForExistingChild) {
@@ -1510,6 +1600,103 @@ exports.removeChildFromFamily = onCall(async (request) => {
   } catch (error) {
     logger.error("Error removing child from family:", error);
     throw new Error(`Failed to remove child: ${error.message}`);
+  }
+});
+
+/**
+ * Callable Cloud Function to remove a parent from a family
+ * Parent calls this to remove another parent from their family
+ */
+exports.removeParentFromFamily = onCall(async (request) => {
+  try {
+    const {parentId, familyId} = request.data;
+    const requestingParentId = request.auth.uid;
+
+    if (!parentId || !familyId) {
+      throw new Error("parentId and familyId are required");
+    }
+
+    // Verify the requesting user is a parent in this family
+    const familyDoc = await admin.firestore()
+        .collection("families")
+        .doc(familyId)
+        .get();
+
+    if (!familyDoc.exists) {
+      throw new Error("Family not found");
+    }
+
+    const familyData = familyDoc.data();
+    const requestingMemberData = familyData.members[requestingParentId];
+
+    if (!requestingMemberData || requestingMemberData.role !== "parent") {
+      throw new Error("Only parents can remove parents from the family");
+    }
+
+    // Check if the parent to be removed exists in the family
+    const parentToRemoveData = familyData.members[parentId];
+    if (!parentToRemoveData) {
+      throw new Error("Parent not found in family");
+    }
+
+    if (parentToRemoveData.role !== "parent") {
+      throw new Error("Cannot remove non-parent members with this function");
+    }
+
+    // Count total parents in the family
+    const parentCount = Object.values(familyData.members || {})
+        .filter((member) => member.role === "parent").length;
+
+    // Prevent removing the last parent
+    if (parentCount <= 1) {
+      throw new Error(
+          "Cannot remove the last parent from the family. " +
+          "At least one parent must remain.",
+      );
+    }
+
+    // Use batch to ensure atomicity
+    const batch = admin.firestore().batch();
+
+    // Remove parent from family members
+    batch.update(
+        admin.firestore().collection("families").doc(familyId),
+        {
+          [`members.${parentId}`]: admin.firestore.FieldValue.delete(),
+        },
+    );
+
+    // Remove familyId from parent's user document
+    const parentUserDoc = await admin.firestore()
+        .collection("users")
+        .doc(parentId)
+        .get();
+
+    if (parentUserDoc.exists) {
+      batch.update(
+          admin.firestore().collection("users").doc(parentId),
+          {
+            familyId: admin.firestore.FieldValue.delete(),
+          },
+      );
+    }
+
+    await batch.commit();
+
+    logger.info(`Parent removed from family successfully`, {
+      parentId: parentId,
+      familyId: familyId,
+      removedBy: requestingParentId,
+      parentName: parentToRemoveData.name,
+    });
+
+    return {
+      success: true,
+      message: "Parent removed from family successfully",
+    };
+  } catch (error) {
+    logger.error("Error removing parent from family:", error);
+    throw new Error(`Failed to remove parent: ${error.message}`);
   }
 });
 

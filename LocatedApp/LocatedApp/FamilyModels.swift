@@ -76,13 +76,29 @@ struct FamilyInvitation: Codable, Identifiable {
     let familyId: String
     let createdBy: String // Parent user ID
     let childName: String
+    let role: FamilyRole // Role for this invitation (parent or child)
     let createdAt: Date
     let expiresAt: Date
-    let usedBy: String? // Child user ID who used the invitation
+    let usedBy: String? // User ID who used the invitation
     let usedAt: Date? // When the invitation was used
     
     enum CodingKeys: String, CodingKey {
-        case id, familyId, createdBy, childName, createdAt, expiresAt, usedBy, usedAt
+        case id, familyId, createdBy, childName, role, createdAt, expiresAt, usedBy, usedAt
+    }
+    
+    // Custom decoder to handle backward compatibility with invitations that don't have role field
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        familyId = try container.decode(String.self, forKey: .familyId)
+        createdBy = try container.decode(String.self, forKey: .createdBy)
+        childName = try container.decode(String.self, forKey: .childName)
+        role = try container.decodeIfPresent(FamilyRole.self, forKey: .role) ?? .child // Default to child for backward compatibility
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        expiresAt = try container.decode(Date.self, forKey: .expiresAt)
+        usedBy = try container.decodeIfPresent(String.self, forKey: .usedBy)
+        usedAt = try container.decodeIfPresent(Date.self, forKey: .usedAt)
     }
     
     var isExpired: Bool {
@@ -95,6 +111,10 @@ struct FamilyInvitation: Codable, Identifiable {
     
     var isValid: Bool {
         !isExpired && !isUsed
+    }
+    
+    var inviteeName: String {
+        childName // Alias for more generic usage
     }
 }
 
@@ -270,6 +290,59 @@ class FamilyService: ObservableObject {
         }
         
         print("✅ Successfully removed child from family via Cloud Function")
+    }
+    
+    /// Remove a parent from the family using Cloud Function
+    func removeParentFromFamily(parentId: String, familyId: String) async throws {
+        print("🔍 Removing parent \(parentId) from family \(familyId) using Cloud Function")
+        
+        guard let userId = auth.currentUser?.uid else {
+            throw FamilyError.notAuthenticated
+        }
+        
+        // Get Firebase ID token for authentication
+        guard let idToken = try await auth.currentUser?.getIDToken() else {
+            throw FamilyError.notAuthenticated
+        }
+        
+        // Call the removeParentFromFamily Cloud Function via HTTP
+        let url = URL(string: "https://us-central1-located-d9dce.cloudfunctions.net/removeParentFromFamily")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        
+        let requestBody = [
+            "data": [
+                "parentId": parentId,
+                "familyId": familyId
+            ]
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            // Try to parse error message from response
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let error = json["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                throw FamilyError.customError(message)
+            }
+            throw FamilyError.familyNotFound
+        }
+        
+        // Parse the callable function response format
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let result = json["result"] as? [String: Any],
+              let success = result["success"] as? Bool,
+              success else {
+            throw FamilyError.familyNotFound
+        }
+        
+        print("✅ Successfully removed parent from family via Cloud Function")
     }
     
     /// Update a family member's name
@@ -631,6 +704,7 @@ enum FamilyError: LocalizedError {
     case invalidInvitation
     case invitationExpired
     case invitationAlreadyUsed
+    case customError(String)
     
     var errorDescription: String? {
         switch self {
@@ -644,6 +718,8 @@ enum FamilyError: LocalizedError {
             return "Invitation has expired"
         case .invitationAlreadyUsed:
             return "Invitation has already been used"
+        case .customError(let message):
+            return message
         }
     }
 }

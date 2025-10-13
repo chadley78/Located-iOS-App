@@ -136,6 +136,7 @@ struct FamilyManagementView: View {
     @EnvironmentObject var authService: AuthenticationService
     @StateObject private var familyService = FamilyService()
     @State private var showingInviteChild = false
+    @State private var showingInviteParent = false
     @State private var showingFamilySettings = false
     @Environment(\.dismiss) private var dismiss
     
@@ -184,6 +185,21 @@ struct FamilyManagementView: View {
                             }
                         }
                         .primaryAButtonStyle()
+                        
+                        Button(action: {
+                            showingInviteParent = true
+                        }) {
+                            HStack {
+                                Image(systemName: "person.2.badge.plus")
+                                Text("Invite Parent")
+                            }
+                            .font(.radioCanadaBig(16, weight: .semibold))
+                            .foregroundColor(.purple)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.purple.opacity(0.1))
+                            .cornerRadius(12)
+                        }
                         
                         Button(action: {
                             showingFamilySettings = true
@@ -236,6 +252,11 @@ struct FamilyManagementView: View {
             }
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
+                    .environmentObject(familyService)
+            }
+            .sheet(isPresented: $showingInviteParent) {
+                InviteParentView()
+                    .environmentObject(authService)
                     .environmentObject(familyService)
             }
             .sheet(isPresented: $showingFamilySettings) {
