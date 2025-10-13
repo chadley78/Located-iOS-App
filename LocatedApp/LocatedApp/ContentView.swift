@@ -1044,9 +1044,6 @@ struct ParentHomeView: View {
     @State private var buttonPosition: CGFloat = 0 // 0 = right side, 1 = left side
     @State private var isAnimating: Bool = false
     @State private var selectedChildForProfile: ChildDisplayItem?
-    @State private var showingLocationHistory = false
-    @State private var selectedChildIdForHistory: String?
-    @State private var selectedChildNameForHistory: String?
     
     var body: some View {
         ZStack {
@@ -1057,10 +1054,12 @@ struct ParentHomeView: View {
                     region: $mapViewModel.region,
                     mapViewModel: mapViewModel,
                     familyService: familyService,
+                    historyTrail: mapViewModel.historyTrail,
                     onChildPinTapped: { childId, childName in
-                        selectedChildIdForHistory = childId
-                        selectedChildNameForHistory = childName
-                        showingLocationHistory = true
+                        print("🗺️ Pin tapped - loading trail for \(childName)")
+                        Task {
+                            await mapViewModel.loadTrailForChild(childId: childId, childName: childName)
+                        }
                     }
                 )
                 .ignoresSafeArea()
@@ -1081,6 +1080,21 @@ struct ParentHomeView: View {
                         Spacer()
                         
                         VStack(spacing: 12) {
+                            // Clear Trail button (only shown when trail is displayed)
+                            if !mapViewModel.historyTrail.isEmpty {
+                                Button(action: {
+                                    mapViewModel.clearTrail()
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                        .frame(width: 44, height: 44)
+                                        .background(Color.red)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 4)
+                                }
+                            }
+                            
                             // Center on children button
                             Button(action: {
                                 mapViewModel.centerOnChildren()
@@ -1452,12 +1466,6 @@ struct ParentHomeView: View {
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
                     .environmentObject(familyService)
-            }
-            .sheet(isPresented: $showingLocationHistory) {
-                if let childId = selectedChildIdForHistory,
-                   let childName = selectedChildNameForHistory {
-                    ChildLocationHistoryView(childId: childId, childName: childName)
-                }
             }
             .sheet(isPresented: $showingJoinFamily) {
                 JoinFamilyView()
@@ -3534,10 +3542,6 @@ struct ParentMapView: View {
     @EnvironmentObject var familyService: FamilyService
     @StateObject private var mapViewModel = ParentMapViewModel()
     
-    @State private var showingLocationHistory = false
-    @State private var selectedChildIdForHistory: String?
-    @State private var selectedChildNameForHistory: String?
-    
     var body: some View {
         NavigationView {
             ZStack {
@@ -3546,10 +3550,12 @@ struct ParentMapView: View {
                     region: $mapViewModel.region,
                     mapViewModel: mapViewModel,
                     familyService: familyService,
+                    historyTrail: mapViewModel.historyTrail,
                     onChildPinTapped: { childId, childName in
-                        selectedChildIdForHistory = childId
-                        selectedChildNameForHistory = childName
-                        showingLocationHistory = true
+                        print("🗺️ Pin tapped - loading trail for \(childName)")
+                        Task {
+                            await mapViewModel.loadTrailForChild(childId: childId, childName: childName)
+                        }
                     }
                 )
                 .ignoresSafeArea()
@@ -3640,12 +3646,6 @@ struct ParentMapView: View {
             }
             .navigationTitle("Children Map")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingLocationHistory) {
-                if let childId = selectedChildIdForHistory,
-                   let childName = selectedChildNameForHistory {
-                    ChildLocationHistoryView(childId: childId, childName: childName)
-                }
-            }
             .onAppear {
                 if let parentId = authService.currentUser?.id, !parentId.isEmpty {
                     mapViewModel.startListeningForChildrenLocations(parentId: parentId, familyService: familyService)
@@ -3673,6 +3673,11 @@ class ParentMapViewModel: ObservableObject {
         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     )
     
+    // Location History Trail
+    @Published var historyTrail: [LocationHistoryPoint] = []
+    @Published var selectedChildForTrail: String? = nil
+    @Published var isLoadingTrail = false
+    
     // Color palette for different children pins
     private let childColors: [UIColor] = [
         .systemBlue, .systemGreen, .systemOrange, .systemPurple, 
@@ -3683,6 +3688,8 @@ class ParentMapViewModel: ObservableObject {
     private var listeners: [ListenerRegistration] = []
     private weak var familyService: FamilyService?
     private var cancellables = Set<AnyCancellable>()
+    @MainActor
+    private lazy var historyService = LocationHistoryService()
     
     deinit {
         listeners.forEach { $0.remove() }
@@ -3970,6 +3977,50 @@ class ParentMapViewModel: ObservableObject {
         print("📍 Map centered on parent location: \(coordinate.latitude), \(coordinate.longitude)")
     }
     
+    // MARK: - Location History Trail
+    
+    @MainActor
+    func loadTrailForChild(childId: String, childName: String) async {
+        print("📍 Loading trail for child: \(childName) (\(childId))")
+        isLoadingTrail = true
+        selectedChildForTrail = childId
+        
+        await historyService.fetchHistory(childId: childId, hours: 6)
+        historyTrail = historyService.historyPoints
+        isLoadingTrail = false
+        
+        print("📍 Trail loaded: \(historyTrail.count) points")
+        
+        // Adjust map region to show the trail
+        if !historyTrail.isEmpty {
+            let coordinates = historyTrail.map { $0.coordinate }
+            let minLat = coordinates.map { $0.latitude }.min() ?? 0
+            let maxLat = coordinates.map { $0.latitude }.max() ?? 0
+            let minLng = coordinates.map { $0.longitude }.min() ?? 0
+            let maxLng = coordinates.map { $0.longitude }.max() ?? 0
+            
+            let center = CLLocationCoordinate2D(
+                latitude: (minLat + maxLat) / 2,
+                longitude: (minLng + maxLng) / 2
+            )
+            
+            let span = MKCoordinateSpan(
+                latitudeDelta: max(maxLat - minLat, 0.01) * 1.5,
+                longitudeDelta: max(maxLng - minLng, 0.01) * 1.5
+            )
+            
+            region = MKCoordinateRegion(center: center, span: span)
+        }
+    }
+    
+    @MainActor
+    func clearTrail() {
+        print("📍 Clearing trail")
+        historyTrail = []
+        selectedChildForTrail = nil
+        historyService.clearHistory()
+    }
+    
     func refreshChildrenLocations() {
         
         // Force refresh by restarting listeners
@@ -4019,6 +4070,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     @Binding var region: MKCoordinateRegion
     let mapViewModel: ParentMapViewModel
     let familyService: FamilyService
+    let historyTrail: [LocationHistoryPoint]
     let onChildPinTapped: (String, String) -> Void // (childId, childName)
     
     func makeUIView(context: Context) -> MKMapView {
@@ -4033,8 +4085,11 @@ struct MapViewRepresentable: UIViewRepresentable {
         // Update region
         mapView.setRegion(region, animated: true)
         
-        // Update annotations
+        // Update annotations (remove old ones except user location)
         mapView.removeAnnotations(mapView.annotations.filter { !($0 is MKUserLocation) })
+        
+        // Remove old overlays (trail polylines)
+        mapView.removeOverlays(mapView.overlays)
         
         for childLocation in childrenLocations {
             // Get the child's image data from family service
@@ -4055,6 +4110,41 @@ struct MapViewRepresentable: UIViewRepresentable {
             mapView.addAnnotation(annotation)
         }
         
+        // Draw history trail if available
+        if !historyTrail.isEmpty {
+            // Create polyline from history points
+            let coordinates = historyTrail.map { $0.coordinate }
+            let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+            mapView.addOverlay(polyline)
+            
+            // Add start marker (green)
+            if let firstPoint = historyTrail.first {
+                let startAnnotation = HistoryPointAnnotation(
+                    coordinate: firstPoint.coordinate,
+                    title: "Start",
+                    subtitle: formatTime(firstPoint.timestamp),
+                    isStart: true
+                )
+                mapView.addAnnotation(startAnnotation)
+            }
+            
+            // Add end marker (red)
+            if let lastPoint = historyTrail.last, historyTrail.count > 1 {
+                let endAnnotation = HistoryPointAnnotation(
+                    coordinate: lastPoint.coordinate,
+                    title: "Current",
+                    subtitle: formatTime(lastPoint.timestamp),
+                    isStart: false
+                )
+                mapView.addAnnotation(endAnnotation)
+            }
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
     
     func makeCoordinator() -> Coordinator {
@@ -4079,6 +4169,21 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
         
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            // Handle history trail markers
+            if let historyAnnotation = annotation as? HistoryPointAnnotation {
+                let identifier = "HistoryPoint"
+                let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+                    ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                
+                annotationView.annotation = annotation
+                annotationView.markerTintColor = historyAnnotation.isStart ? .systemGreen : .systemRed
+                annotationView.glyphImage = UIImage(systemName: historyAnnotation.isStart ? "figure.walk" : "mappin.circle.fill")
+                annotationView.canShowCallout = true
+                
+                return annotationView
+            }
+            
+            // Handle child location annotations
             guard let childAnnotation = annotation as? ChildLocationAnnotation else {
                 return nil
             }
@@ -4126,6 +4231,17 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
             
             return annotationView
+        }
+        
+        // Render the polyline overlay for location history trail
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let polyline = overlay as? MKPolyline {
+                let renderer = MKPolylineRenderer(polyline: polyline)
+                renderer.strokeColor = .systemBlue
+                renderer.lineWidth = 3
+                return renderer
+            }
+            return MKOverlayRenderer(overlay: overlay)
         }
         
         private func isLocationRecent(_ date: Date) -> Bool {

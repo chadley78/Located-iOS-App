@@ -56,23 +56,27 @@ class LocationHistoryService: ObservableObject {
             
             // Parse documents
             let points = snapshot.documents.compactMap { doc -> LocationHistoryPoint? in
-                var data = doc.data()
-                data["id"] = doc.documentID
+                let data = doc.data()
                 
-                // Handle Firestore Timestamp
-                if let timestamp = data["timestamp"] as? Timestamp {
-                    data["timestamp"] = timestamp.dateValue()
-                }
-                
-                do {
-                    let jsonData = try JSONSerialization.data(withJSONObject: data)
-                    let decoder = JSONDecoder()
-                    decoder.dateDecodingStrategy = .iso8601
-                    return try decoder.decode(LocationHistoryPoint.self, from: jsonData)
-                } catch {
-                    print("❌ Error decoding history point: \(error)")
+                // Extract timestamp
+                guard let timestamp = data["timestamp"] as? Timestamp else {
+                    print("❌ Missing timestamp in document: \(doc.documentID)")
                     return nil
                 }
+                
+                // Manually construct the model
+                return LocationHistoryPoint(
+                    id: doc.documentID,
+                    childId: data["childId"] as? String ?? "",
+                    familyId: data["familyId"] as? String ?? "",
+                    lat: data["lat"] as? Double ?? 0,
+                    lng: data["lng"] as? Double ?? 0,
+                    accuracy: data["accuracy"] as? Double ?? 0,
+                    timestamp: timestamp.dateValue(),
+                    address: data["address"] as? String,
+                    batteryLevel: data["batteryLevel"] as? Int,
+                    isMoving: data["isMoving"] as? Bool ?? false
+                )
             }
             
             self.historyPoints = points

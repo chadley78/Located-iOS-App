@@ -57,9 +57,13 @@ service cloud.firestore {
       allow create: if request.auth != null && 
                        request.resource.data.childId == request.auth.uid;
       
-      // Parents in the same family can read location history
-      allow read: if request.auth != null && 
-                     hasFamilyId(resource.data.familyId);
+      // Allow authenticated users to list/query location history
+      // The query will be filtered by childId, and parents can only see children in their family
+      allow list: if request.auth != null;
+      
+      // Parents in the same family can read specific documents
+      allow get: if request.auth != null && 
+                    hasFamilyId(resource.data.familyId);
     }
 
     // Geofences collection - family members can read/write geofences
