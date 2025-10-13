@@ -133,30 +133,18 @@ class LocationService: NSObject, ObservableObject {
         }
     }
     
-    /// Aggressively request Always permission and start background location to trigger iOS prompt
+    /// Request Always permission - the delegate method will handle starting background location
     func requestAlwaysPermissionAndStartBackground() {
-        print("📍 Requesting Always permission and starting background location")
+        print("📍 Requesting Always permission")
         
-        // Always request the permission upgrade
+        let currentStatus = CLLocationManager.authorizationStatus()
+        print("📍 Current authorization status: \(currentStatus.rawValue)")
+        
+        // Request Always authorization
+        // The delegate method (didChangeAuthorization) will handle the response
         locationManager.requestAlwaysAuthorization()
         
-        // If we have at least "When In Use", start background location immediately
-        // This triggers iOS to show the "Change to Always Allow?" prompt
-        if locationPermissionStatus == .authorizedWhenInUse || locationPermissionStatus == .authorizedAlways {
-            print("📍 Starting background location to trigger Always permission prompt")
-            
-            // Enable background updates - this is what triggers iOS's upgrade prompt
-            locationManager.allowsBackgroundLocationUpdates = true
-            locationManager.startUpdatingLocation()
-            locationManager.startMonitoringSignificantLocationChanges()
-            
-            // Request a location to actually use background capability
-            locationManager.requestLocation()
-            
-            print("✅ Background location started - iOS should prompt for Always permission")
-        } else {
-            print("⚠️ Need at least When In Use permission before requesting Always")
-        }
+        print("📍 Permission request sent - waiting for user response")
     }
     
     // MARK: - Location Updates
@@ -777,9 +765,29 @@ extension LocationService: @preconcurrency CLLocationManagerDelegate {
             print("📍 Always permission granted, starting location updates")
             startLocationUpdates()
         case .authorizedWhenInUse:
-            print("📍 When in use permission granted, requesting always permission")
-            // Request upgrade to always authorization
-            locationManager.requestAlwaysAuthorization()
+            print("📍 When in use permission granted")
+            print("📍 Starting background location to trigger Always permission upgrade prompt")
+            
+            // CRITICAL: Must actually USE background location to trigger iOS upgrade prompt
+            // Enable background updates - this tells iOS we want to use background location
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.pausesLocationUpdatesAutomatically = false
+            
+            // Start location services - this demonstrates actual background usage
+            locationManager.startUpdatingLocation()
+            locationManager.startMonitoringSignificantLocationChanges()
+            
+            // Request a location update to prove we're using background capability
+            locationManager.requestLocation()
+            
+            // After a short delay, request the upgrade
+            // iOS will show "Change to Always Allow?" because we're actively using background location
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                print("📍 Requesting Always authorization upgrade...")
+                self?.locationManager.requestAlwaysAuthorization()
+            }
+            
+            print("✅ Background location started - iOS should show upgrade prompt when app goes to background")
         case .denied, .restricted:
             print("📍 Location permission denied or restricted")
             stopLocationUpdates()

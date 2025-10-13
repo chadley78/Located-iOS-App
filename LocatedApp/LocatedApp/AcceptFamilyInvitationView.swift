@@ -129,6 +129,9 @@ struct AcceptFamilyInvitationView: View {
                 await MainActor.run {
                     self.isLoading = false
                     self.showingWelcome = true
+                    
+                    // Permission request will be handled in the ChildWelcomeView
+                    // with proper user guidance about the iOS Always Allow flow
                 }
                 
             } catch {
@@ -145,6 +148,10 @@ struct AcceptFamilyInvitationView: View {
 struct ChildWelcomeView: View {
     let onNext: () -> Void
     @State private var isSettingUp = true
+    @State private var showingPermissionGuidance = false
+    @State private var hasOpenedSettings = false
+    @EnvironmentObject var locationService: LocationService
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some View {
         VStack(spacing: 40) {
@@ -182,6 +189,67 @@ struct ChildWelcomeView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .black))
                             .scaleEffect(1.2)
                             .padding(.top, 20)
+                    } else if showingPermissionGuidance {
+                        Image(systemName: "location.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.black)
+                            .padding(.bottom, 8)
+                        
+                        Text("Enable Background Tracking")
+                            .font(.radioCanadaBig(28, weight: .bold))
+                            .foregroundColor(.black)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                        
+                        Text("To keep your family safe, Located needs to track your location even when the app is closed.")
+                            .font(.radioCanadaBig(16, weight: .regular))
+                            .foregroundColor(.black.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 30)
+                            .padding(.bottom, 8)
+                        
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack(alignment: .top, spacing: 12) {
+                                Text("1️⃣")
+                                    .font(.system(size: 24))
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Tap 'Open Settings' below")
+                                        .font(.radioCanadaBig(16, weight: .semibold))
+                                        .foregroundColor(.black)
+                                    Text("This will take you to Location settings")
+                                        .font(.radioCanadaBig(14, weight: .regular))
+                                        .foregroundColor(.black.opacity(0.6))
+                                }
+                            }
+                            
+                            HStack(alignment: .top, spacing: 12) {
+                                Text("2️⃣")
+                                    .font(.system(size: 24))
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Tap on 'Location'")
+                                        .font(.radioCanadaBig(16, weight: .semibold))
+                                        .foregroundColor(.black)
+                                    Text("You'll see the location permission options")
+                                        .font(.radioCanadaBig(14, weight: .regular))
+                                        .foregroundColor(.black.opacity(0.6))
+                                }
+                            }
+                            
+                            HStack(alignment: .top, spacing: 12) {
+                                Text("3️⃣")
+                                    .font(.system(size: 24))
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Select 'Always'")
+                                        .font(.radioCanadaBig(16, weight: .semibold))
+                                        .foregroundColor(.black)
+                                    Text("Then return to Located - you're all set!")
+                                        .font(.radioCanadaBig(14, weight: .regular))
+                                        .foregroundColor(.black.opacity(0.6))
+                                }
+                            }
+                        }
+                        .padding(.top, 16)
+                        .padding(.horizontal, 24)
                     } else {
                         Text("Welcome to Located!")
                             .font(.radioCanadaBig(32, weight: .bold))
@@ -199,13 +267,27 @@ struct ChildWelcomeView: View {
             
             Spacer()
             
-            // Next Button (only show when not setting up)
+            // Next/Continue Button (only show when not setting up)
             if !isSettingUp {
-                Button(action: onNext) {
+                Button(action: {
+                    if showingPermissionGuidance {
+                        // Trigger the permission flow
+                        triggerAlwaysPermission()
+                    } else {
+                        // Show permission guidance if not "Always" yet
+                        if locationService.locationPermissionStatus != .authorizedAlways {
+                            withAnimation {
+                                showingPermissionGuidance = true
+                            }
+                        } else {
+                            onNext()
+                        }
+                    }
+                }) {
                     HStack(spacing: 12) {
-                        Text("Next")
+                        Text(showingPermissionGuidance ? "Open Settings" : "Next")
                             .font(.radioCanadaBig(18, weight: .semibold))
-                        Image(systemName: "arrow.right")
+                        Image(systemName: showingPermissionGuidance ? "gearshape.fill" : "arrow.right")
                             .font(.system(size: 16, weight: .semibold))
                     }
                 }
@@ -222,8 +304,55 @@ struct ChildWelcomeView: View {
                 }
             }
         }
+        .onChange(of: scenePhase) { newPhase in
+            // When user returns from Settings, check if permission was granted
+            if newPhase == .active && hasOpenedSettings {
+                print("📍 User returned from Settings, checking permission status...")
+                
+                // Give iOS a moment to update the permission status
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if locationService.locationPermissionStatus == .authorizedAlways {
+                        print("✅ Always permission granted! Continuing to app...")
+                        onNext()
+                    } else {
+                        print("⚠️ User didn't enable Always permission, but continuing anyway")
+                        // Continue anyway - they can enable it later from the child home screen
+                        onNext()
+                    }
+                }
+            }
+        }
         .background(Color.vibrantYellow)
         .ignoresSafeArea()
+    }
+    
+    private func triggerAlwaysPermission() {
+        // First, prepare background location tracking
+        locationService.requestAlwaysPermissionAndStartBackground()
+        
+        // Mark that we're opening Settings so we can detect when user returns
+        hasOpenedSettings = true
+        
+        // Open Settings app to Location permissions
+        // This will background the app and take user directly to where they need to go
+        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsUrl) { success in
+                if success {
+                    print("📍 Opened Settings for permission change")
+                    // When user returns, scenePhase onChange will handle it
+                } else {
+                    print("❌ Failed to open Settings")
+                    hasOpenedSettings = false
+                    // Fallback: just continue to app
+                    onNext()
+                }
+            }
+        } else {
+            // Fallback if URL creation fails
+            print("❌ Could not create Settings URL")
+            hasOpenedSettings = false
+            onNext()
+        }
     }
 }
 
