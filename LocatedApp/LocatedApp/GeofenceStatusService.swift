@@ -197,20 +197,27 @@ class GeofenceStatusService: ObservableObject {
             return
         }
         
-        // Create geofence status
-        let status = GeofenceStatus(
-            id: "\(childId)_\(geofenceName)_\(timestamp.seconds)",
-            childId: childId,
-            childName: childName,
-            lastEvent: eventType,
-            geofenceName: geofenceName,
-            timestamp: timestamp.dateValue()
-        )
+        // Handle status based on event type
+        if eventType == .exit {
+            // When child exits a geofence, clear their status
+            // This makes the UI show "Located" instead of "Left [geofence]"
+            childGeofenceStatus.removeValue(forKey: childId)
+            print("🔍 GeofenceStatusService - Child \(childName) exited \(geofenceName), status cleared")
+        } else {
+            // When child enters a geofence, update their status to show "In [geofence]"
+            let status = GeofenceStatus(
+                id: "\(childId)_\(geofenceName)_\(timestamp.seconds)",
+                childId: childId,
+                childName: childName,
+                lastEvent: eventType,
+                geofenceName: geofenceName,
+                timestamp: timestamp.dateValue()
+            )
+            
+            childGeofenceStatus[childId] = status
+            print("🔍 GeofenceStatusService - Updated status for \(childName): \(status.displayText)")
+        }
         
-        // Update the status for this child (keep only the most recent event)
-        childGeofenceStatus[childId] = status
-        
-        print("🔍 GeofenceStatusService - Updated status for \(childName): \(status.displayText)")
         print("🔍 GeofenceStatusService - Current statuses: \(childGeofenceStatus.keys)")
     }
     
