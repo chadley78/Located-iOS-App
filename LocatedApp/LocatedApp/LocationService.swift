@@ -133,6 +133,32 @@ class LocationService: NSObject, ObservableObject {
         }
     }
     
+    /// Aggressively request Always permission and start background location to trigger iOS prompt
+    func requestAlwaysPermissionAndStartBackground() {
+        print("📍 Requesting Always permission and starting background location")
+        
+        // Always request the permission upgrade
+        locationManager.requestAlwaysAuthorization()
+        
+        // If we have at least "When In Use", start background location immediately
+        // This triggers iOS to show the "Change to Always Allow?" prompt
+        if locationPermissionStatus == .authorizedWhenInUse || locationPermissionStatus == .authorizedAlways {
+            print("📍 Starting background location to trigger Always permission prompt")
+            
+            // Enable background updates - this is what triggers iOS's upgrade prompt
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.startUpdatingLocation()
+            locationManager.startMonitoringSignificantLocationChanges()
+            
+            // Request a location to actually use background capability
+            locationManager.requestLocation()
+            
+            print("✅ Background location started - iOS should prompt for Always permission")
+        } else {
+            print("⚠️ Need at least When In Use permission before requesting Always")
+        }
+    }
+    
     // MARK: - Location Updates
     func startLocationUpdates() {
         print("📍 Attempting to start location updates...")

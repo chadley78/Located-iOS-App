@@ -235,6 +235,8 @@ struct ChildSignUpView: View {
             if showingWelcome {
                 if isExistingChild {
                     ChildWelcomeBackView {
+                        // Request Always permission and trigger background location
+                        locationService.requestAlwaysPermissionAndStartBackground()
                         // Force location update so parent map shows child immediately
                         locationService.forceLocationUpdate()
                         // Complete the welcome flow and show main view
@@ -242,6 +244,8 @@ struct ChildSignUpView: View {
                     }
                 } else {
                     ChildWelcomeView {
+                        // Request Always permission and trigger background location
+                        locationService.requestAlwaysPermissionAndStartBackground()
                         // Force location update so parent map shows child immediately
                         locationService.forceLocationUpdate()
                         // Complete the welcome flow and show main view
@@ -1749,9 +1753,52 @@ struct ChildHomeView: View {
     @State private var showingLocationPermissionAlert = false
     @State private var showingSettings = false
     
+    private var permissionStatusText: String {
+        locationService.getLocationPermissionStatusString()
+    }
+    
+    private var needsAlwaysPermission: Bool {
+        locationService.locationPermissionStatus != .authorizedAlways
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
+                // Permission Warning Banner
+                if needsAlwaysPermission {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text("Background Tracking Limited")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.orange)
+                            Spacer()
+                        }
+                        
+                        Text("Current permission: \(permissionStatusText). For continuous tracking, enable 'Always Allow' in Settings.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                        
+                        Button(action: {
+                            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(settingsUrl)
+                            }
+                        }) {
+                            HStack {
+                                Text("Open Settings")
+                                    .font(.system(size: 12, weight: .medium))
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(12)
+                }
+                
                 // Debug Information Card
                 VStack(spacing: 16) {
                     Text("Debug Information")
