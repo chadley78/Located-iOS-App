@@ -1603,6 +1603,103 @@ exports.removeChildFromFamily = onCall(async (request) => {
 });
 
 /**
+ * Callable Cloud Function to remove a parent from a family
+ * Parent calls this to remove another parent from their family
+ */
+exports.removeParentFromFamily = onCall(async (request) => {
+  try {
+    const {parentId, familyId} = request.data;
+    const requestingParentId = request.auth.uid;
+
+    if (!parentId || !familyId) {
+      throw new Error("parentId and familyId are required");
+    }
+
+    // Verify the requesting user is a parent in this family
+    const familyDoc = await admin.firestore()
+        .collection("families")
+        .doc(familyId)
+        .get();
+
+    if (!familyDoc.exists) {
+      throw new Error("Family not found");
+    }
+
+    const familyData = familyDoc.data();
+    const requestingMemberData = familyData.members[requestingParentId];
+
+    if (!requestingMemberData || requestingMemberData.role !== "parent") {
+      throw new Error("Only parents can remove parents from the family");
+    }
+
+    // Check if the parent to be removed exists in the family
+    const parentToRemoveData = familyData.members[parentId];
+    if (!parentToRemoveData) {
+      throw new Error("Parent not found in family");
+    }
+
+    if (parentToRemoveData.role !== "parent") {
+      throw new Error("Cannot remove non-parent members with this function");
+    }
+
+    // Count total parents in the family
+    const parentCount = Object.values(familyData.members || {})
+        .filter((member) => member.role === "parent").length;
+
+    // Prevent removing the last parent
+    if (parentCount <= 1) {
+      throw new Error(
+          "Cannot remove the last parent from the family. " +
+          "At least one parent must remain.",
+      );
+    }
+
+    // Use batch to ensure atomicity
+    const batch = admin.firestore().batch();
+
+    // Remove parent from family members
+    batch.update(
+        admin.firestore().collection("families").doc(familyId),
+        {
+          [`members.${parentId}`]: admin.firestore.FieldValue.delete(),
+        },
+    );
+
+    // Remove familyId from parent's user document
+    const parentUserDoc = await admin.firestore()
+        .collection("users")
+        .doc(parentId)
+        .get();
+
+    if (parentUserDoc.exists) {
+      batch.update(
+          admin.firestore().collection("users").doc(parentId),
+          {
+            familyId: admin.firestore.FieldValue.delete(),
+          },
+      );
+    }
+
+    await batch.commit();
+
+    logger.info(`Parent removed from family successfully`, {
+      parentId: parentId,
+      familyId: familyId,
+      removedBy: requestingParentId,
+      parentName: parentToRemoveData.name,
+    });
+
+    return {
+      success: true,
+      message: "Parent removed from family successfully",
+    };
+  } catch (error) {
+    logger.error("Error removing parent from family:", error);
+    throw new Error(`Failed to remove parent: ${error.message}`);
+  }
+});
+
+/**
  * Helper function to generate a unique 6-character alphanumeric invite code
  * @return {string} A unique invite code
  */

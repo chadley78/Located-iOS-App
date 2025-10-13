@@ -292,6 +292,59 @@ class FamilyService: ObservableObject {
         print("✅ Successfully removed child from family via Cloud Function")
     }
     
+    /// Remove a parent from the family using Cloud Function
+    func removeParentFromFamily(parentId: String, familyId: String) async throws {
+        print("🔍 Removing parent \(parentId) from family \(familyId) using Cloud Function")
+        
+        guard let userId = auth.currentUser?.uid else {
+            throw FamilyError.notAuthenticated
+        }
+        
+        // Get Firebase ID token for authentication
+        guard let idToken = try await auth.currentUser?.getIDToken() else {
+            throw FamilyError.notAuthenticated
+        }
+        
+        // Call the removeParentFromFamily Cloud Function via HTTP
+        let url = URL(string: "https://us-central1-located-d9dce.cloudfunctions.net/removeParentFromFamily")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        
+        let requestBody = [
+            "data": [
+                "parentId": parentId,
+                "familyId": familyId
+            ]
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            // Try to parse error message from response
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let error = json["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                throw FamilyError.customError(message)
+            }
+            throw FamilyError.familyNotFound
+        }
+        
+        // Parse the callable function response format
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let result = json["result"] as? [String: Any],
+              let success = result["success"] as? Bool,
+              success else {
+            throw FamilyError.familyNotFound
+        }
+        
+        print("✅ Successfully removed parent from family via Cloud Function")
+    }
+    
     /// Update a family member's name
     func updateFamilyMemberName(childId: String, familyId: String, newName: String) async throws {
         print("🔍 Updating family member \(childId) name to '\(newName)' in family \(familyId)")
@@ -651,6 +704,7 @@ enum FamilyError: LocalizedError {
     case invalidInvitation
     case invitationExpired
     case invitationAlreadyUsed
+    case customError(String)
     
     var errorDescription: String? {
         switch self {
@@ -664,6 +718,8 @@ enum FamilyError: LocalizedError {
             return "Invitation has expired"
         case .invitationAlreadyUsed:
             return "Invitation has already been used"
+        case .customError(let message):
+            return message
         }
     }
 }

@@ -2050,6 +2050,12 @@ class ChildProfileData: ObservableObject {
     }
 }
 
+// MARK: - Parent Selection
+struct ParentSelection: Identifiable {
+    let id: String
+    let name: String
+}
+
 // MARK: - Children List View
 struct ChildrenListView: View {
     @EnvironmentObject var authService: AuthenticationService
@@ -2059,7 +2065,9 @@ struct ChildrenListView: View {
     @State private var showingInviteParent = false
     @StateObject private var childProfileData = ChildProfileData()
     @State private var selectedPendingChild: ChildDisplayItem?
+    @State private var selectedParent: (id: String, name: String)?
     @State private var removedChildId: String? = nil
+    @State private var removedParentId: String? = nil
     @State private var showingEditFamilyName = false
     @State private var editingFamilyName = ""
     @State private var isLoadingEditName = false
@@ -2197,6 +2205,23 @@ struct ChildrenListView: View {
                 }
             )
         }
+        .sheet(item: Binding(
+            get: { selectedParent.map { ParentSelection(id: $0.id, name: $0.name) } },
+            set: { selectedParent = $0.map { (id: $0.id, name: $0.name) } }
+        )) { parent in
+            ParentProfileView(parentId: parent.id, parentName: parent.name, onParentRemoved: { parentId in
+                // Trigger removal animation
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    removedParentId = parentId
+                }
+                // Clear the removed parent after animation completes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    removedParentId = nil
+                }
+            })
+                .environmentObject(familyService)
+                .environmentObject(authService)
+        }
     }
     
     // MARK: - Helper Views
@@ -2226,7 +2251,7 @@ struct ChildrenListView: View {
                 VStack(spacing: 8) {
                     // Show parents first
                     ForEach(sortedMembers, id: \.0) { userId, member in
-                                    if member.role == .parent {
+                                    if member.role == .parent && removedParentId != userId {
                                         HStack(spacing: 12) {
                                             // User icon
                                             Circle()
@@ -2250,8 +2275,17 @@ struct ChildrenListView: View {
                                             }
                                             
                                             Spacer()
+                                            
+                                            // Settings icon
+                                            Image(systemName: "ellipsis.circle")
+                                                .font(.system(size: 24))
+                                                .foregroundColor(.white.opacity(0.6))
                                         }
                                         .padding(.vertical, 12)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            selectedParent = (id: userId, name: member.name)
+                                        }
                                     }
                                 }
                                 
@@ -2330,7 +2364,7 @@ struct ChildrenListView: View {
                                 LazyVStack(spacing: 8) {
                                     // Show parents first
                                     ForEach(sortedMembers, id: \.0) { userId, member in
-                                        if member.role == .parent {
+                                        if member.role == .parent && removedParentId != userId {
                                             HStack(spacing: 12) {
                                                 // User icon
                                                 Circle()
@@ -2354,8 +2388,17 @@ struct ChildrenListView: View {
                                                 }
                                                 
                                                 Spacer()
+                                                
+                                                // Settings icon
+                                                Image(systemName: "ellipsis.circle")
+                                                    .font(.system(size: 24))
+                                                    .foregroundColor(.white.opacity(0.6))
                                             }
                                             .padding(.vertical, 12)
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                selectedParent = (id: userId, name: member.name)
+                                            }
                                         }
                                     }
                                     
@@ -3087,6 +3130,275 @@ struct ChildProfileView: View {
                     // Trigger the bubble pop animation
                     onChildRemoved?(childId)
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Parent Profile View
+struct ParentProfileView: View {
+    let parentId: String
+    let parentName: String
+    let onParentRemoved: ((String) -> Void)?
+    @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var authService: AuthenticationService
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var displayName: String
+    @State private var showingEditName = false
+    @State private var editingParentName = ""
+    @State private var isLoadingEditName = false
+    @State private var showingDeleteAlert = false
+    
+    init(parentId: String, parentName: String, onParentRemoved: ((String) -> Void)? = nil) {
+        self.parentId = parentId
+        self.parentName = parentName
+        self.onParentRemoved = onParentRemoved
+        self._displayName = State(initialValue: parentName)
+    }
+    
+    var body: some View {
+        ZStack {
+            Color.vibrantPurple.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom Header with Back Button
+                HStack {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chevron.left")
+                                .font(.radioCanadaBig(18, weight: .medium))
+                            Text("Back")
+                                .font(.radioCanadaBig(17, weight: .regular))
+                        }
+                        .foregroundColor(.white)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Parent Profile")
+                        .font(.radioCanadaBig(17, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    // Invisible spacer to center the title
+                    HStack(spacing: 8) {
+                        Image(systemName: "chevron.left")
+                            .font(.radioCanadaBig(18, weight: .medium))
+                            .opacity(0)
+                        Text("Back")
+                            .font(.radioCanadaBig(17, weight: .regular))
+                            .opacity(0)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                
+                // Main Content
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Profile Header
+                        VStack(spacing: 16) {
+                            // Profile Icon (no photo for parents)
+                            Circle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 120, height: 120)
+                                .overlay(
+                                    Text(String(displayName.prefix(1)).uppercased())
+                                        .font(.radioCanadaBig(50, weight: .bold))
+                                        .foregroundColor(.white)
+                                )
+                            
+                            // Parent Name with Edit
+                            HStack(spacing: 8) {
+                                Text(displayName)
+                                    .font(.radioCanadaBig(28, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Button(action: {
+                                    editingParentName = displayName
+                                    showingEditName = true
+                                }) {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                            }
+                            
+                            Text("Parent")
+                                .font(.radioCanadaBig(16, weight: .regular))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.vertical, 20)
+                        
+                        // Parent Information Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Parent Information")
+                                .font(.radioCanadaBig(18, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            VStack(spacing: 12) {
+                                HStack {
+                                    Text("Role")
+                                        .font(.radioCanadaBig(16, weight: .regular))
+                                        .foregroundColor(.white.opacity(0.7))
+                                    Spacer()
+                                    Text("Parent")
+                                        .font(.radioCanadaBig(16, weight: .semibold))
+                                        .foregroundColor(.white)
+                                }
+                                
+                                Divider()
+                                    .background(Color.white.opacity(0.2))
+                                
+                                HStack {
+                                    Text("Permissions")
+                                        .font(.radioCanadaBig(16, weight: .regular))
+                                        .foregroundColor(.white.opacity(0.7))
+                                    Spacer()
+                                    Text("Full Access")
+                                        .font(.radioCanadaBig(16, weight: .semibold))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .padding()
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(12)
+                        }
+                        
+                        Spacer()
+                        
+                        // Remove Parent Button
+                        Button(action: {
+                            showingDeleteAlert = true
+                        }) {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Remove from Family")
+                            }
+                        }
+                        .primaryBButtonStyle()
+                        
+                        Spacer(minLength: 50)
+                    }
+                    .padding()
+                }
+            }
+        }
+        .alert("Remove Parent", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Remove", role: .destructive) {
+                removeParent()
+            }
+        } message: {
+            Text("Are you sure you want to remove \(displayName) from your family? They will lose all access to family features.")
+        }
+        .sheet(isPresented: $showingEditName) {
+            EditParentNameView(
+                currentName: displayName,
+                isLoading: isLoadingEditName,
+                onSave: { newName in
+                    Task {
+                        await updateParentName(newName)
+                    }
+                }
+            )
+        }
+    }
+    
+    private func removeParent() {
+        // Navigate back immediately
+        dismiss()
+        
+        Task {
+            // Wait a bit for navigation to complete
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            
+            do {
+                if let familyId = familyService.currentFamily?.id {
+                    try await familyService.removeParentFromFamily(parentId: parentId, familyId: familyId)
+                    
+                    await MainActor.run {
+                        // Trigger any removal animation
+                        onParentRemoved?(parentId)
+                    }
+                }
+            } catch {
+                print("❌ Error removing parent: \(error)")
+            }
+        }
+    }
+    
+    private func updateParentName(_ newName: String) async {
+        guard let familyId = familyService.currentFamily?.id else { return }
+        
+        isLoadingEditName = true
+        
+        do {
+            try await familyService.updateFamilyMemberName(childId: parentId, familyId: familyId, newName: newName)
+            
+            await MainActor.run {
+                self.displayName = newName
+                self.isLoadingEditName = false
+                self.showingEditName = false
+            }
+        } catch {
+            print("❌ Error updating parent name: \(error)")
+            await MainActor.run {
+                self.isLoadingEditName = false
+            }
+        }
+    }
+}
+
+// MARK: - Edit Parent Name View
+struct EditParentNameView: View {
+    let currentName: String
+    let isLoading: Bool
+    let onSave: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var newName: String
+    
+    init(currentName: String, isLoading: Bool, onSave: @escaping (String) -> Void) {
+        self.currentName = currentName
+        self.isLoading = isLoading
+        self.onSave = onSave
+        self._newName = State(initialValue: currentName)
+    }
+    
+    var body: some View {
+        CustomNavigationContainer(
+            title: "Edit Parent Name",
+            backgroundColor: .vibrantPurple,
+            leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
+                dismiss()
+            },
+            trailingButton: CustomNavigationBar.NavigationButton(
+                title: isLoading ? "" : "Save",
+                isDisabled: newName.isEmpty || newName == currentName || isLoading
+            ) {
+                onSave(newName)
+            }
+        ) {
+            VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Parent Name")
+                        .font(.radioCanadaBig(16, weight: .medium))
+                        .foregroundColor(.white)
+                    
+                    TextField("Enter parent name", text: $newName)
+                        .padding(12)
+                        .background(Color.familyMembersBg)
+                        .cornerRadius(8)
+                        .autocapitalization(.words)
+                }
+                .padding()
+                
+                Spacer()
             }
         }
     }
