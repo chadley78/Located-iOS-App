@@ -1219,11 +1219,10 @@ struct ParentHomeView: View {
                                                         // Center on the child's location
                                                         mapViewModel.centerOnChild(childId: child.id)
                                                         
-                                                        // Ensure trail is turned on
-                                                        if mapViewModel.childTrails[child.id] == nil {
-                                                            Task {
-                                                                await mapViewModel.toggleTrailForChild(childId: child.id, childName: child.name)
-                                                            }
+                                                        // Focus mode: clear all trails, then show only this child's trail
+                                                        Task {
+                                                            mapViewModel.clearAllTrails()
+                                                            await mapViewModel.toggleTrailForChild(childId: child.id, childName: child.name)
                                                         }
                                                     }
                                                     // For pending children, we don't do anything on tap in the home view
