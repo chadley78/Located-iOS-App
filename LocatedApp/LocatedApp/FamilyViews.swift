@@ -19,18 +19,18 @@ struct FamilySetupView: View {
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
-                    Image("RhinoFamily")
+                    Image("Rocket")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 240)
+                        .frame(height: 200)
                     
                     Text("Create Your Family")
                         .font(.radioCanadaBig(28, weight: .bold))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     Text("Set up your family group to start tracking your children's locations and creating geofences.")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -39,7 +39,7 @@ struct FamilySetupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Family Name")
                         .font(.radioCanadaBig(16, weight: .medium))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     TextField("e.g., The Smith Family", text: $familyName)
                         .padding(12)
@@ -47,6 +47,9 @@ struct FamilySetupView: View {
                         .cornerRadius(8)
                         .autocapitalization(.words)
                         .disableAutocorrection(true)
+                        .onSubmit {
+                            createFamily()
+                        }
                 }
                 .padding(.horizontal)
                 
@@ -57,8 +60,6 @@ struct FamilySetupView: View {
                         .font(.radioCanadaBig(12, weight: .regular))
                         .padding(.horizontal)
                 }
-                
-                Spacer()
                 
                 // Create Family Button
                 Button(action: createFamily) {
@@ -72,25 +73,21 @@ struct FamilySetupView: View {
                 }
                 .primaryAButtonStyle()
                 .disabled(familyName.isEmpty || isLoading)
+                .padding(.top, 20)
                 
-                // Cancel Button
-                Button("Cancel") {
-                    dismiss()
-                }
-                .font(.radioCanadaBig(14, weight: .regular))
-                .foregroundColor(AppColors.overlayLight.opacity(0.7))
-                .padding(.bottom)
+                // Extra padding to ensure content is visible above keyboard
+                Color.clear.frame(height: 300)
                 }
                 .padding()
             }
-            .background(AppColors.highlight)
+            .background(AppColors.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(AppColors.overlayLight)
+                    .foregroundColor(AppColors.textPrimary)
                 }
             }
             .alert("Family Created!", isPresented: $showingSuccess) {

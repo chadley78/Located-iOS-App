@@ -21,17 +21,18 @@ struct JoinFamilyView: View {
                     if !showingSuccess {
                         // Header
                         VStack(spacing: 16) {
-                            Image(systemName: "person.2.crop.square.stack")
-                                .font(.system(size: 60))
-                                .foregroundColor(.purple)
+                            Image("Join")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 200)
                             
                             Text("Join a Family")
                                 .font(.radioCanadaBig(28, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.textPrimary)
                             
                             Text("Enter the invitation code from another parent to join their family group.")
                                 .font(.radioCanadaBig(16, weight: .regular))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.textPrimary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
                         }
@@ -40,7 +41,7 @@ struct JoinFamilyView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Invitation Code")
                                 .font(.radioCanadaBig(16, weight: .medium))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.textPrimary)
                             
                             TextField("e.g., ABC123", text: $inviteCode)
                                 .padding(12)
@@ -49,6 +50,9 @@ struct JoinFamilyView: View {
                                 .autocapitalization(.allCharacters)
                                 .disableAutocorrection(true)
                                 .font(.system(size: 18, weight: .medium, design: .monospaced))
+                                .onSubmit {
+                                    joinFamily()
+                                }
                         }
                         .padding(.horizontal)
                         
@@ -69,22 +73,11 @@ struct JoinFamilyView: View {
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                     .scaleEffect(0.8)
                             } else {
-                                HStack {
-                                    Image(systemName: "checkmark")
-                                    Text("Join Family")
-                                }
+                                Text("Join Family")
                             }
                         }
                         .primaryAButtonStyle()
                         .disabled(inviteCode.isEmpty || isLoading)
-                        
-                        // Cancel Button
-                        Button("Cancel") {
-                            dismiss()
-                        }
-                        .font(.radioCanadaBig(14, weight: .regular))
-                        .foregroundColor(.white.opacity(0.7))
-                        .padding(.bottom)
                     } else {
                         // Success State
                         VStack(spacing: 24) {
@@ -95,18 +88,18 @@ struct JoinFamilyView: View {
                             
                             Text("Welcome!")
                                 .font(.radioCanadaBig(32, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.textPrimary)
                             
                             if let familyName = joinedFamilyName {
                                 Text("You've successfully joined '\(familyName)'")
                                     .font(.radioCanadaBig(18, weight: .regular))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.textPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal)
                             } else {
                                 Text("You've successfully joined the family")
                                     .font(.radioCanadaBig(18, weight: .regular))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.textPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal)
                             }
@@ -128,14 +121,14 @@ struct JoinFamilyView: View {
                 }
                 .padding()
             }
-            .background(AppColors.highlight)
+            .background(AppColors.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textPrimary)
                 }
             }
         }
