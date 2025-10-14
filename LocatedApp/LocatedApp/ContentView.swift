@@ -22,13 +22,13 @@ struct ContentView: View {
         Group {
             if !showContent {
                 // Show launch screen while transitioning
-                AppColors.accent
+                AppColors.background
                     .ignoresSafeArea()
             } else if authService.isInitializing {
                 // Show loading screen while checking authentication state
                 VStack(spacing: 20) {
                     Circle()
-                        .fill(AppColors.accent)
+                        .fill(AppColors.background)
                         .frame(width: 80, height: 80)
                         .overlay(
                             Image("AppSplash")
@@ -46,7 +46,7 @@ struct ContentView: View {
                         .foregroundColor(AppColors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.accent)
+                .background(AppColors.background)
             } else if authService.isAuthenticated {
                 if authService.currentUser != nil {
                     MainTabView()
@@ -64,7 +64,7 @@ struct ContentView: View {
                             .padding(.top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(AppColors.accent)
+                    .background(AppColors.background)
                 }
             } else {
                 WelcomeView(invitationCode: invitationCode)
@@ -124,8 +124,8 @@ struct WelcomeView: View {
                         .font(.radioCanadaBig(40, weight: .bold))
                         .foregroundColor(.primary)
                     
-                    // Parrot image full bleed
-                    Image("Parrot")
+                    // Planet with rings image full bleed
+                    Image("PlanetWithRings")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: .infinity)
@@ -170,7 +170,7 @@ struct WelcomeView: View {
             }
             .padding()
             .navigationBarHidden(true)
-            .background(AppColors.accent)
+            .background(AppColors.background)
         }
     }
 }
@@ -1237,58 +1237,66 @@ struct ParentHomeView: View {
                                     }
                                 }
                             } else {
-                                // No family state
-                                VStack(spacing: 0) {
-                                    // Background image section
-                                    ZStack {
-                                        // Background image (original size)
-                                        Image("Nest")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .clipped()
+                                 // No family state
+                                 VStack(spacing: 0) {
+                                     // Banner section
+                                     ZStack(alignment: .topLeading) {
+                                         // Background color
+                                         AppColors.accent
+                                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                                         
-                                        // Overlay content
+                                        // Content
                                         VStack(spacing: 0) {
-                                            // Text at the top
-                                            HStack {
-                                                Text("Let's get\nstarted")
-                                                    .font(.radioCanadaBig(28, weight: .bold))
-                                                    .foregroundColor(AppColors.overlayLight)
-                                                    .multilineTextAlignment(.leading)
-                                                    .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
-                                                Spacer()
-                                            }
-                                            .padding(.horizontal, 40)
-                                            .padding(.top, 60)
+                                            // Title spanning full width at top
+                                            Text("Let's set-up your family")
+                                                .headingLarge()
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .padding(.horizontal, 30)
+                                                .padding(.top, 30)
                                             
                                             Spacer()
                                             
-                                            // Buttons at the bottom
-                                            VStack(spacing: 12) {
-                                                Button("Create a Family") {
-                                                    showingFamilySetup = true
+                                            // Bottom section with buttons and rocket
+                                            HStack(alignment: .bottom) {
+                                                // Left side - Buttons
+                                                VStack(alignment: .leading, spacing: 16) {
+                                                    Button("Create Family") {
+                                                        showingFamilySetup = true
+                                                    }
+                                                    .font(.system(size: 16, weight: .semibold))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 20)
+                                                    .padding(.vertical, 12)
+                                                    .background(AppColors.primary)
+                                                    .cornerRadius(25)
+                                                    
+                                                    Button(action: {
+                                                        showingJoinFamily = true
+                                                    }) {
+                                                        Text("Join Existing Family")
+                                                            .font(.system(size: 16, weight: .medium))
+                                                            .foregroundColor(AppColors.primary)
+                                                            .underline()
+                                                    }
                                                 }
-                                                .primaryAButtonStyle()
+                                                .padding(.leading, 30)
+                                                .padding(.bottom, 30)
                                                 
-                                                Button("Join Existing Family") {
-                                                    showingJoinFamily = true
-                                                }
-                                                .font(.radioCanadaBig(16, weight: .semibold))
-                                                .foregroundColor(AppColors.overlayLight)
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 50)
-                                                .background(AppColors.overlayLight.opacity(0.2))
-                                                .cornerRadius(12)
+                                                Spacer()
+                                                
+                                                // Right side - Rocket image (fills available horizontal space)
+                                                Image("Rocket")
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .padding(.trailing, 30)
+                                                    .padding(.bottom, 30)
                                             }
-                                            .padding(.horizontal, 40)
-                                            .padding(.bottom, 40)
                                         }
-                                    }
-                                }
-                                .frame(height: 280)
-                                .background(AppColors.surfaceGray)
-                                .cornerRadius(12)
+                                     }
+                                 }
+                                 .frame(height: 300)
+                                 .background(AppColors.surfaceGray)
+                                 .cornerRadius(12)
                             }
                         }
                         
@@ -2088,7 +2096,7 @@ struct ChildrenListView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "",
-            backgroundColor: AppColors.highlight
+            backgroundColor: AppColors.background
         ) {
             ScrollView {
                 VStack(spacing: 20) {
@@ -3505,7 +3513,7 @@ struct SettingsView: View {
                 
                 Spacer()
             }
-            .background(AppColors.primary)
+            .background(AppColors.background)
             .alert(
                 notificationService.errorMessage != nil ? "Error" : "Success",
                 isPresented: $notificationService.showTestAlert

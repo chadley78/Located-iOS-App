@@ -322,7 +322,7 @@ struct ChildWelcomeView: View {
                 }
             }
         }
-        .background(AppColors.accent)
+        .background(AppColors.background)
         .ignoresSafeArea()
     }
     
@@ -407,7 +407,7 @@ struct ChildWelcomeBackView: View {
             .padding(.bottom, 50)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.accent)
+        .background(AppColors.background)
         .ignoresSafeArea()
     }
 }

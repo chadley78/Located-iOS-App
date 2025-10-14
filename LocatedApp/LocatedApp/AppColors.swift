@@ -1,23 +1,24 @@
 import SwiftUI
 
 // MARK: - App Color Palette
-// Centralized color definitions - original vibrant design
+// New vibrant playful design - Purple/Pink/Yellow theme
 struct AppColors {
-    // MARK: - Brand Colors
-    static let primary = Color(red: 1.0, green: 0.35, blue: 0.37) // #FF595E - vibrantRed (main CTAs)
-    static let accent = Color(red: 1.0, green: 0.79, blue: 0.23) // #FFCA3A - vibrantYellow (backgrounds, highlights)
-    static let success = Color(red: 0.54, green: 0.79, blue: 0.15) // #8AC926 - vibrantGreen
-    static let info = Color(red: 0.10, green: 0.51, blue: 0.77) // #1982C4 - vibrantBlue
-    static let highlight = Color(red: 0.42, green: 0.30, blue: 0.58) // #6A4C93 - vibrantPurple
+    // MARK: - Core Palette
+    static let primary = Color(hex: "#7B61FF")      // Primary brand color – main buttons and interactive elements
+    static let secondary = Color(hex: "#F9A65A")    // Secondary color – accent icons, small highlights, or illustrations
+    static let accent = Color(hex: "#FFE36E")       // Accent color – cheerful highlights and visual emphasis
+    static let surface = Color(hex: "#FFFFFF")      // Surface color – cards, text fields, and modal backgrounds
+    static let background = Color(hex: "#F2A6B5")   // Background color – soft pink backdrop for screens and sections
+    static let highlight = Color(hex: "#FFB8A1")    // Highlight color – subtle gradients or hover effects
+    static let textPrimary = Color(hex: "#1C1C1E")  // Text primary – headings and core text elements
+    static let textSecondary = Color(hex: "#4A4A4A")// Text secondary – captions, helper text, and secondary labels
     
-    // MARK: - Surface Colors
-    static let surface1 = Color(red: 0.88, green: 0.84, blue: 0.94) // #E1D5F0 - familyMembersBg
-    static let surface2 = Color(red: 0.89, green: 0.97, blue: 0.79) // #E4F8C9 - locationAlertsBg
-    static let surface3 = Color(red: 0.80, green: 0.91, blue: 0.98) // #CBE9FB - settingsBg
-    
-    // MARK: - Text Colors
-    static let textPrimary = Color.primary // System primary (adapts to light/dark mode)
-    static let textSecondary = Color.secondary // System secondary gray
+    // MARK: - Legacy semantic mappings (for compatibility with existing code)
+    static let success = secondary                   // Map to warm orange for success states
+    static let info = primary                        // Map to purple for info states
+    static let surface1 = surface                    // Map to white surface
+    static let surface2 = background                 // Map to pink background
+    static let surface3 = Color(hex: "#FFD6E0")      // Lighter pink for variation
     
     // MARK: - Utility Colors
     static let successDark = Color(red: 0.35, green: 0.55, blue: 0.10) // #5A8A1A - darker green for text

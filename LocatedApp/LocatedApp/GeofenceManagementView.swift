@@ -118,7 +118,7 @@ struct GeofenceManagementView: View {
                     .padding(.horizontal, 30)
                 }
             }
-            .background(AppColors.primary)
+            .background(AppColors.background)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 Task {
