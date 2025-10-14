@@ -1315,17 +1315,17 @@ struct ParentHomeView: View {
                                         HStack {
                                             Image(systemName: "person.2.fill")
                                                 .font(.title2)
-                                                .foregroundColor(AppColors.highlight)
+                                                .foregroundColor(AppColors.textPrimary)
                                             Text("Family Members")
                                                 .font(.headline)
-                                                .foregroundColor(AppColors.highlight)
+                                                .foregroundColor(AppColors.textPrimary)
                                             Spacer()
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
-                                                .foregroundColor(AppColors.highlight)
+                                                .foregroundColor(AppColors.textPrimary)
                                         }
                                         .padding()
-                                        .background(AppColors.surface1)
+                                        .background(AppColors.buttonSurface)
                                         .cornerRadius(12)
                                     }
                                     
@@ -1334,17 +1334,17 @@ struct ParentHomeView: View {
                                         HStack {
                                             Image(systemName: "location.circle")
                                                 .font(.title2)
-                                                .foregroundColor(AppColors.info)
+                                                .foregroundColor(AppColors.textPrimary)
                                             Text("Location Alerts")
                                                 .font(.headline)
-                                                .foregroundColor(AppColors.info)
+                                                .foregroundColor(AppColors.textPrimary)
                                             Spacer()
                                             Image(systemName: "chevron.right")
                                                 .font(.caption)
-                                                .foregroundColor(AppColors.info)
+                                                .foregroundColor(AppColors.textPrimary)
                                         }
                                         .padding()
-                                        .background(AppColors.surface3)
+                                        .background(AppColors.buttonSurface)
                                         .cornerRadius(12)
                                     }
                                 }
@@ -1354,17 +1354,17 @@ struct ParentHomeView: View {
                                     HStack {
                                         Image(systemName: "gear")
                                             .font(.title2)
-                                            .foregroundColor(Color(white: 0.4))
+                                            .foregroundColor(AppColors.textPrimary)
                                         Text("Settings")
                                             .font(.headline)
-                                            .foregroundColor(Color(white: 0.4))
+                                            .foregroundColor(AppColors.textPrimary)
                                         Spacer()
                                         Image(systemName: "chevron.right")
                                             .font(.caption)
-                                            .foregroundColor(Color(white: 0.4))
+                                            .foregroundColor(AppColors.textPrimary)
                                     }
                                     .padding()
-                                    .background(Color(white: 0.92))
+                                    .background(AppColors.buttonSurface)
                                     .cornerRadius(12)
                                 }
                             }

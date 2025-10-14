@@ -24,6 +24,7 @@ struct AppColors {
     static let successDark = Color(red: 0.35, green: 0.55, blue: 0.10) // #5A8A1A - darker green for text
     static let errorColor = Color.red // System red for errors
     static let warningColor = Color.orange // System orange for warnings
+    static let buttonSurface = Color(white: 0.92) // Light gray surface for navigation buttons
     
     // MARK: - Overlay Colors
     static let overlayLight = Color.white
