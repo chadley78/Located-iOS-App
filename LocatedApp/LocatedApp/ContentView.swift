@@ -1145,10 +1145,14 @@ struct ParentHomeView: View {
                             // Children List Section
                             VStack(spacing: 8) {
                                 if let family = familyService.currentFamily {
-                                    HStack {
-                                        Text("My Family")
-                                            .font(.radioCanadaBig(28, weight: .semibold))
-                                        Spacer()
+                                    let allChildren = familyService.getAllChildren()
+                                    // Only show "My Family" title if there are children
+                                    if !allChildren.isEmpty {
+                                        HStack {
+                                            Text("My Family")
+                                                .font(.radioCanadaBig(28, weight: .semibold))
+                                            Spacer()
+                                        }
                                     }
                                 }
                             
@@ -1157,43 +1161,43 @@ struct ParentHomeView: View {
                                 if allChildren.isEmpty {
                                     // No children state
                                     VStack(spacing: 0) {
-                                        // Background image section
-                                        ZStack {
-                                            // Background image (raised to show more of the nest)
-                                            Image("Nest")
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .clipped()
-                                                .offset(y: -20) // Raise the image to show more of the nest
-                                            
-                                            // Overlay content
-                                            VStack(spacing: 0) {
-                                                // Text at the top
-                                                HStack {
-                                                    Text("No children to\nlocate yet")
-                                                        .font(.radioCanadaBig(28, weight: .bold))
-                                                        .foregroundColor(AppColors.overlayLight)
-                                                        .multilineTextAlignment(.leading)
-                                                        .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
-                                                    Spacer()
-                                                }
-                                                .padding(.horizontal, 40)
-                                                .padding(.top, UIScreen.main.bounds.height < 700 ? 80 : 100)
-                                                
-                                                Spacer()
-                                                
-                                                // Button at the bottom
-                                                Button("Add a child") {
-                                                    showingInviteChild = true
-                                                }
-                                                .primaryAButtonStyle()
-                                                .padding(.horizontal, 15)
-                                                .padding(.bottom, UIScreen.main.bounds.height < 700 ? 50 : 80)
+                                        // Banner section
+                                        ZStack(alignment: .topLeading) {
+                                            // Background image (visible from bottom up, covers full panel)
+                                            GeometryReader { geometry in
+                                                Image("Bicycle")
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                                                    .offset(y: geometry.size.height * -0.05) // Offset by 7.5% of height
+                                                    .clipped()
                                             }
+                                           
+                                           // Content
+                                           VStack(alignment: .leading, spacing: 20) {
+                                               // Title
+                                               Text("Let's add your first child")
+                                                   .headingLarge()
+                                                   .frame(maxWidth: .infinity, alignment: .leading)
+                                               
+                                               // Button below title
+                                               Button("Add a Child") {
+                                                   showingInviteChild = true
+                                               }
+                                               .font(.system(size: 16, weight: .semibold))
+                                               .foregroundColor(.white)
+                                               .padding(.horizontal, 20)
+                                               .padding(.vertical, 12)
+                                               .background(AppColors.primary)
+                                               .cornerRadius(25)
+                                               
+                                               Spacer()
+                                           }
+                                           .padding(.horizontal, 30)
+                                           .padding(.vertical, 30)
                                         }
                                     }
-                                    .frame(height: UIScreen.main.bounds.height < 700 ? 200 : 220)
+                                    .frame(height: 300)
                                     .background(AppColors.surfaceGray)
                                     .cornerRadius(12)
                                 } else {
@@ -2252,7 +2256,7 @@ struct ChildrenListView: View {
                 VStack(spacing: 16) {
                     Text(family.name)
                         .font(.radioCanadaBig(28, weight: .bold))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                         .onTapGesture {
                             editingFamilyName = family.name
                             showingEditFamilyName = true
@@ -2288,11 +2292,11 @@ struct ChildrenListView: View {
                                                 Text(member.name)
                                                     .font(.radioCanadaBig(24, weight: .regular))
                                                     .tracking(-1.2)
-                                                    .foregroundColor(AppColors.overlayLight)
+                                                    .foregroundColor(AppColors.textPrimary)
                                                 
                                                 Text("Parent")
                                                     .font(.radioCanadaBig(16, weight: .regular))
-                                                    .foregroundColor(.white.opacity(0.7))
+                                                    .foregroundColor(AppColors.textSecondary)
                                             }
                                             
                                             Spacer()
@@ -2341,11 +2345,11 @@ struct ChildrenListView: View {
                                                     Text(child.name)
                                                         .font(.radioCanadaBig(24, weight: .regular))
                                                         .tracking(-1.2)
-                                                        .foregroundColor(AppColors.overlayLight)
+                                                        .foregroundColor(AppColors.textPrimary)
                                                     
                                                     Text(child.isPending ? "Invite not accepted" : "Child")
                                                         .font(.radioCanadaBig(16, weight: .regular))
-                                                        .foregroundColor(.white.opacity(0.7))
+                                                        .foregroundColor(AppColors.textSecondary)
                                                 }
                                                 
                                                 Spacer()

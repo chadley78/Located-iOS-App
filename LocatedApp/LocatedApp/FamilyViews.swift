@@ -149,6 +149,7 @@ struct FamilyManagementView: View {
                         
                         Text(family.name)
                             .font(.radioCanadaBig(22, weight: .semibold))
+                            .foregroundColor(AppColors.textPrimary)
                         
                         Text("\(familyService.getFamilyMembers().count) members")
                             .font(.radioCanadaBig(14, weight: .regular))
@@ -162,6 +163,7 @@ struct FamilyManagementView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Family Members")
                             .font(.radioCanadaBig(18, weight: .semibold))
+                            .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal)
                         
                         ForEach(familyService.getFamilyMembers(), id: \.0) { userId, member in
@@ -223,6 +225,7 @@ struct FamilyManagementView: View {
                         
                         Text("No Family")
                             .font(.radioCanadaBig(22, weight: .semibold))
+                            .foregroundColor(AppColors.textPrimary)
                         
                         Text("You haven't created or joined a family yet.")
                             .font(.radioCanadaBig(16, weight: .regular))
@@ -278,6 +281,7 @@ struct FamilyMemberRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.name)
                     .font(.radioCanadaBig(16, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
                 
                 Text(member.role.displayName)
                     .font(.radioCanadaBig(12, weight: .regular))
@@ -325,7 +329,7 @@ struct InviteChildView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "Invite Child",
-            backgroundColor: AppColors.highlight,
+            backgroundColor: AppColors.background,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -337,21 +341,23 @@ struct InviteChildView: View {
             }
         ) {
             ScrollView {
+                VStack(spacing: 0) {
+                // Image - Full bleed
+                Image("InviteChild")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                
                 VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 16) {
-                    Image("FlyingMotherNoBG")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 200)
-                    
                     Text("Invite Your Child")
                         .font(.radioCanadaBig(28, weight: .bold))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     Text("Enter your child's name to generate an invitation code they can use to join your family.")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -360,7 +366,7 @@ struct InviteChildView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Child's Name")
                         .font(.radioCanadaBig(16, weight: .medium))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     TextField("e.g., Emma Smith", text: $childName)
                         .padding(12)
@@ -384,22 +390,22 @@ struct InviteChildView: View {
                     VStack(spacing: 16) {
                         Text("Invitation Created!")
                             .font(.radioCanadaBig(22, weight: .semibold))
-                            .foregroundColor(AppColors.overlayLight)
+                            .foregroundColor(AppColors.textPrimary)
                         
                         Text("Share this code with your child:")
                             .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(AppColors.overlayLight)
+                            .foregroundColor(AppColors.textPrimary)
                         
                         Text(inviteCode)
                             .font(.system(size: 24, weight: .bold, design: .monospaced))
-                            .foregroundColor(AppColors.highlight)
+                            .foregroundColor(AppColors.textPrimary)
                             .padding()
-                            .background(AppColors.surface1)
+                            .background(AppColors.surface)
                             .cornerRadius(8)
                         
                         Text("This code expires in 24 hours")
                             .font(.radioCanadaBig(12, weight: .regular))
-                            .foregroundColor(AppColors.overlayLight.opacity(0.7))
+                            .foregroundColor(AppColors.textPrimary)
                         
                         // Share buttons
                         HStack(spacing: 16) {
@@ -412,10 +418,10 @@ struct InviteChildView: View {
                                     Text("Copy")
                                 }
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(AppColors.highlight)
+                                .foregroundColor(AppColors.primary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(AppColors.surface1)
+                                .background(AppColors.surface)
                                 .cornerRadius(6)
                             }
                             
@@ -439,16 +445,16 @@ struct InviteChildView: View {
                                     Text("Share")
                                 }
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(AppColors.highlight)
+                                .foregroundColor(AppColors.primary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(AppColors.surface1)
+                                .background(AppColors.surface)
                                 .cornerRadius(6)
                             }
                         }
                     }
                     .padding()
-                    .background(AppColors.overlayLight.opacity(0.1))
+                    .background(AppColors.accent)
                     .cornerRadius(12)
                     .padding(.horizontal)
                 }
@@ -469,6 +475,7 @@ struct InviteChildView: View {
                 .disabled(childName.isEmpty || isLoading)
                 }
                 .padding()
+                }
             }
         }
     }

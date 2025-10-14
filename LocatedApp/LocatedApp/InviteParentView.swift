@@ -15,7 +15,7 @@ struct InviteParentView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "Invite Parent",
-            backgroundColor: AppColors.highlight,
+            backgroundColor: AppColors.background,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -27,21 +27,23 @@ struct InviteParentView: View {
             }
         ) {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 0) {
+                    // Image - Full bleed
+                    Image("InviteParent")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                    
+                    VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 16) {
-                        Image("FlyingMotherNoBG")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 200)
-                        
                         Text("Invite Another Parent")
                             .font(.radioCanadaBig(28, weight: .bold))
-                            .foregroundColor(AppColors.overlayLight)
+                            .foregroundColor(AppColors.textPrimary)
                         
                         Text("Enter a name or description for this parent to generate an invitation code.")
                             .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(AppColors.overlayLight)
+                            .foregroundColor(AppColors.textPrimary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -50,7 +52,7 @@ struct InviteParentView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Parent Name/Description")
                             .font(.radioCanadaBig(16, weight: .medium))
-                            .foregroundColor(AppColors.overlayLight)
+                            .foregroundColor(AppColors.textPrimary)
                         
                         TextField("e.g., Mom, Dad, Guardian", text: $parentName)
                             .padding(12)
@@ -74,22 +76,22 @@ struct InviteParentView: View {
                         VStack(spacing: 16) {
                             Text("Invitation Created!")
                                 .font(.radioCanadaBig(22, weight: .semibold))
-                                .foregroundColor(AppColors.overlayLight)
+                                .foregroundColor(AppColors.textPrimary)
                             
                             Text("Share this code with another parent:")
                                 .font(.radioCanadaBig(16, weight: .regular))
-                                .foregroundColor(AppColors.overlayLight)
+                                .foregroundColor(AppColors.textPrimary)
                             
                             Text(inviteCode)
                                 .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                .foregroundColor(AppColors.highlight)
+                                .foregroundColor(AppColors.textPrimary)
                                 .padding()
-                                .background(AppColors.surface1)
+                                .background(AppColors.surface)
                                 .cornerRadius(8)
                             
                             Text("This code expires in 24 hours")
                                 .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(AppColors.textPrimary)
                             
                             // Share buttons
                             HStack(spacing: 16) {
@@ -102,10 +104,10 @@ struct InviteParentView: View {
                                         Text("Copy")
                                     }
                                     .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(AppColors.overlayLight)
+                                    .foregroundColor(AppColors.primary)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(AppColors.overlayLight.opacity(0.2))
+                                    .background(AppColors.surface)
                                     .cornerRadius(8)
                                 }
                                 
@@ -125,16 +127,16 @@ struct InviteParentView: View {
                                         Text("Share")
                                     }
                                     .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(AppColors.overlayLight)
+                                    .foregroundColor(AppColors.primary)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(AppColors.overlayLight.opacity(0.2))
+                                    .background(AppColors.surface)
                                     .cornerRadius(8)
                                 }
                             }
                         }
                         .padding()
-                        .background(AppColors.overlayLight.opacity(0.1))
+                        .background(AppColors.accent)
                         .cornerRadius(12)
                         .padding(.horizontal)
                     } else {
@@ -158,6 +160,7 @@ struct InviteParentView: View {
                     }
                 }
                 .padding()
+                }
             }
         }
     }
