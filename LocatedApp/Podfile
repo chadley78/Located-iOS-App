@@ -5,15 +5,15 @@ target 'LocatedApp' do
   # Use static frameworks
   use_frameworks! :linkage => :static
 
-  # Firebase Pods
-  pod 'Firebase/Auth'
-  pod 'Firebase/Core'
-  pod 'Firebase/Firestore'
-  pod 'Firebase/Functions'
-  pod 'Firebase/Messaging'
+  # Firebase Pods (using version 12.4.0 for OAuth compatibility)
+  pod 'Firebase/Auth', '~> 12.4'
+  pod 'Firebase/Core', '~> 12.4'
+  pod 'Firebase/Firestore', '~> 12.4'
+  pod 'Firebase/Functions', '~> 12.4'
+  pod 'Firebase/Messaging', '~> 12.4'
   
   # Google Sign-In
-  pod 'GoogleSignIn'
+  pod 'GoogleSignIn', '~> 9.0'
 
   # Test Targets (optional but good to keep)
   target 'LocatedAppTests' do
