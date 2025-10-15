@@ -1,6 +1,9 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import GoogleSignIn
+import AuthenticationServices
+import CryptoKit
 
 // MARK: - User Model
 struct User: Codable, Identifiable {
@@ -92,6 +95,9 @@ class AuthenticationService: ObservableObject {
     private let db = Firestore.firestore()
     private var notificationService: NotificationService?
     private var userListener: ListenerRegistration?
+    
+    // Apple Sign In
+    private var currentNonce: String?
     
     init() {
         // Listen for authentication state changes
@@ -281,6 +287,230 @@ class AuthenticationService: ObservableObject {
         await MainActor.run {
             self.isLoading = false
         }
+    }
+    
+    // MARK: - Google Sign In
+    func signInWithGoogle() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Get the client ID from GoogleService-Info.plist
+            guard let clientID = FirebaseApp.app()?.options.clientID else {
+                throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing Google Client ID"])
+            }
+            
+            // Create Google Sign In configuration
+            let config = GIDConfiguration(clientID: clientID)
+            GIDSignIn.sharedInstance.configuration = config
+            
+            // Get the root view controller
+            guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootViewController = await windowScene.windows.first?.rootViewController else {
+                throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No root view controller"])
+            }
+            
+            // Start the sign in flow
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+            let user = result.user
+            
+            guard let idToken = user.idToken?.tokenString else {
+                throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing ID token"])
+            }
+            
+            let accessToken = user.accessToken.tokenString
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+            
+            // Get the email to check for existing accounts
+            let email = user.profile?.email ?? ""
+            
+            // Handle account linking and sign in
+            try await handleOAuthCredential(
+                credential: credential,
+                email: email,
+                displayName: user.profile?.name,
+                userType: .parent
+            )
+            
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+        
+        await MainActor.run {
+            self.isLoading = false
+        }
+    }
+    
+    // MARK: - Apple Sign In
+    func signInWithApple(authorization: ASAuthorization) async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid Apple ID credential"])
+            }
+            
+            guard let nonce = currentNonce else {
+                throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid state: A login callback was received, but no login request was sent."])
+            }
+            
+            guard let appleIDToken = appleIDCredential.identityToken else {
+                throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to fetch identity token"])
+            }
+            
+            guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
+                throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to serialize token string from data"])
+            }
+            
+            // Create Firebase credential
+            let credential = OAuthProvider.credential(
+                withProviderID: "apple.com",
+                idToken: idTokenString,
+                rawNonce: nonce
+            )
+            
+            // Get display name from Apple if available
+            var displayName: String? = nil
+            if let fullName = appleIDCredential.fullName {
+                let firstName = fullName.givenName ?? ""
+                let lastName = fullName.familyName ?? ""
+                displayName = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+                if displayName?.isEmpty == true {
+                    displayName = nil
+                }
+            }
+            
+            let email = appleIDCredential.email ?? ""
+            
+            // Handle account linking and sign in
+            try await handleOAuthCredential(
+                credential: credential,
+                email: email,
+                displayName: displayName,
+                userType: .parent
+            )
+            
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+        
+        await MainActor.run {
+            self.isLoading = false
+        }
+    }
+    
+    // Generate nonce for Apple Sign In
+    func startSignInWithAppleFlow() -> ASAuthorizationAppleIDRequest {
+        let nonce = randomNonceString()
+        currentNonce = nonce
+        let appleIDProvider = ASAuthorizationAppleIDProvider()
+        let request = appleIDProvider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = sha256(nonce)
+        
+        return request
+    }
+    
+    // MARK: - OAuth Helper Methods
+    private func handleOAuthCredential(
+        credential: AuthCredential,
+        email: String,
+        displayName: String?,
+        userType: User.UserType
+    ) async throws {
+        // Check if there's an existing account with this email
+        if !email.isEmpty {
+            let signInMethods = try await auth.fetchSignInMethods(forEmail: email)
+            
+            if let methods = signInMethods, !methods.isEmpty {
+                // Account exists - sign in and link if needed
+                print("🔍 Existing account found with methods: \(methods)")
+                
+                // Check if user is already signed in
+                if let currentUser = auth.currentUser {
+                    // Try to link the credential
+                    do {
+                        try await currentUser.link(with: credential)
+                        print("🔍 Successfully linked OAuth provider to existing account")
+                    } catch let error as NSError {
+                        // If already linked, just sign in
+                        if error.code == AuthErrorCode.providerAlreadyLinked.rawValue ||
+                           error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
+                            print("🔍 Provider already linked, signing in")
+                        } else {
+                            throw error
+                        }
+                    }
+                    
+                    // Refresh user profile
+                    await fetchUserProfile(userId: currentUser.uid)
+                } else {
+                    // Not signed in, perform regular sign in
+                    let authResult = try await auth.signIn(with: credential)
+                    await fetchUserProfile(userId: authResult.user.uid)
+                }
+                
+                // Register FCM token after successful sign in
+                if let notificationService = notificationService {
+                    await notificationService.registerFCMToken()
+                }
+                
+                return
+            }
+        }
+        
+        // No existing account - create new one
+        let authResult = try await auth.signIn(with: credential)
+        
+        // Use OAuth provider name or default
+        let userName = displayName ?? authResult.user.displayName ?? "User"
+        let userEmail = email.isEmpty ? (authResult.user.email ?? "") : email
+        
+        let newUser = User(
+            id: authResult.user.uid,
+            name: userName,
+            email: userEmail,
+            userType: userType
+        )
+        
+        // Save user profile to Firestore
+        try await saveUserProfile(newUser)
+        currentUser = newUser
+        isAuthenticated = true
+        
+        print("🔍 Created new account via OAuth: \(userName)")
+    }
+    
+    private func randomNonceString(length: Int = 32) -> String {
+        precondition(length > 0)
+        var randomBytes = [UInt8](repeating: 0, count: length)
+        let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
+        if errorCode != errSecSuccess {
+            fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
+        }
+        
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        
+        let nonce = randomBytes.map { byte in
+            charset[Int(byte) % charset.count]
+        }
+        
+        return String(nonce)
+    }
+    
+    private func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashedData = SHA256.hash(data: inputData)
+        let hashString = hashedData.compactMap {
+            String(format: "%02x", $0)
+        }.joined()
+        
+        return hashString
     }
     
     // MARK: - User Profile Management

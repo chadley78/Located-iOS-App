@@ -11,6 +11,9 @@ target 'LocatedApp' do
   pod 'Firebase/Firestore'
   pod 'Firebase/Functions'
   pod 'Firebase/Messaging' # The new pod for notifications
+  
+  # Google Sign-In
+  pod 'GoogleSignIn'
 
   target 'LocatedAppTests' do
     inherit! :search_paths

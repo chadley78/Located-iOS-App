@@ -2,6 +2,7 @@ import SwiftUI
 import FirebaseCore
 import FirebaseMessaging
 import UserNotifications
+import GoogleSignIn
 
 @main
 struct LocatedAppApp: App {
@@ -39,6 +40,12 @@ struct LocatedAppApp: App {
     
     private func handleDeepLink(url: URL) {
         print("🔗 Received deep link: \(url)")
+        
+        // Handle Google Sign-In callback
+        if GIDSignIn.sharedInstance.handle(url) {
+            print("🔗 Handled by Google Sign-In")
+            return
+        }
         
         // Parse URL scheme: located://invite/ABC123
         if url.scheme == "located" && url.host == "invite" {

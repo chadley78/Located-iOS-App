@@ -5,6 +5,7 @@ import UIKit
 import MapKit
 import PhotosUI
 import Combine
+import AuthenticationServices
 
 struct ContentView: View {
     let invitationCode: String?
@@ -504,6 +505,56 @@ struct SignInView: View {
                 .font(.system(size: 16))
                 .foregroundColor(AppColors.systemBlue)
                 
+                // Divider
+                HStack {
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                    Text("OR")
+                        .font(.radioCanadaBig(14, weight: .medium))
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 8)
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                }
+                .padding(.vertical, 8)
+                
+                // Google Sign In Button
+                Button(action: signInWithGoogle) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "g.circle.fill")
+                            .font(.system(size: 20))
+                        Text("Sign in with Google")
+                            .font(.radioCanadaBig(16, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                }
+                .buttonStyle(.bordered)
+                .tint(.black)
+                .disabled(authService.isLoading)
+                
+                // Apple Sign In Button
+                SignInWithAppleButton { request in
+                    let appleRequest = authService.startSignInWithAppleFlow()
+                    request.requestedScopes = appleRequest.requestedScopes
+                    request.nonce = appleRequest.nonce
+                } onCompletion: { result in
+                    switch result {
+                    case .success(let authorization):
+                        Task {
+                            await authService.signInWithApple(authorization: authorization)
+                        }
+                    case .failure(let error):
+                        authService.errorMessage = error.localizedDescription
+                    }
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(height: 50)
+                .cornerRadius(8)
+                .disabled(authService.isLoading)
+                
                 Spacer()
                 }
             }
@@ -530,6 +581,12 @@ struct SignInView: View {
     private func signIn() {
         Task {
             await authService.signIn(email: email, password: password)
+        }
+    }
+    
+    private func signInWithGoogle() {
+        Task {
+            await authService.signInWithGoogle()
         }
     }
 }
@@ -778,6 +835,56 @@ struct SignUpView: View {
             .primaryAButtonStyle()
             .disabled(authService.isLoading || !isFormValid)
             
+            // Divider
+            HStack {
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(.gray.opacity(0.3))
+                Text("OR")
+                    .font(.radioCanadaBig(14, weight: .medium))
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 8)
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(.gray.opacity(0.3))
+            }
+            .padding(.vertical, 8)
+            
+            // Google Sign Up Button
+            Button(action: signUpWithGoogle) {
+                HStack(spacing: 12) {
+                    Image(systemName: "g.circle.fill")
+                        .font(.system(size: 20))
+                    Text("Continue with Google")
+                        .font(.radioCanadaBig(16, weight: .medium))
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+            }
+            .buttonStyle(.bordered)
+            .tint(.black)
+            .disabled(authService.isLoading)
+            
+            // Apple Sign Up Button
+            SignInWithAppleButton { request in
+                let appleRequest = authService.startSignInWithAppleFlow()
+                request.requestedScopes = appleRequest.requestedScopes
+                request.nonce = appleRequest.nonce
+            } onCompletion: { result in
+                switch result {
+                case .success(let authorization):
+                    Task {
+                        await authService.signInWithApple(authorization: authorization)
+                    }
+                case .failure(let error):
+                    authService.errorMessage = error.localizedDescription
+                }
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 50)
+            .cornerRadius(8)
+            .disabled(authService.isLoading)
+            
             Spacer()
             }
         }
@@ -869,6 +976,12 @@ struct SignUpView: View {
     private func signUp() {
         Task {
             await authService.signUp(email: email, password: password, name: name, userType: userType)
+        }
+    }
+    
+    private func signUpWithGoogle() {
+        Task {
+            await authService.signInWithGoogle()
         }
     }
 }
