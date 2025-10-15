@@ -5,14 +5,14 @@ target 'LocatedApp' do
   # Use static frameworks
   use_frameworks! :linkage => :static
 
-  # Firebase Pods
-  pod 'Firebase/Auth'
-  pod 'Firebase/Core' # Core is often a dependency, good to have it explicit
-  pod 'Firebase/Firestore'
-  pod 'Firebase/Functions'
-  pod 'Firebase/Messaging' # The new pod for notifications
+  # Firebase Pods - lock to compatible versions
+  pod 'Firebase/Auth', '~> 10.29'
+  pod 'Firebase/Core', '~> 10.29'
+  pod 'Firebase/Firestore', '~> 10.29'
+  # pod 'Firebase/Functions' # Temporarily removed due to BoringSSL-GRPC build issues
+  pod 'Firebase/Messaging', '~> 10.29'
   
-  # Google Sign-In - use version compatible with current Firebase
+  # Google Sign-In - version compatible with Firebase 10.x
   pod 'GoogleSignIn', '~> 6.2'
 
   target 'LocatedAppTests' do
