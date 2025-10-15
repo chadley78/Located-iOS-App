@@ -228,16 +228,30 @@ class SubscriptionService: ObservableObject {
     
     /// Sync subscription status to Firestore (for cross-platform access)
     func syncSubscriptionToFirestore() async {
-        guard let userId = auth.currentUser?.uid,
-              let user = try? await db.collection("users").document(userId).getDocument(),
-              let familyId = user.data()?["familyId"] as? String else {
-            print("ℹ️ Cannot sync subscription: no user or family")
+        guard let userId = auth.currentUser?.uid else {
+            print("ℹ️ Cannot sync subscription: no authenticated user")
             return
         }
         
-        print("🔐 Syncing subscription to Firestore for family: \(familyId)")
-        
         do {
+            // Get user document to find familyId
+            let userDoc = try await db.collection("users").document(userId).getDocument()
+            guard let familyId = userDoc.data()?["familyId"] as? String else {
+                print("ℹ️ Cannot sync subscription: user has no familyId")
+                return
+            }
+            
+            // Check if user is the family creator (only creator's subscription matters)
+            let familyDoc = try await db.collection("families").document(familyId).getDocument()
+            guard let familyData = familyDoc.data(),
+                  let createdBy = familyData["createdBy"] as? String,
+                  createdBy == userId else {
+                print("ℹ️ Skipping sync: user is not family creator")
+                return
+            }
+            
+            print("🔐 Syncing subscription to Firestore for family: \(familyId)")
+            
             var updateData: [String: Any] = [:]
             
             if let info = subscriptionInfo {
@@ -262,6 +276,7 @@ class SubscriptionService: ObservableObject {
             
         } catch {
             print("❌ Error syncing subscription to Firestore: \(error)")
+            // Don't throw - this is a background sync operation
         }
     }
     

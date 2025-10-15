@@ -131,6 +131,7 @@ struct FamilySetupView: View {
 // MARK: - Family Management View
 struct FamilyManagementView: View {
     @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var subscriptionService: SubscriptionService
     @StateObject private var familyService = FamilyService()
     @State private var showingInviteChild = false
     @State private var showingInviteParent = false
@@ -262,6 +263,8 @@ struct FamilyManagementView: View {
             .sheet(isPresented: $showingFamilySettings) {
                 FamilySettingsView()
                     .environmentObject(familyService)
+                    .environmentObject(subscriptionService)
+                    .environmentObject(authService)
             }
         }
     }
@@ -519,6 +522,7 @@ struct InviteChildView: View {
 struct FamilySettingsView: View {
     @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var subscriptionService: SubscriptionService
+    @EnvironmentObject var authService: AuthenticationService
     @Environment(\.dismiss) private var dismiss
     @State private var familyName = ""
     @State private var isEditingName = false
@@ -574,6 +578,7 @@ struct FamilySettingsView: View {
                     NavigationLink(destination: SubscriptionManagementView()
                         .environmentObject(subscriptionService)
                         .environmentObject(familyService)
+                        .environmentObject(authService)
                     ) {
                         HStack {
                             Image(systemName: "star.circle.fill")
