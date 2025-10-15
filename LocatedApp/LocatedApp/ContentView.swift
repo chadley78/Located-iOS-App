@@ -2462,7 +2462,7 @@ struct ChildProfileView: View {
     
     var body: some View {
         ZStack {
-            AppColors.highlight.ignoresSafeArea()
+            AppColors.background.ignoresSafeArea()
             
         VStack(spacing: 0) {
             // Custom Header with Back Button
@@ -2476,14 +2476,14 @@ struct ChildProfileView: View {
                         Text("Back")
                             .font(.radioCanadaBig(17, weight: .regular))
                     }
-                    .foregroundColor(AppColors.overlayLight)
+                    .foregroundColor(AppColors.textPrimary)
                 }
                 
                 Spacer()
                 
                 Text("Child Profile")
                     .font(.radioCanadaBig(17, weight: .semibold))
-                    .foregroundColor(AppColors.overlayLight)
+                    .foregroundColor(AppColors.textPrimary)
                 
                 Spacer()
                 
@@ -2529,7 +2529,7 @@ struct ChildProfileView: View {
                                     .overlay(
                                         Text(String(childName.prefix(1)).uppercased())
                                             .font(.radioCanadaBig(50, weight: .bold))
-                                            .foregroundColor(AppColors.overlayLight)
+                                            .foregroundColor(AppColors.textPrimary)
                                     )
                             }
                             
@@ -2544,9 +2544,9 @@ struct ChildProfileView: View {
                                     }) {
                                         Image(systemName: "camera.fill")
                                             .font(.system(size: 16))
-                                            .foregroundColor(AppColors.overlayLight)
+                                            .foregroundColor(.white)
                                             .frame(width: 32, height: 32)
-                                            .background(AppColors.accent)
+                                            .background(AppColors.primary)
                                             .clipShape(Circle())
                                     }
                                     .disabled(isUploadingImage)
@@ -2559,7 +2559,7 @@ struct ChildProfileView: View {
                         // Name Section
                         Text(childName)
                             .font(.radioCanadaBig(28, weight: .bold))
-                            .foregroundColor(AppColors.overlayLight)
+                            .foregroundColor(AppColors.textPrimary)
                             .onTapGesture {
                                 editingChildName = childName
                                 showingEditName = true
@@ -2569,10 +2569,10 @@ struct ChildProfileView: View {
                         if child.isPending {
                             Text(child.status.displayName)
                                 .font(.radioCanadaBig(14, weight: .regular))
-                                .foregroundColor(AppColors.overlayLight)
+                                .foregroundColor(AppColors.textPrimary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
-                                .background(AppColors.overlayLight.opacity(0.2))
+                                .background(AppColors.buttonSurface)
                                 .cornerRadius(8)
                         }
                     }
@@ -3073,7 +3073,7 @@ struct ParentProfileView: View {
     
     var body: some View {
         ZStack {
-            AppColors.highlight.ignoresSafeArea()
+            AppColors.background.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Custom Header with Back Button
@@ -3087,14 +3087,14 @@ struct ParentProfileView: View {
                             Text("Back")
                                 .font(.radioCanadaBig(17, weight: .regular))
                         }
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     }
                     
                     Spacer()
                     
                     Text("Parent Profile")
                         .font(.radioCanadaBig(17, weight: .semibold))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     Spacer()
                     
@@ -3123,14 +3123,14 @@ struct ParentProfileView: View {
                                 .overlay(
                                     Text(String(displayName.prefix(1)).uppercased())
                                         .font(.radioCanadaBig(50, weight: .bold))
-                                        .foregroundColor(AppColors.overlayLight)
+                                        .foregroundColor(AppColors.textPrimary)
                                 )
                             
                             // Parent Name with Edit
                             HStack(spacing: 8) {
                                 Text(displayName)
                                     .font(.radioCanadaBig(28, weight: .bold))
-                                    .foregroundColor(AppColors.overlayLight)
+                                    .foregroundColor(AppColors.textPrimary)
                                 
                                 Button(action: {
                                     editingParentName = displayName
@@ -3138,13 +3138,13 @@ struct ParentProfileView: View {
                                 }) {
                                     Image(systemName: "pencil.circle.fill")
                                         .font(.system(size: 24))
-                                        .foregroundColor(.white.opacity(0.7))
+                                        .foregroundColor(AppColors.textSecondary)
                                 }
                             }
                             
                             Text("Parent")
                                 .font(.radioCanadaBig(16, weight: .regular))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(AppColors.textSecondary)
                         }
                         .padding(.vertical, 20)
                         
@@ -3152,17 +3152,17 @@ struct ParentProfileView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Parent Information")
                                 .font(.radioCanadaBig(18, weight: .semibold))
-                                .foregroundColor(AppColors.overlayLight)
+                                .foregroundColor(AppColors.textPrimary)
                             
                             VStack(spacing: 12) {
                                 HStack {
                                     Text("Role")
                                         .font(.radioCanadaBig(16, weight: .regular))
-                                        .foregroundColor(.white.opacity(0.7))
+                                        .foregroundColor(AppColors.textSecondary)
                                     Spacer()
                                     Text("Parent")
                                         .font(.radioCanadaBig(16, weight: .semibold))
-                                        .foregroundColor(AppColors.overlayLight)
+                                        .foregroundColor(AppColors.textPrimary)
                                 }
                                 
                                 Divider()
@@ -3171,15 +3171,15 @@ struct ParentProfileView: View {
                                 HStack {
                                     Text("Permissions")
                                         .font(.radioCanadaBig(16, weight: .regular))
-                                        .foregroundColor(.white.opacity(0.7))
+                                        .foregroundColor(AppColors.textSecondary)
                                     Spacer()
                                     Text("Full Access")
                                         .font(.radioCanadaBig(16, weight: .semibold))
-                                        .foregroundColor(AppColors.overlayLight)
+                                        .foregroundColor(AppColors.textPrimary)
                                 }
                             }
                             .padding()
-                            .background(AppColors.overlayLight.opacity(0.1))
+                            .background(AppColors.buttonSurface)
                             .cornerRadius(12)
                         }
                         
