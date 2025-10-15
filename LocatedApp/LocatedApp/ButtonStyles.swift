@@ -32,6 +32,26 @@ struct PrimaryBButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Google Sign In Button Style
+// White background with Google blue text and border
+struct GoogleSignInButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.radioCanadaBig(16, weight: .medium))
+            .foregroundColor(Color(red: 66/255, green: 133/255, blue: 244/255)) // Google Blue #4285F4
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(Color.white)
+            .cornerRadius(25)
+            .overlay(
+                RoundedRectangle(cornerRadius: 25)
+                    .stroke(Color(red: 66/255, green: 133/255, blue: 244/255), lineWidth: 1.5)
+            )
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .padding(.horizontal, 30)
+    }
+}
+
 // MARK: - Convenience Extensions
 extension View {
     func primaryAButtonStyle() -> some View {
@@ -40,5 +60,9 @@ extension View {
     
     func primaryBButtonStyle() -> some View {
         self.buttonStyle(PrimaryBButtonStyle())
+    }
+    
+    func googleSignInButtonStyle() -> some View {
+        self.buttonStyle(GoogleSignInButtonStyle())
     }
 }

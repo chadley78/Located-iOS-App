@@ -526,13 +526,9 @@ struct SignInView: View {
                         Image(systemName: "g.circle.fill")
                             .font(.system(size: 20))
                         Text("Sign in with Google")
-                            .font(.radioCanadaBig(16, weight: .medium))
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
                 }
-                .buttonStyle(.bordered)
-                .tint(.black)
+                .googleSignInButtonStyle()
                 .disabled(authService.isLoading)
                 
                 // Apple Sign In Button
@@ -552,7 +548,8 @@ struct SignInView: View {
                 }
                 .signInWithAppleButtonStyle(.black)
                 .frame(height: 50)
-                .cornerRadius(8)
+                .cornerRadius(25)
+                .padding(.horizontal, 30)
                 .disabled(authService.isLoading)
                 
                 Spacer()
@@ -856,13 +853,9 @@ struct SignUpView: View {
                     Image(systemName: "g.circle.fill")
                         .font(.system(size: 20))
                     Text("Continue with Google")
-                        .font(.radioCanadaBig(16, weight: .medium))
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
             }
-            .buttonStyle(.bordered)
-            .tint(.black)
+            .googleSignInButtonStyle()
             .disabled(authService.isLoading)
             
             // Apple Sign Up Button
@@ -882,7 +875,8 @@ struct SignUpView: View {
             }
             .signInWithAppleButtonStyle(.black)
             .frame(height: 50)
-            .cornerRadius(8)
+            .cornerRadius(25)
+            .padding(.horizontal, 30)
             .disabled(authService.isLoading)
             
             Spacer()

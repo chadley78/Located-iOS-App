@@ -1,71 +1,48 @@
-# platform :ios, '15.0'
+# Set the platform for the entire project
 platform :ios, '15.0'
 
 target 'LocatedApp' do
   # Use static frameworks
   use_frameworks! :linkage => :static
 
-  # Firebase Pods - lock to compatible versions
-  pod 'Firebase/Auth', '~> 10.29'
-  pod 'Firebase/Core', '~> 10.29'
-  pod 'Firebase/Firestore', '~> 10.29'
-  # pod 'Firebase/Functions' # Temporarily removed due to BoringSSL-GRPC build issues
-  pod 'Firebase/Messaging', '~> 10.29'
+  # Firebase Pods
+  pod 'Firebase/Auth'
+  pod 'Firebase/Core'
+  pod 'Firebase/Firestore'
+  pod 'Firebase/Functions'
+  pod 'Firebase/Messaging'
   
-  # Google Sign-In - version compatible with Firebase 10.x
-  pod 'GoogleSignIn', '~> 6.2'
+  # Google Sign-In
+  pod 'GoogleSignIn'
 
+  # Test Targets (optional but good to keep)
   target 'LocatedAppTests' do
     inherit! :search_paths
-    # Pods for testing
   end
 
   target 'LocatedAppUITests' do
-    # Pods for testing
+    inherit! :search_paths
   end
-
 end
 
-# Post-install script to fix build issues
+# This script runs after pods are installed to fix build setting conflicts.
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      # Fix deployment target warnings by setting minimum to 15.0
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-      
-      # Comprehensive BoringSSL-GRPC fix
-      if target.name.start_with?('BoringSSL-GRPC')
-        # Completely reset all compiler flags to remove problematic -G flags
-        config.build_settings.delete('OTHER_CFLAGS')
-        config.build_settings.delete('OTHER_CPLUSPLUSFLAGS')
-        config.build_settings.delete('OTHER_LDFLAGS')
-        config.build_settings.delete('WARNING_CFLAGS')
-        config.build_settings.delete('GCC_WARN_INHIBIT_ALL_WARNINGS')
-        
-        # Set clean compiler flags
-        config.build_settings['OTHER_CFLAGS'] = ['-DBORINGSSL_PREFIX=GRPC', '-w']
-        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = ['-DBORINGSSL_PREFIX=GRPC', '-w']
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = ['$(inherited)', 'BORINGSSL_PREFIX=GRPC']
-        config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
-        
-        # Force disable all debug and optimization flags that might contain -G
-        config.build_settings['GCC_OPTIMIZATION_LEVEL'] = '0'
-        config.build_settings['GCC_GENERATE_DEBUGGING_SYMBOLS'] = 'NO'
-        config.build_settings['DEBUG_INFORMATION_FORMAT'] = ''
-        config.build_settings['DEPLOYMENT_POSTPROCESSING'] = 'NO'
-      end
-      
-      # Fix gRPC issues
-      if target.name == 'gRPC-Core'
+    
+    # FIX #1: The original fix for rsync build errors with gRPC.
+    if target.name == 'gRPC-Core'
+      target.build_configurations.each do |config|
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'GRPC_CFSTREAM=0'
       end
     end
-  end
-  
-  # Additional fix: modify the Pods project build settings directly
-  installer.pods_project.build_configurations.each do |config|
-    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+
+    # FIX #2: NEW fix for the BoringSSL-GRPC '-G' error.
+    # This forces every pod to respect the project's iOS 15.0 deployment target.
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
+    
   end
 end
 

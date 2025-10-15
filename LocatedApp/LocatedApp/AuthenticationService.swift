@@ -1,6 +1,7 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseCore
 import GoogleSignIn
 import AuthenticationServices
 import CryptoKit
@@ -310,7 +311,7 @@ class AuthenticationService: ObservableObject {
                 throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No root view controller"])
             }
             
-            // Start the sign in flow - updated for GoogleSignIn 6.x
+            // Start the sign in flow
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
             let user = result.user
             
@@ -366,10 +367,10 @@ class AuthenticationService: ObservableObject {
             }
             
             // Create Firebase credential
-            let credential = OAuthProvider.credential(
-                withProviderID: "apple.com",
-                idToken: idTokenString,
-                rawNonce: nonce
+            let credential = OAuthProvider.appleCredential(
+                withIDToken: idTokenString,
+                rawNonce: nonce,
+                fullName: appleIDCredential.fullName
             )
             
             // Get display name from Apple if available
@@ -427,9 +428,9 @@ class AuthenticationService: ObservableObject {
         if !email.isEmpty {
             let signInMethods = try await auth.fetchSignInMethods(forEmail: email)
             
-            if let methods = signInMethods, !methods.isEmpty {
+            if !signInMethods.isEmpty {
                 // Account exists - sign in and link if needed
-                print("🔍 Existing account found with methods: \(methods)")
+                print("🔍 Existing account found with methods: \(signInMethods)")
                 
                 // Check if user is already signed in
                 if let currentUser = auth.currentUser {
