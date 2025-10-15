@@ -13,6 +13,7 @@ struct ContentView: View {
     @StateObject private var locationService = LocationService()
     @StateObject private var invitationService = FamilyInvitationService()
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var subscriptionService: SubscriptionService
     @State private var showContent = false
     
     init(invitationCode: String? = nil) {
@@ -55,6 +56,8 @@ struct ContentView: View {
                         .environmentObject(locationService)
                         .environmentObject(familyService)
                         .environmentObject(invitationService)
+                        .environmentObject(subscriptionService)
+                        .subscriptionGate()
                 } else {
                     // Show loading while user data is being fetched
                     VStack {
@@ -94,6 +97,11 @@ struct ContentView: View {
                 if let userId = authService.currentUser?.id {
                     print("🔄 ContentView: User authenticated, restarting family listener for: \(userId)")
                     familyService.handleAuthStateChange(isAuthenticated: true, userId: userId)
+                    
+                    // Identify user in RevenueCat for subscription management
+                    Task {
+                        await subscriptionService.identifyUser(userId: userId)
+                    }
                 }
             } else {
                 // Stop family listener when user signs out

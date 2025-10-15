@@ -11,6 +11,7 @@ struct LocatedAppApp: App {
     
     @StateObject private var familyService = FamilyService()
     @StateObject private var notificationService = NotificationService()
+    @StateObject private var subscriptionService = SubscriptionService()
     @State private var deepLinkInvitationCode: String?
     
     // Initialize Firebase and background services when the app launches
@@ -32,8 +33,13 @@ struct LocatedAppApp: App {
             ContentView(invitationCode: deepLinkInvitationCode)
                 .environmentObject(familyService)
                 .environmentObject(notificationService)
+                .environmentObject(subscriptionService)
                 .onOpenURL { url in
                     handleDeepLink(url: url)
+                }
+                .task {
+                    // Configure RevenueCat when app launches
+                    subscriptionService.configure()
                 }
         }
     }

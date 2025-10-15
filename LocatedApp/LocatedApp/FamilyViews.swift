@@ -518,6 +518,7 @@ struct InviteChildView: View {
 // MARK: - Family Settings View
 struct FamilySettingsView: View {
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var subscriptionService: SubscriptionService
     @Environment(\.dismiss) private var dismiss
     @State private var familyName = ""
     @State private var isEditingName = false
@@ -568,6 +569,41 @@ struct FamilySettingsView: View {
                     .padding()
                     .background(Color(UIColor.systemGray6))
                     .cornerRadius(12)
+                    
+                    // Subscription Management
+                    NavigationLink(destination: SubscriptionManagementView()
+                        .environmentObject(subscriptionService)
+                        .environmentObject(familyService)
+                    ) {
+                        HStack {
+                            Image(systemName: "star.circle.fill")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 24))
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Subscription")
+                                    .font(.radioCanadaBig(16, weight: .semibold))
+                                
+                                if let status = subscriptionService.subscriptionInfo?.status {
+                                    Text(status.displayName)
+                                        .font(.radioCanadaBig(12))
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("Manage your subscription")
+                                        .font(.radioCanadaBig(12))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(Color(UIColor.systemGray6))
+                        .cornerRadius(12)
+                    }
                     
                     if let errorMessage = errorMessage {
                         Text(errorMessage)

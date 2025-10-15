@@ -2,6 +2,25 @@ import Foundation
 import FirebaseFirestore
 import FirebaseAuth
 
+// MARK: - Subscription Models
+
+/// Subscription status for a family
+enum SubscriptionStatus: String, Codable {
+    case trial = "trial"
+    case active = "active"
+    case expired = "expired"
+    case canceled = "canceled"
+    
+    var displayName: String {
+        switch self {
+        case .trial: return "Free Trial"
+        case .active: return "Active"
+        case .expired: return "Expired"
+        case .canceled: return "Canceled"
+        }
+    }
+}
+
 // MARK: - Family Data Models
 
 /// Represents a family in the system
@@ -11,9 +30,28 @@ struct Family: Codable, Identifiable {
     let createdBy: String // Parent user ID who created the family
     let createdAt: Date
     let members: [String: FamilyMember] // Map of userId -> FamilyMember
+    let subscriptionStatus: SubscriptionStatus? // Current subscription status
+    let trialEndsAt: Date? // When trial period ends
+    let subscriptionExpiresAt: Date? // When subscription expires
     
     enum CodingKeys: String, CodingKey {
-        case id, name, createdBy, createdAt, members
+        case id, name, createdBy, createdAt, members, subscriptionStatus, trialEndsAt, subscriptionExpiresAt
+    }
+    
+    // Custom decoder to handle missing subscription fields in existing documents
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        createdBy = try container.decode(String.self, forKey: .createdBy)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        members = try container.decode([String: FamilyMember].self, forKey: .members)
+        
+        // Subscription fields (optional for backward compatibility)
+        subscriptionStatus = try container.decodeIfPresent(SubscriptionStatus.self, forKey: .subscriptionStatus)
+        trialEndsAt = try container.decodeIfPresent(Date.self, forKey: .trialEndsAt)
+        subscriptionExpiresAt = try container.decodeIfPresent(Date.self, forKey: .subscriptionExpiresAt)
     }
 }
 
@@ -468,6 +506,15 @@ class FamilyService: ObservableObject {
             }
             
             print("✅ Family created successfully with ID: \(familyId)")
+            
+            // Initialize 7-day trial subscription
+            let trialEndsAt = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+            try await db.collection("families").document(familyId).updateData([
+                "subscriptionStatus": SubscriptionStatus.trial.rawValue,
+                "trialEndsAt": trialEndsAt,
+                "subscriptionExpiresAt": trialEndsAt
+            ])
+            print("✅ Trial subscription initialized, expires: \(trialEndsAt)")
             
             // Update user's familyId
             try await db.collection("users").document(userId).updateData([
