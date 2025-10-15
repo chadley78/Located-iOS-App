@@ -277,24 +277,17 @@ NSString *_Nonnull FIRMessagingStringFromSQLiteResult(int result) {
 - (FIRMessagingPersistentSyncMessage *)querySyncMessageWithRmqID:(NSString *)rmqID {
   __block FIRMessagingPersistentSyncMessage *persistentMessage;
   dispatch_sync(_databaseOperationQueue, ^{
-    NSString *queryFormat = @"SELECT %@ FROM %@ WHERE %@ = ?";
+    NSString *queryFormat = @"SELECT %@ FROM %@ WHERE %@ = '%@'";
     NSString *query =
         [NSString stringWithFormat:queryFormat,
                                    kSyncMessagesColumns,  // SELECT (rmq_id, expiration_ts,
                                                           // apns_recv, mcs_recv)
                                    kTableSyncMessages,    // FROM sync_rmq
-                                   kRmqIdColumn           // WHERE rmq_id
-    ];
+                                   kRmqIdColumn,          // WHERE rmq_id
+                                   rmqID];
 
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(self->_database, [query UTF8String], -1, &stmt, NULL) != SQLITE_OK) {
-      [self logError];
-      sqlite3_finalize(stmt);
-      return;
-    }
-
-    if (sqlite3_bind_text(stmt, 1, [rmqID UTF8String], (int)[rmqID length], SQLITE_STATIC) !=
-        SQLITE_OK) {
       [self logError];
       sqlite3_finalize(stmt);
       return;
@@ -496,7 +489,7 @@ NSString *_Nonnull FIRMessagingStringFromSQLiteResult(int result) {
 
     BOOL didOpenDatabase = YES;
     if (![fileManager fileExistsAtPath:path]) {
-      // We've to separate between different versions here because of backward compatibility issues.
+      // We've to separate between different versions here because of backwards compatbility issues.
       int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 #ifdef SQLITE_OPEN_FILEPROTECTION_NONE
       flags |= SQLITE_OPEN_FILEPROTECTION_NONE;

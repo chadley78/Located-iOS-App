@@ -2,18 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>processing</string>
-		<string>location</string>
-		<string>remote-notification</string>
-	</array>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Located needs continuous access to your location to keep your family safe. This allows geofence alerts (like arriving at school) and real-time location sharing to work even when the app is closed.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Located needs access to your location to show where you are on the family map.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Located needs background location access to keep your family safe. This allows geofence alerts and location sharing to work even when the app is closed.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -24,6 +12,14 @@
 				<string>located</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.987791360749-hrk8b5fbjg92mgq98s5s2pgjgk74bruf</string>
+			</array>
+		</dict>
 	</array>
 	<key>UIAppFonts</key>
 	<array>
@@ -32,8 +28,12 @@
 		<string>RadioCanadaBig-SemiBold.ttf</string>
 		<string>RadioCanadaBig-Bold.ttf</string>
 	</array>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchScreen_Generation</key>
 	<false/>
 </dict>

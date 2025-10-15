@@ -28,7 +28,6 @@ NS_ASSUME_NONNULL_BEGIN
  * using the `documents` property and its size can be inspected with `isEmpty` and
  * `count`.
  */
-NS_SWIFT_SENDABLE
 NS_SWIFT_NAME(QuerySnapshot)
 @interface FIRQuerySnapshot : NSObject
 

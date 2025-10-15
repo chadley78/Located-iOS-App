@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/event_engine/posix_engine/posix_engine_listener_utils.h"
 
-#include <grpc/event_engine/event_engine.h>
-#include <grpc/support/port_platform.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,17 +24,19 @@
 #include <string>
 
 #include "absl/cleanup/cleanup.h"
-#include "absl/log/check.h"
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_replace.h"
+
+#include <grpc/event_engine/event_engine.h>
+#include <grpc/support/log.h>
+
 #include "src/core/lib/event_engine/posix_engine/tcp_socket_utils.h"
 #include "src/core/lib/event_engine/tcp_socket_utils.h"
+#include "src/core/lib/gprpp/crash.h"  // IWYU pragma: keep
+#include "src/core/lib/gprpp/status_helper.h"
 #include "src/core/lib/iomgr/port.h"
 #include "src/core/lib/iomgr/socket_mutator.h"
-#include "src/core/util/crash.h"  // IWYU pragma: keep
-#include "src/core/util/status_helper.h"
 
 #define MIN_SAFE_ACCEPT_QUEUE_SIZE 100
 
@@ -118,8 +120,10 @@ int InitMaxAcceptQueueSize() {
   max_accept_queue_size = n;
 
   if (max_accept_queue_size < MIN_SAFE_ACCEPT_QUEUE_SIZE) {
-    LOG(INFO) << "Suspiciously small accept queue (" << max_accept_queue_size
-              << ") will probably lead to connection drops";
+    gpr_log(GPR_INFO,
+            "Suspiciously small accept queue (%d) will probably lead to "
+            "connection drops",
+            max_accept_queue_size);
   }
   return max_accept_queue_size;
 }
@@ -134,7 +138,7 @@ absl::Status PrepareSocket(const PosixTcpOptions& options,
                            ListenerSocket& socket) {
   ResolvedAddress sockname_temp;
   int fd = socket.sock.Fd();
-  CHECK_GE(fd, 0);
+  GPR_ASSERT(fd >= 0);
   bool close_fd = true;
   socket.zero_copy_enabled = false;
   socket.port = 0;
@@ -152,7 +156,7 @@ absl::Status PrepareSocket(const PosixTcpOptions& options,
 #ifdef GRPC_LINUX_ERRQUEUE
   if (!socket.sock.SetSocketZeroCopy().ok()) {
     // it's not fatal, so just log it.
-    VLOG(2) << "Node does not support SO_ZEROCOPY, continuing.";
+    gpr_log(GPR_DEBUG, "Node does not support SO_ZEROCOPY, continuing.");
   } else {
     socket.zero_copy_enabled = true;
   }
@@ -165,7 +169,6 @@ absl::Status PrepareSocket(const PosixTcpOptions& options,
       !ResolvedAddressIsVSock(socket.addr)) {
     GRPC_RETURN_IF_ERROR(socket.sock.SetSocketLowLatency(1));
     GRPC_RETURN_IF_ERROR(socket.sock.SetSocketReuseAddr(1));
-    GRPC_RETURN_IF_ERROR(socket.sock.SetSocketDscp(options.dscp));
     socket.sock.TrySetSocketTcpUserTimeout(options, false);
   }
   GRPC_RETURN_IF_ERROR(socket.sock.SetSocketNoSigpipeIfPossible());
@@ -175,8 +178,8 @@ absl::Status PrepareSocket(const PosixTcpOptions& options,
   if (bind(fd, socket.addr.address(), socket.addr.size()) < 0) {
     auto sockaddr_str = ResolvedAddressToString(socket.addr);
     if (!sockaddr_str.ok()) {
-      LOG(ERROR) << "Could not convert sockaddr to string: "
-                 << sockaddr_str.status();
+      gpr_log(GPR_ERROR, "Could not convert sockaddr to string: %s",
+              sockaddr_str.status().ToString().c_str());
       sockaddr_str = "<unparsable>";
     }
     sockaddr_str = absl::StrReplaceAll(*sockaddr_str, {{"\0", "@"}});
@@ -223,7 +226,7 @@ absl::StatusOr<ListenerSocket> CreateAndPrepareListenerSocket(
     socket.addr = addr;
   }
   GRPC_RETURN_IF_ERROR(PrepareSocket(options, socket));
-  CHECK_GT(socket.port, 0);
+  GPR_ASSERT(socket.port > 0);
   return socket;
 }
 
@@ -240,7 +243,7 @@ absl::StatusOr<int> ListenerContainerAddAllLocalAddresses(
     auto result = GetUnusedPort();
     GRPC_RETURN_IF_ERROR(result.status());
     requested_port = *result;
-    VLOG(2) << "Picked unused port " << requested_port;
+    gpr_log(GPR_DEBUG, "Picked unused port %d", requested_port);
   }
   if (getifaddrs(&ifa) != 0 || ifa == nullptr) {
     return absl::FailedPreconditionError(
@@ -272,14 +275,14 @@ absl::StatusOr<int> ListenerContainerAddAllLocalAddresses(
     addr = EventEngine::ResolvedAddress(ifa_it->ifa_addr, len);
     ResolvedAddressSetPort(addr, requested_port);
     std::string addr_str = *ResolvedAddressToString(addr);
-    VLOG(2) << absl::StrFormat(
-        "Adding local addr from interface %s flags 0x%x to server: %s",
-        ifa_name, ifa_it->ifa_flags, addr_str.c_str());
+    gpr_log(GPR_DEBUG,
+            "Adding local addr from interface %s flags 0x%x to server: %s",
+            ifa_name, ifa_it->ifa_flags, addr_str.c_str());
     // We could have multiple interfaces with the same address (e.g.,
     // bonding), so look for duplicates.
     if (listener_sockets.Find(addr).ok()) {
-      VLOG(2) << "Skipping duplicate addr " << addr_str << " on interface "
-              << ifa_name;
+      gpr_log(GPR_DEBUG, "Skipping duplicate addr %s on interface %s",
+              addr_str.c_str(), ifa_name);
       continue;
     }
     auto result = CreateAndPrepareListenerSocket(options, addr);
@@ -343,19 +346,21 @@ absl::StatusOr<int> ListenerContainerAddWildcardAddresses(
   }
   if (assigned_port > 0) {
     if (!v6_sock.ok()) {
-      VLOG(2) << "Failed to add :: listener, the environment may not support "
-                 "IPv6: "
-              << v6_sock.status();
+      gpr_log(GPR_INFO,
+              "Failed to add :: listener, the environment may not support "
+              "IPv6: %s",
+              v6_sock.status().ToString().c_str());
     }
     if (!v4_sock.ok()) {
-      VLOG(2) << "Failed to add 0.0.0.0 listener, "
-                 "the environment may not support IPv4: "
-              << v4_sock.status();
+      gpr_log(GPR_INFO,
+              "Failed to add 0.0.0.0 listener, "
+              "the environment may not support IPv4: %s",
+              v4_sock.status().ToString().c_str());
     }
     return assigned_port;
   } else {
-    CHECK(!v6_sock.ok());
-    CHECK(!v4_sock.ok());
+    GPR_ASSERT(!v6_sock.ok());
+    GPR_ASSERT(!v4_sock.ok());
     return absl::FailedPreconditionError(absl::StrCat(
         "Failed to add any wildcard listeners: ", v6_sock.status().message(),
         v4_sock.status().message()));

@@ -19,24 +19,26 @@
 #ifndef GRPC_SRC_CORE_CLIENT_CHANNEL_RETRY_THROTTLE_H
 #define GRPC_SRC_CORE_CLIENT_CHANNEL_RETRY_THROTTLE_H
 
-#include <grpc/support/atm.h>
 #include <grpc/support/port_platform.h>
+
 #include <stdint.h>
 
 #include <map>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
-#include "src/core/util/ref_counted.h"
-#include "src/core/util/ref_counted_ptr.h"
-#include "src/core/util/sync.h"
+
+#include <grpc/support/atm.h>
+
+#include "src/core/lib/gprpp/ref_counted.h"
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "src/core/lib/gprpp/sync.h"
 
 namespace grpc_core {
 namespace internal {
 
 /// Tracks retry throttling data for an individual server name.
-class ServerRetryThrottleData final
-    : public RefCounted<ServerRetryThrottleData> {
+class ServerRetryThrottleData : public RefCounted<ServerRetryThrottleData> {
  public:
   ServerRetryThrottleData(uintptr_t max_milli_tokens,
                           uintptr_t milli_token_ratio,
@@ -66,7 +68,7 @@ class ServerRetryThrottleData final
 };
 
 /// Global map of server name to retry throttle data.
-class ServerRetryThrottleMap final {
+class ServerRetryThrottleMap {
  public:
   static ServerRetryThrottleMap* Get();
 

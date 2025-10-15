@@ -3,19 +3,21 @@
  *     envoy/type/tracing/v3/custom_tag.proto
  *
  * Do not edit -- your changes will be discarded when the file is
- * regenerated.
- * NO CHECKED-IN PROTOBUF GENCODE */
+ * regenerated. */
 
-#ifndef ENVOY_TYPE_TRACING_V3_CUSTOM_TAG_PROTO_UPB_H__UPBDEFS_H_
-#define ENVOY_TYPE_TRACING_V3_CUSTOM_TAG_PROTO_UPB_H__UPBDEFS_H_
+#ifndef ENVOY_TYPE_TRACING_V3_CUSTOM_TAG_PROTO_UPBDEFS_H_
+#define ENVOY_TYPE_TRACING_V3_CUSTOM_TAG_PROTO_UPBDEFS_H_
 
 #include "upb/reflection/def.h"
 #include "upb/reflection/internal/def_pool.h"
-
-#include "upb/port/def.inc" // Must be last.
+#include "upb/port/def.inc"
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "upb/reflection/def.h"
+
+#include "upb/port/def.inc"
 
 extern _upb_DefPool_Init envoy_type_tracing_v3_custom_tag_proto_upbdefinit;
 
@@ -50,4 +52,4 @@ UPB_INLINE const upb_MessageDef *envoy_type_tracing_v3_CustomTag_Metadata_getmsg
 
 #include "upb/port/undef.inc"
 
-#endif  /* ENVOY_TYPE_TRACING_V3_CUSTOM_TAG_PROTO_UPB_H__UPBDEFS_H_ */
+#endif  /* ENVOY_TYPE_TRACING_V3_CUSTOM_TAG_PROTO_UPBDEFS_H_ */

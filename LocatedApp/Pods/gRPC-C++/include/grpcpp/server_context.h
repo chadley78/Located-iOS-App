@@ -19,10 +19,17 @@
 #ifndef GRPCPP_SERVER_CONTEXT_H
 #define GRPCPP_SERVER_CONTEXT_H
 
-#include <grpc/grpc.h>
-#include <grpc/impl/call.h>
-#include <grpc/impl/compression_types.h>
 #include <grpc/support/port_platform.h>
+
+#include <atomic>
+#include <cassert>
+#include <map>
+#include <memory>
+#include <type_traits>
+#include <vector>
+
+#include <grpc/grpc.h>
+#include <grpc/impl/compression_types.h>
 #include <grpcpp/impl/call.h>
 #include <grpcpp/impl/call_op_set.h>
 #include <grpcpp/impl/codegen/create_auth_context.h>
@@ -39,13 +46,6 @@
 #include <grpcpp/support/status.h>
 #include <grpcpp/support/string_ref.h>
 #include <grpcpp/support/time.h>
-
-#include <atomic>
-#include <cassert>
-#include <map>
-#include <memory>
-#include <type_traits>
-#include <vector>
 
 struct grpc_metadata;
 struct grpc_call;
@@ -520,9 +520,7 @@ class ServerContextBase {
    public:
     TestServerCallbackUnary(ServerContextBase* ctx,
                             std::function<void(grpc::Status)> func)
-        : reactor_(ctx->DefaultReactor()),
-          func_(std::move(func)),
-          call_(ctx->c_call()) {
+        : reactor_(ctx->DefaultReactor()), func_(std::move(func)) {
       this->BindReactor(reactor_);
     }
     void Finish(grpc::Status s) override {
@@ -539,16 +537,12 @@ class ServerContextBase {
 
    private:
     void CallOnDone() override {}
-
-    grpc_call* call() override { return call_; }
-
     grpc::internal::ServerReactor* reactor() override { return reactor_; }
 
     grpc::ServerUnaryReactor* const reactor_;
     std::atomic_bool status_set_{false};
     grpc::Status status_;
     const std::function<void(grpc::Status s)> func_;
-    grpc_call* call_;
   };
 
   alignas(Reactor) char default_reactor_[sizeof(Reactor)];

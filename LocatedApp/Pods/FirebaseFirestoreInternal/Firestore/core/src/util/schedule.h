@@ -18,9 +18,9 @@
 #define FIRESTORE_CORE_SRC_UTIL_SCHEDULE_H_
 
 #include <algorithm>
-#include <condition_variable>
+#include <condition_variable>  // NOLINT(build/c++11)
 #include <deque>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <vector>
 
 #include "Firestore/core/src/util/executor.h"

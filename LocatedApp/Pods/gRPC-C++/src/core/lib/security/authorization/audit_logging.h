@@ -19,8 +19,6 @@
 #ifndef GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_AUDIT_LOGGING_H
 #define GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_AUDIT_LOGGING_H
 
-#include <grpc/grpc_audit_logging.h>
-#include <grpc/support/json.h>
 #include <grpc/support/port_platform.h>
 
 #include <map>
@@ -29,7 +27,11 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "src/core/util/sync.h"
+
+#include <grpc/grpc_audit_logging.h>
+#include <grpc/support/json.h>
+
+#include "src/core/lib/gprpp/sync.h"
 
 namespace grpc_core {
 namespace experimental {

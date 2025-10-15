@@ -19,11 +19,11 @@
 
 #include <dispatch/dispatch.h>
 
-#include <chrono>
-#include <condition_variable>
+#include <chrono>              // NOLINT(build/c++11)
+#include <condition_variable>  // NOLINT(build/c++11)
 #include <functional>
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 #include <unordered_map>
 #include <unordered_set>

@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/authorization/matchers.h"
 
-#include <grpc/grpc_security_constants.h>
-#include <grpc/support/port_platform.h>
 #include <string.h>
 
 #include <string>
 
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+
+#include <grpc/grpc_security_constants.h>
+#include <grpc/support/log.h>
+
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 
@@ -155,8 +158,8 @@ IpAuthorizationMatcher::IpAuthorizationMatcher(Type type, Rbac::CidrRange range)
   auto address =
       StringToSockaddr(range.address_prefix, 0);  // Port does not matter here.
   if (!address.ok()) {
-    VLOG(2) << "CidrRange address \"" << range.address_prefix
-            << "\" is not IPv4/IPv6. Error: " << address.status();
+    gpr_log(GPR_DEBUG, "CidrRange address \"%s\" is not IPv4/IPv6. Error: %s",
+            range.address_prefix.c_str(), address.status().ToString().c_str());
     memset(&subnet_address_, 0, sizeof(subnet_address_));
     return;
   }

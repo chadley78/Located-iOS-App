@@ -59,9 +59,12 @@
 #include <assert.h>
 #include <string.h>
 
+#include <openssl_grpc/dsa.h>
+#include <openssl_grpc/ec.h>
 #include <openssl_grpc/err.h>
 #include <openssl_grpc/mem.h>
 #include <openssl_grpc/nid.h>
+#include <openssl_grpc/rsa.h>
 #include <openssl_grpc/thread.h>
 
 #include "internal.h"
@@ -146,7 +149,9 @@ int EVP_PKEY_cmp(const EVP_PKEY *a, const EVP_PKEY *b) {
 
 int EVP_PKEY_copy_parameters(EVP_PKEY *to, const EVP_PKEY *from) {
   if (to->type == EVP_PKEY_NONE) {
-    evp_pkey_set_method(to, from->ameth);
+    if (!EVP_PKEY_set_type(to, from->type)) {
+      return 0;
+    }
   } else if (to->type != from->type) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_DIFFERENT_KEY_TYPES);
     return 0;
@@ -220,21 +225,117 @@ static const EVP_PKEY_ASN1_METHOD *evp_pkey_asn1_find(int nid) {
   }
 }
 
-void evp_pkey_set_method(EVP_PKEY *pkey, const EVP_PKEY_ASN1_METHOD *method) {
+static void evp_pkey_set_method(EVP_PKEY *pkey,
+                                const EVP_PKEY_ASN1_METHOD *method) {
   free_it(pkey);
   pkey->ameth = method;
   pkey->type = pkey->ameth->pkey_id;
 }
 
 int EVP_PKEY_type(int nid) {
-  // In OpenSSL, this was used to map between type aliases. BoringSSL supports
-  // no type aliases, so this function is just the identity.
-  return nid;
+  const EVP_PKEY_ASN1_METHOD *meth = evp_pkey_asn1_find(nid);
+  if (meth == NULL) {
+    return NID_undef;
+  }
+  return meth->pkey_id;
 }
 
+int EVP_PKEY_set1_RSA(EVP_PKEY *pkey, RSA *key) {
+  if (EVP_PKEY_assign_RSA(pkey, key)) {
+    RSA_up_ref(key);
+    return 1;
+  }
+  return 0;
+}
+
+int EVP_PKEY_assign_RSA(EVP_PKEY *pkey, RSA *key) {
+  evp_pkey_set_method(pkey, &rsa_asn1_meth);
+  pkey->pkey = key;
+  return key != NULL;
+}
+
+RSA *EVP_PKEY_get0_RSA(const EVP_PKEY *pkey) {
+  if (pkey->type != EVP_PKEY_RSA) {
+    OPENSSL_PUT_ERROR(EVP, EVP_R_EXPECTING_AN_RSA_KEY);
+    return NULL;
+  }
+  return pkey->pkey;
+}
+
+RSA *EVP_PKEY_get1_RSA(const EVP_PKEY *pkey) {
+  RSA *rsa = EVP_PKEY_get0_RSA(pkey);
+  if (rsa != NULL) {
+    RSA_up_ref(rsa);
+  }
+  return rsa;
+}
+
+int EVP_PKEY_set1_DSA(EVP_PKEY *pkey, DSA *key) {
+  if (EVP_PKEY_assign_DSA(pkey, key)) {
+    DSA_up_ref(key);
+    return 1;
+  }
+  return 0;
+}
+
+int EVP_PKEY_assign_DSA(EVP_PKEY *pkey, DSA *key) {
+  evp_pkey_set_method(pkey, &dsa_asn1_meth);
+  pkey->pkey = key;
+  return key != NULL;
+}
+
+DSA *EVP_PKEY_get0_DSA(const EVP_PKEY *pkey) {
+  if (pkey->type != EVP_PKEY_DSA) {
+    OPENSSL_PUT_ERROR(EVP, EVP_R_EXPECTING_A_DSA_KEY);
+    return NULL;
+  }
+  return pkey->pkey;
+}
+
+DSA *EVP_PKEY_get1_DSA(const EVP_PKEY *pkey) {
+  DSA *dsa = EVP_PKEY_get0_DSA(pkey);
+  if (dsa != NULL) {
+    DSA_up_ref(dsa);
+  }
+  return dsa;
+}
+
+int EVP_PKEY_set1_EC_KEY(EVP_PKEY *pkey, EC_KEY *key) {
+  if (EVP_PKEY_assign_EC_KEY(pkey, key)) {
+    EC_KEY_up_ref(key);
+    return 1;
+  }
+  return 0;
+}
+
+int EVP_PKEY_assign_EC_KEY(EVP_PKEY *pkey, EC_KEY *key) {
+  evp_pkey_set_method(pkey, &ec_asn1_meth);
+  pkey->pkey = key;
+  return key != NULL;
+}
+
+EC_KEY *EVP_PKEY_get0_EC_KEY(const EVP_PKEY *pkey) {
+  if (pkey->type != EVP_PKEY_EC) {
+    OPENSSL_PUT_ERROR(EVP, EVP_R_EXPECTING_AN_EC_KEY_KEY);
+    return NULL;
+  }
+  return pkey->pkey;
+}
+
+EC_KEY *EVP_PKEY_get1_EC_KEY(const EVP_PKEY *pkey) {
+  EC_KEY *ec_key = EVP_PKEY_get0_EC_KEY(pkey);
+  if (ec_key != NULL) {
+    EC_KEY_up_ref(ec_key);
+  }
+  return ec_key;
+}
+
+DH *EVP_PKEY_get0_DH(const EVP_PKEY *pkey) { return NULL; }
+DH *EVP_PKEY_get1_DH(const EVP_PKEY *pkey) { return NULL; }
+
 int EVP_PKEY_assign(EVP_PKEY *pkey, int type, void *key) {
-  // This function can only be used to assign RSA, DSA, EC, and DH keys. Other
-  // key types have internal representations which are not exposed through the
+  // This function can only be used to assign RSA, DSA, and EC keys. Other key
+  // types have internal representations which are not exposed through the
   // public API.
   switch (type) {
     case EVP_PKEY_RSA:
@@ -243,8 +344,6 @@ int EVP_PKEY_assign(EVP_PKEY *pkey, int type, void *key) {
       return EVP_PKEY_assign_DSA(pkey, key);
     case EVP_PKEY_EC:
       return EVP_PKEY_assign_EC_KEY(pkey, key);
-    case EVP_PKEY_DH:
-      return EVP_PKEY_assign_DH(pkey, key);
   }
 
   OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_ALGORITHM);
@@ -276,26 +375,16 @@ int EVP_PKEY_set_type(EVP_PKEY *pkey, int type) {
 
 EVP_PKEY *EVP_PKEY_new_raw_private_key(int type, ENGINE *unused,
                                        const uint8_t *in, size_t len) {
-  // To avoid pulling in all key types, look for specifically the key types that
-  // support |set_priv_raw|.
-  const EVP_PKEY_ASN1_METHOD *method;
-  switch (type) {
-    case EVP_PKEY_X25519:
-      method = &x25519_asn1_meth;
-      break;
-    case EVP_PKEY_ED25519:
-      method = &ed25519_asn1_meth;
-      break;
-    default:
-      OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_ALGORITHM);
-      return 0;
-  }
-
   EVP_PKEY *ret = EVP_PKEY_new();
-  if (ret == NULL) {
+  if (ret == NULL ||
+      !EVP_PKEY_set_type(ret, type)) {
     goto err;
   }
-  evp_pkey_set_method(ret, method);
+
+  if (ret->ameth->set_priv_raw == NULL) {
+    OPENSSL_PUT_ERROR(EVP, EVP_R_OPERATION_NOT_SUPPORTED_FOR_THIS_KEYTYPE);
+    goto err;
+  }
 
   if (!ret->ameth->set_priv_raw(ret, in, len)) {
     goto err;
@@ -310,26 +399,16 @@ err:
 
 EVP_PKEY *EVP_PKEY_new_raw_public_key(int type, ENGINE *unused,
                                       const uint8_t *in, size_t len) {
-  // To avoid pulling in all key types, look for specifically the key types that
-  // support |set_pub_raw|.
-  const EVP_PKEY_ASN1_METHOD *method;
-  switch (type) {
-    case EVP_PKEY_X25519:
-      method = &x25519_asn1_meth;
-      break;
-    case EVP_PKEY_ED25519:
-      method = &ed25519_asn1_meth;
-      break;
-    default:
-      OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_ALGORITHM);
-      return 0;
-  }
-
   EVP_PKEY *ret = EVP_PKEY_new();
-  if (ret == NULL) {
+  if (ret == NULL ||
+      !EVP_PKEY_set_type(ret, type)) {
     goto err;
   }
-  evp_pkey_set_method(ret, method);
+
+  if (ret->ameth->set_pub_raw == NULL) {
+    OPENSSL_PUT_ERROR(EVP, EVP_R_OPERATION_NOT_SUPPORTED_FOR_THIS_KEYTYPE);
+    goto err;
+  }
 
   if (!ret->ameth->set_pub_raw(ret, in, len)) {
     goto err;

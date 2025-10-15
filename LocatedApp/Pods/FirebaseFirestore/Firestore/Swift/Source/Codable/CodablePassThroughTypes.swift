@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@_exported import class FirebaseCore.Timestamp
-
 import FirebaseSharedSwift
 import Foundation
 
@@ -31,7 +29,6 @@ struct FirestorePassthroughTypes: StructureCodingPassthroughTypeResolver {
       t is GeoPoint ||
       t is Timestamp ||
       t is FieldValue ||
-      t is DocumentReference ||
-      t is VectorValue
+      t is DocumentReference
   }
 }

@@ -3,19 +3,21 @@
  *     src/proto/grpc/lookup/v1/rls_config.proto
  *
  * Do not edit -- your changes will be discarded when the file is
- * regenerated.
- * NO CHECKED-IN PROTOBUF GENCODE */
+ * regenerated. */
 
-#ifndef SRC_PROTO_GRPC_LOOKUP_V1_RLS_CONFIG_PROTO_UPB_H__UPBDEFS_H_
-#define SRC_PROTO_GRPC_LOOKUP_V1_RLS_CONFIG_PROTO_UPB_H__UPBDEFS_H_
+#ifndef SRC_PROTO_GRPC_LOOKUP_V1_RLS_CONFIG_PROTO_UPBDEFS_H_
+#define SRC_PROTO_GRPC_LOOKUP_V1_RLS_CONFIG_PROTO_UPBDEFS_H_
 
 #include "upb/reflection/def.h"
 #include "upb/reflection/internal/def_pool.h"
-
-#include "upb/port/def.inc" // Must be last.
+#include "upb/port/def.inc"
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "upb/reflection/def.h"
+
+#include "upb/port/def.inc"
 
 extern _upb_DefPool_Init src_proto_grpc_lookup_v1_rls_config_proto_upbdefinit;
 
@@ -70,4 +72,4 @@ UPB_INLINE const upb_MessageDef *grpc_lookup_v1_RouteLookupClusterSpecifier_getm
 
 #include "upb/port/undef.inc"
 
-#endif  /* SRC_PROTO_GRPC_LOOKUP_V1_RLS_CONFIG_PROTO_UPB_H__UPBDEFS_H_ */
+#endif  /* SRC_PROTO_GRPC_LOOKUP_V1_RLS_CONFIG_PROTO_UPBDEFS_H_ */

@@ -345,11 +345,11 @@ int BIO_set_close(BIO *bio, int close_flag) {
   return (int)BIO_ctrl(bio, BIO_CTRL_SET_CLOSE, close_flag, NULL);
 }
 
-OPENSSL_EXPORT uint64_t BIO_number_read(const BIO *bio) {
+OPENSSL_EXPORT size_t BIO_number_read(const BIO *bio) {
   return bio->num_read;
 }
 
-OPENSSL_EXPORT uint64_t BIO_number_written(const BIO *bio) {
+OPENSSL_EXPORT size_t BIO_number_written(const BIO *bio) {
   return bio->num_write;
 }
 
@@ -658,38 +658,38 @@ void BIO_meth_free(BIO_METHOD *method) {
 }
 
 int BIO_meth_set_create(BIO_METHOD *method,
-                        int (*create_func)(BIO *)) {
-  method->create = create_func;
+                        int (*create)(BIO *)) {
+  method->create = create;
   return 1;
 }
 
 int BIO_meth_set_destroy(BIO_METHOD *method,
-                         int (*destroy_func)(BIO *)) {
-  method->destroy = destroy_func;
+                         int (*destroy)(BIO *)) {
+  method->destroy = destroy;
   return 1;
 }
 
 int BIO_meth_set_write(BIO_METHOD *method,
-                       int (*write_func)(BIO *, const char *, int)) {
-  method->bwrite = write_func;
+                       int (*write)(BIO *, const char *, int)) {
+  method->bwrite = write;
   return 1;
 }
 
 int BIO_meth_set_read(BIO_METHOD *method,
-                      int (*read_func)(BIO *, char *, int)) {
-  method->bread = read_func;
+                      int (*read)(BIO *, char *, int)) {
+  method->bread = read;
   return 1;
 }
 
 int BIO_meth_set_gets(BIO_METHOD *method,
-                      int (*gets_func)(BIO *, char *, int)) {
-  method->bgets = gets_func;
+                      int (*gets)(BIO *, char *, int)) {
+  method->bgets = gets;
   return 1;
 }
 
 int BIO_meth_set_ctrl(BIO_METHOD *method,
-                      long (*ctrl_func)(BIO *, int, long, void *)) {
-  method->ctrl = ctrl_func;
+                      long (*ctrl)(BIO *, int, long, void *)) {
+  method->ctrl = ctrl;
   return 1;
 }
 
@@ -714,7 +714,12 @@ int BIO_get_ex_new_index(long argl, void *argp,
                                     CRYPTO_EX_unused *unused,
                                     CRYPTO_EX_dup *dup_unused,
                                     CRYPTO_EX_free *free_func) {
-  return CRYPTO_get_ex_new_index_ex(&g_ex_data_class, argl, argp, free_func);
+  int index;
+  if (!CRYPTO_get_ex_new_index(&g_ex_data_class, &index, argl, argp,
+                               free_func)) {
+    return -1;
+  }
+  return index;
 }
 
 int BIO_set_ex_data(BIO *bio, int idx, void *data) {

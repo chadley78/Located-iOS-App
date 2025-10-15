@@ -19,14 +19,16 @@
 #ifndef GRPC_SRC_CORE_EXT_FILTERS_HTTP_MESSAGE_COMPRESS_COMPRESSION_FILTER_H
 #define GRPC_SRC_CORE_EXT_FILTERS_HTTP_MESSAGE_COMPRESS_COMPRESSION_FILTER_H
 
-#include <grpc/impl/compression_types.h>
 #include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
 #include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+
+#include <grpc/impl/compression_types.h>
+
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_fwd.h"
 #include "src/core/lib/channel/promise_based_filter.h"
@@ -85,8 +87,7 @@ class ChannelCompression {
   MessageHandle CompressMessage(MessageHandle message,
                                 grpc_compression_algorithm algorithm) const;
   // Decompress one message synchronously.
-  absl::StatusOr<MessageHandle> DecompressMessage(bool is_client,
-                                                  MessageHandle message,
+  absl::StatusOr<MessageHandle> DecompressMessage(MessageHandle message,
                                                   DecompressArgs args) const;
 
  private:
@@ -108,13 +109,8 @@ class ClientCompressionFilter final
  public:
   static const grpc_channel_filter kFilter;
 
-  static absl::string_view TypeName() { return "compression"; }
-
-  static absl::StatusOr<std::unique_ptr<ClientCompressionFilter>> Create(
+  static absl::StatusOr<ClientCompressionFilter> Create(
       const ChannelArgs& args, ChannelFilter::Args filter_args);
-
-  explicit ClientCompressionFilter(const ChannelArgs& args)
-      : compression_engine_(args) {}
 
   // Construct a promise for one call.
   class Call {
@@ -129,7 +125,6 @@ class ClientCompressionFilter final
     absl::StatusOr<MessageHandle> OnServerToClientMessage(
         MessageHandle message, ClientCompressionFilter* filter);
 
-    static const NoInterceptor OnClientToServerHalfClose;
     static const NoInterceptor OnServerTrailingMetadata;
     static const NoInterceptor OnFinalize;
 
@@ -139,6 +134,9 @@ class ClientCompressionFilter final
   };
 
  private:
+  explicit ClientCompressionFilter(const ChannelArgs& args)
+      : compression_engine_(args) {}
+
   ChannelCompression compression_engine_;
 };
 
@@ -147,13 +145,8 @@ class ServerCompressionFilter final
  public:
   static const grpc_channel_filter kFilter;
 
-  static absl::string_view TypeName() { return "compression"; }
-
-  static absl::StatusOr<std::unique_ptr<ServerCompressionFilter>> Create(
+  static absl::StatusOr<ServerCompressionFilter> Create(
       const ChannelArgs& args, ChannelFilter::Args filter_args);
-
-  explicit ServerCompressionFilter(const ChannelArgs& args)
-      : compression_engine_(args) {}
 
   // Construct a promise for one call.
   class Call {
@@ -168,7 +161,6 @@ class ServerCompressionFilter final
     MessageHandle OnServerToClientMessage(MessageHandle message,
                                           ServerCompressionFilter* filter);
 
-    static const NoInterceptor OnClientToServerHalfClose;
     static const NoInterceptor OnServerTrailingMetadata;
     static const NoInterceptor OnFinalize;
 
@@ -178,6 +170,9 @@ class ServerCompressionFilter final
   };
 
  private:
+  explicit ServerCompressionFilter(const ChannelArgs& args)
+      : compression_engine_(args) {}
+
   ChannelCompression compression_engine_;
 };
 

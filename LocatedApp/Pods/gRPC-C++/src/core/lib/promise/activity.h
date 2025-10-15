@@ -16,6 +16,7 @@
 #define GRPC_SRC_CORE_LIB_PROMISE_ACTIVITY_H
 
 #include <grpc/support/port_platform.h>
+
 #include <stdint.h>
 
 #include <algorithm>
@@ -25,21 +26,19 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "absl/strings/str_cat.h"
 #include "absl/types/optional.h"
-#include "src/core/lib/debug/trace.h"
+
+#include <grpc/support/log.h>
+
+#include "src/core/lib/gprpp/construct_destruct.h"
+#include "src/core/lib/gprpp/no_destruct.h"
+#include "src/core/lib/gprpp/orphanable.h"
+#include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/promise/context.h"
 #include "src/core/lib/promise/detail/promise_factory.h"
 #include "src/core/lib/promise/detail/status.h"
 #include "src/core/lib/promise/poll.h"
-#include "src/core/util/construct_destruct.h"
-#include "src/core/util/dump_args.h"
-#include "src/core/util/latent_see.h"
-#include "src/core/util/no_destruct.h"
-#include "src/core/util/orphanable.h"
-#include "src/core/util/sync.h"
 
 namespace grpc_core {
 
@@ -121,11 +120,6 @@ class Waker {
     return wakeable_and_arg_.ActivityDebugTag();
   }
 
-  std::string DebugString() {
-    return absl::StrFormat("Waker{%p, %d}", wakeable_and_arg_.wakeable,
-                           wakeable_and_arg_.wakeup_mask);
-  }
-
   // This is for tests to assert that a waker is occupied or not.
   bool is_unwakeable() const {
     return wakeable_and_arg_.wakeable == promise_detail::unwakeable();
@@ -203,7 +197,7 @@ class Activity : public Orphanable {
   // - assert that there is a current activity (and catch bugs if there's not)
   // - indicate to thread safety analysis that the current activity is indeed
   //   locked
-  // - back up that assertion with a runtime check in debug builds (it's
+  // - back up that assertation with a runtime check in debug builds (it's
   //   prohibitively expensive in non-debug builds)
   static Activity* current() { return g_current_activity_; }
 
@@ -288,19 +282,6 @@ class ContextHolder<std::unique_ptr<Context, Deleter>> {
   std::unique_ptr<Context, Deleter> value_;
 };
 
-template <typename Context>
-class ContextHolder<RefCountedPtr<Context>> {
- public:
-  using ContextType = Context;
-
-  explicit ContextHolder(RefCountedPtr<Context> value)
-      : value_(std::move(value)) {}
-  Context* GetContext() { return value_.get(); }
-
- private:
-  RefCountedPtr<Context> value_;
-};
-
 template <>
 class Context<Activity> {
  public:
@@ -308,23 +289,19 @@ class Context<Activity> {
 };
 
 template <typename HeldContext>
-using ContextTypeFromHeld = typename ContextHolder<
-    typename std::remove_reference<HeldContext>::type>::ContextType;
+using ContextTypeFromHeld = typename ContextHolder<HeldContext>::ContextType;
 
 template <typename... Contexts>
-class ActivityContexts
-    : public ContextHolder<typename std::remove_reference<Contexts>::type>... {
+class ActivityContexts : public ContextHolder<Contexts>... {
  public:
   explicit ActivityContexts(Contexts&&... contexts)
-      : ContextHolder<typename std::remove_reference<Contexts>::type>(
-            std::forward<Contexts>(contexts))... {}
+      : ContextHolder<Contexts>(std::forward<Contexts>(contexts))... {}
 
   class ScopedContext : public Context<ContextTypeFromHeld<Contexts>>... {
    public:
     explicit ScopedContext(ActivityContexts* contexts)
         : Context<ContextTypeFromHeld<Contexts>>(
-              static_cast<ContextHolder<
-                  typename std::remove_reference<Contexts>::type>*>(contexts)
+              static_cast<ContextHolder<Contexts>*>(contexts)
                   ->GetContext())... {
       // Silence `unused-but-set-parameter` in case of Contexts = {}
       (void)contexts;
@@ -366,8 +343,8 @@ class FreestandingActivity : public Activity, private Wakeable {
   // If more than one action is received during a run, we use max() to resolve
   // which one to report (so Cancel overrides Wakeup).
   enum class ActionDuringRun : uint8_t {
-    kNone,    // No action occurred during run.
-    kWakeup,  // A wakeup occurred during run.
+    kNone,    // No action occured during run.
+    kWakeup,  // A wakeup occured during run.
     kCancel,  // Cancel was called during run.
   };
 
@@ -387,7 +364,7 @@ class FreestandingActivity : public Activity, private Wakeable {
   // completed.
   void WakeupComplete() { Unref(); }
 
-  // Set the action that occurred during this run.
+  // Set the action that occured during this run.
   // We use max to combine actions so that cancellation overrides wakeups.
   void SetActionDuringRun(ActionDuringRun action)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
@@ -490,11 +467,11 @@ class PromiseActivity final
     // We shouldn't destruct without calling Cancel() first, and that must get
     // us to be done_, so we assume that and have no logic to destruct the
     // promise here.
-    CHECK(done_);
+    GPR_ASSERT(done_);
   }
 
   void RunScheduledWakeup() {
-    CHECK(wakeup_scheduled_.exchange(false, std::memory_order_acq_rel));
+    GPR_ASSERT(wakeup_scheduled_.exchange(false, std::memory_order_acq_rel));
     Step();
     WakeupComplete();
   }
@@ -543,8 +520,6 @@ class PromiseActivity final
   }
 
   void WakeupAsync(WakeupMask) final {
-    GRPC_LATENT_SEE_INNER_SCOPE("PromiseActivity::WakeupAsync");
-    wakeup_flow_.Begin(GRPC_LATENT_SEE_METADATA("Activity::Wakeup"));
     if (!wakeup_scheduled_.exchange(true, std::memory_order_acq_rel)) {
       // Can't safely run, so ask to run later.
       this->ScheduleWakeup();
@@ -560,7 +535,7 @@ class PromiseActivity final
   // Notification that we're no longer executing - it's ok to destruct the
   // promise.
   void MarkDone() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu()) {
-    CHECK(!std::exchange(done_, true));
+    GPR_ASSERT(!std::exchange(done_, true));
     ScopedContext contexts(this);
     Destruct(&promise_holder_.promise);
   }
@@ -568,8 +543,6 @@ class PromiseActivity final
   // In response to Wakeup, run the Promise state machine again until it
   // settles. Then check for completion, and if we have completed, call on_done.
   void Step() ABSL_LOCKS_EXCLUDED(mu()) {
-    GRPC_LATENT_SEE_PARENT_SCOPE("PromiseActivity::Step");
-    wakeup_flow_.End();
     // Poll the promise until things settle out under a lock.
     mu()->Lock();
     if (done_) {
@@ -607,10 +580,10 @@ class PromiseActivity final
   // Until there are no wakeups from within and the promise is incomplete:
   // poll the promise.
   absl::optional<ResultType> StepLoop() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu()) {
-    CHECK(is_current());
+    GPR_ASSERT(is_current());
     while (true) {
       // Run the promise.
-      CHECK(!done_);
+      GPR_ASSERT(!done_);
       auto r = promise_holder_.promise();
       if (auto* status = r.value_if_ready()) {
         // If complete, destroy the promise, flag done, and exit this loop.
@@ -646,7 +619,6 @@ class PromiseActivity final
     GPR_NO_UNIQUE_ADDRESS Promise promise;
   };
   GPR_NO_UNIQUE_ADDRESS PromiseHolder promise_holder_ ABSL_GUARDED_BY(mu());
-  GPR_NO_UNIQUE_ADDRESS latent_see::Flow wakeup_flow_;
 };
 
 }  // namespace promise_detail
@@ -666,11 +638,7 @@ ActivityPtr MakeActivity(Factory promise_factory,
 }
 
 inline Pending IntraActivityWaiter::pending() {
-  const auto new_wakeups = GetContext<Activity>()->CurrentParticipant();
-  GRPC_TRACE_LOG(promise_primitives, INFO)
-      << "IntraActivityWaiter::pending: "
-      << GRPC_DUMP_ARGS(this, new_wakeups, wakeups_);
-  wakeups_ |= new_wakeups;
+  wakeups_ |= GetContext<Activity>()->CurrentParticipant();
   return Pending();
 }
 

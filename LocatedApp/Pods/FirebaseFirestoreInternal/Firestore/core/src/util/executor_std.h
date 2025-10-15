@@ -19,12 +19,12 @@
 
 #include <algorithm>
 #include <atomic>
-#include <condition_variable>
+#include <condition_variable>  // NOLINT(build/c++11)
 #include <deque>
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <string>
-#include <thread>
+#include <thread>  // NOLINT(build/c++11)
 #include <utility>
 #include <vector>
 

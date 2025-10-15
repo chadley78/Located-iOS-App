@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "src/core/lib/event_engine/posix_engine/internal_errqueue.h"
-
 #include <grpc/support/port_platform.h>
 
-#include "absl/log/log.h"
+#include "src/core/lib/event_engine/posix_engine/internal_errqueue.h"
+
+#include <grpc/support/log.h>
+
 #include "src/core/lib/iomgr/port.h"
 
 #ifdef GRPC_POSIX_SOCKET_TCP
@@ -29,7 +30,7 @@
 
 #include <cstddef>
 
-#include "src/core/util/strerror.h"
+#include "src/core/lib/gprpp/strerror.h"
 
 namespace grpc_event_engine {
 namespace experimental {
@@ -49,7 +50,7 @@ bool KernelSupportsErrqueue() {
     // least 4.0.0
     struct utsname buffer;
     if (uname(&buffer) != 0) {
-      LOG(ERROR) << "uname: " << grpc_core::StrError(errno);
+      gpr_log(GPR_ERROR, "uname: %s", grpc_core::StrError(errno).c_str());
       return false;
     }
     char* release = buffer.release;
@@ -60,7 +61,7 @@ bool KernelSupportsErrqueue() {
     if (strtol(release, nullptr, 10) >= 4) {
       return true;
     } else {
-      VLOG(2) << "ERRQUEUE support not enabled";
+      gpr_log(GPR_DEBUG, "ERRQUEUE support not enabled");
     }
 #endif  // GRPC_LINUX_ERRQUEUE
     return false;

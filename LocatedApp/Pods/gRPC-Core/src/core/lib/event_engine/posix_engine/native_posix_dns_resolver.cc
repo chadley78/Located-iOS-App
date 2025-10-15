@@ -32,9 +32,10 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+
 #include "src/core/lib/event_engine/posix_engine/native_posix_dns_resolver.h"
-#include "src/core/util/host_port.h"
-#include "src/core/util/useful.h"
+#include "src/core/lib/gpr/useful.h"
+#include "src/core/lib/gprpp/host_port.h"
 
 namespace grpc_event_engine {
 namespace experimental {
@@ -49,7 +50,7 @@ LookupHostnameBlocking(absl::string_view name, absl::string_view default_port) {
   // parse name, splitting it into host and port parts
   grpc_core::SplitHostPort(name, &host, &port);
   if (host.empty()) {
-    return absl::InvalidArgumentError(absl::StrCat("Unparsable name: ", name));
+    return absl::InvalidArgumentError(absl::StrCat("Unparseable name: ", name));
   }
   if (port.empty()) {
     if (default_port.empty()) {

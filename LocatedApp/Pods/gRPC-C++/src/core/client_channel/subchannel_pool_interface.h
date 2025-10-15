@@ -24,19 +24,22 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/debug/trace.h"
+#include "src/core/lib/gpr/useful.h"
+#include "src/core/lib/gprpp/ref_counted.h"
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/iomgr/resolved_address.h"
-#include "src/core/util/ref_counted.h"
-#include "src/core/util/ref_counted_ptr.h"
-#include "src/core/util/useful.h"
 
 namespace grpc_core {
 
 class Subchannel;
 
+extern TraceFlag grpc_subchannel_pool_trace;
+
 // A key that can uniquely identify a subchannel.
-class SubchannelKey final {
+class SubchannelKey {
  public:
   SubchannelKey(const grpc_resolved_address& address, const ChannelArgs& args);
 
@@ -65,7 +68,7 @@ class SubchannelKey final {
 class SubchannelPoolInterface : public RefCounted<SubchannelPoolInterface> {
  public:
   SubchannelPoolInterface()
-      : RefCounted(GRPC_TRACE_FLAG_ENABLED(subchannel_pool)
+      : RefCounted(GRPC_TRACE_FLAG_ENABLED(grpc_subchannel_pool_trace)
                        ? "SubchannelPoolInterface"
                        : nullptr) {}
   ~SubchannelPoolInterface() override {}

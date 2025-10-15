@@ -16,19 +16,21 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/tsi/local_transport_security.h"
 
-#include <grpc/support/alloc.h>
-#include <grpc/support/port_platform.h>
-#include <grpc/support/string_util.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "absl/log/log.h"
+#include <grpc/support/alloc.h>
+#include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
+
+#include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/tsi/transport_security_grpc.h"
-#include "src/core/util/crash.h"
 
 namespace {
 
@@ -67,7 +69,7 @@ tsi_result handshaker_result_get_unused_bytes(const tsi_handshaker_result* self,
                                               const unsigned char** bytes,
                                               size_t* bytes_size) {
   if (self == nullptr || bytes == nullptr || bytes_size == nullptr) {
-    LOG(ERROR) << "Invalid arguments to get_unused_bytes()";
+    gpr_log(GPR_ERROR, "Invalid arguments to get_unused_bytes()");
     return TSI_INVALID_ARGUMENT;
   }
   auto* result = reinterpret_cast<local_tsi_handshaker_result*>(
@@ -100,7 +102,7 @@ tsi_result create_handshaker_result(const unsigned char* received_bytes,
                                     size_t received_bytes_size,
                                     tsi_handshaker_result** self) {
   if (self == nullptr) {
-    LOG(ERROR) << "Invalid arguments to create_handshaker_result()";
+    gpr_log(GPR_ERROR, "Invalid arguments to create_handshaker_result()");
     return TSI_INVALID_ARGUMENT;
   }
   local_tsi_handshaker_result* result =
@@ -127,7 +129,7 @@ tsi_result handshaker_next(tsi_handshaker* self,
                            tsi_handshaker_on_next_done_cb /*cb*/,
                            void* /*user_data*/, std::string* error) {
   if (self == nullptr) {
-    LOG(ERROR) << "Invalid arguments to handshaker_next()";
+    gpr_log(GPR_ERROR, "Invalid arguments to handshaker_next()");
     if (error != nullptr) *error = "invalid argument";
     return TSI_INVALID_ARGUMENT;
   }
@@ -163,7 +165,7 @@ const tsi_handshaker_vtable handshaker_vtable = {
 
 tsi_result tsi_local_handshaker_create(tsi_handshaker** self) {
   if (self == nullptr) {
-    LOG(ERROR) << "Invalid arguments to local_tsi_handshaker_create()";
+    gpr_log(GPR_ERROR, "Invalid arguments to local_tsi_handshaker_create()");
     return TSI_INVALID_ARGUMENT;
   }
   local_tsi_handshaker* handshaker = grpc_core::Zalloc<local_tsi_handshaker>();

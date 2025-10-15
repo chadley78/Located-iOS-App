@@ -23,7 +23,6 @@
 
 #include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/nanopb/message.h"
-#include "Firestore/core/src/nanopb/nanopb_util.h"
 #include "absl/types/optional.h"
 
 namespace firebase {
@@ -37,25 +36,6 @@ namespace model {
 
 class DocumentKey;
 class DatabaseId;
-
-/** The smallest reference value. */
-extern pb_bytes_array_s* kMinimumReferenceValue;
-
-/** The field type of a special object type. */
-extern const char* kRawTypeValueFieldKey;
-extern pb_bytes_array_s* kTypeValueFieldKey;
-
-/** The field value of a maximum proto value. */
-extern const char* kRawMaxValueFieldValue;
-extern pb_bytes_array_s* kMaxValueFieldValue;
-
-/** The type of a VectorValue proto. */
-extern const char* kRawVectorTypeFieldValue;
-extern pb_bytes_array_s* kVectorTypeFieldValue;
-
-/** The  value key of a VectorValue proto. */
-extern const char* kRawVectorValueFieldKey;
-extern pb_bytes_array_s* kVectorValueFieldKey;
 
 /**
  * The order of types in Firestore. This order is based on the backend's
@@ -72,9 +52,8 @@ enum class TypeOrder {
   kReference = 7,
   kGeoPoint = 8,
   kArray = 9,
-  kVector = 10,
-  kMap = 11,
-  kMaxValue = 12
+  kMap = 10,
+  kMaxValue = 11
 };
 
 /** Returns the backend's type order of the given Value type. */
@@ -115,7 +94,7 @@ std::string CanonicalId(const google_firestore_v1_Value& value);
  * The returned value might point to heap allocated memory that is owned by
  * this function. To take ownership of this memory, call `DeepClone`.
  */
-google_firestore_v1_Value GetLowerBound(const google_firestore_v1_Value& value);
+google_firestore_v1_Value GetLowerBound(pb_size_t value_tag);
 
 /**
  * Returns the largest value for the given value type (exclusive).
@@ -123,7 +102,7 @@ google_firestore_v1_Value GetLowerBound(const google_firestore_v1_Value& value);
  * The returned value might point to heap allocated memory that is owned by
  * this function. To take ownership of this memory, call `DeepClone`.
  */
-google_firestore_v1_Value GetUpperBound(const google_firestore_v1_Value& value);
+google_firestore_v1_Value GetUpperBound(pb_size_t value_tag);
 
 /**
  * Generates the canonical ID for the provided array value (as used in Target
@@ -177,22 +156,6 @@ google_firestore_v1_Value MaxValue();
 bool IsMaxValue(const google_firestore_v1_Value& value);
 
 /**
- * Returns `true` if `value` represents a VectorValue..
- */
-bool IsVectorValue(const google_firestore_v1_Value& value);
-
-/**
- * Returns the index of the specified key (`kRawTypeValueFieldKey`) in the
- * map (`mapValue`). `kTypeValueFieldKey` is an alternative representation
- * of the key specified in `kRawTypeValueFieldKey`.
- * If the key is not found, then `absl::nullopt` is returned.
- */
-absl::optional<pb_size_t> IndexOfKey(
-    const google_firestore_v1_MapValue& mapValue,
-    const char* kRawTypeValueFieldKey,
-    pb_bytes_array_s* kTypeValueFieldKey);
-
-/**
  * Returns `NaN` in its Protobuf representation.
  *
  * The returned value might point to heap allocated memory that is owned by
@@ -202,26 +165,6 @@ google_firestore_v1_Value NaNValue();
 
 /** Returns `true` if `value` is `NaN` in its Protobuf representation. */
 bool IsNaNValue(const google_firestore_v1_Value& value);
-
-google_firestore_v1_Value MinBoolean();
-
-google_firestore_v1_Value MinNumber();
-
-google_firestore_v1_Value MinTimestamp();
-
-google_firestore_v1_Value MinString();
-
-google_firestore_v1_Value MinBytes();
-
-google_firestore_v1_Value MinReference();
-
-google_firestore_v1_Value MinGeoPoint();
-
-google_firestore_v1_Value MinArray();
-
-google_firestore_v1_Value MinVector();
-
-google_firestore_v1_Value MinMap();
 
 /**
  * Returns a Protobuf reference value representing the given location.

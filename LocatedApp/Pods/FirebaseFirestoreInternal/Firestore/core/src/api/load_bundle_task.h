@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 #include <utility>
 #include <vector>

@@ -19,7 +19,7 @@
 
 #include <memory>
 #include <string>
-#include <thread>
+#include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
 #include "Firestore/core/src/core/query.h"

@@ -16,7 +16,7 @@
 
 #include "Firestore/core/src/util/task.h"
 
-#include <chrono>
+#include <chrono>  // NOLINT(build/c++11)
 #include <cstdint>
 #include <utility>
 

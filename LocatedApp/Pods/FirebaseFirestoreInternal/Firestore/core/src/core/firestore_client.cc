@@ -17,7 +17,7 @@
 #include "Firestore/core/src/core/firestore_client.h"
 
 #include <functional>
-#include <future>
+#include <future>  // NOLINT(build/c++11)
 #include <memory>
 #include <string>
 #include <utility>

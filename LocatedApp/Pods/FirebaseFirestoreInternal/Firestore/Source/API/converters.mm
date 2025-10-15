@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#import <FirebaseCore/FIRTimestamp.h>
+#include "Firestore/Source/API/converters.h"
 
 #include <utility>
 
-#include "Firestore/Source/API/converters.h"
-
 #import "FIRGeoPoint.h"
+#import "FIRTimestamp.h"
 
 #include "Firestore/Source/API/FIRDocumentReference+Internal.h"
 #include "Firestore/core/include/firebase/firestore/geo_point.h"

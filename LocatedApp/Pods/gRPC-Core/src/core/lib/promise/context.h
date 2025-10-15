@@ -19,9 +19,11 @@
 
 #include <utility>
 
-#include "absl/log/check.h"
 #include "absl/meta/type_traits.h"
-#include "src/core/util/down_cast.h"
+
+#include <grpc/support/log.h>
+
+#include "src/core/lib/gprpp/down_cast.h"
 
 namespace grpc_core {
 
@@ -34,7 +36,7 @@ struct ContextType;
 
 // Some contexts can be subclassed. If the subclass is set as that context
 // then GetContext<Base>() will return the base, and GetContext<Derived>() will
-// DownCast to the derived type.
+// down_cast to the derived type.
 // Specializations of this type should be created for each derived type, and
 // should have a single using statement Base pointing to the derived base class.
 // Example:
@@ -60,7 +62,7 @@ class ThreadLocalContext : public ContextType<T> {
   ThreadLocalContext(const ThreadLocalContext&) = delete;
   ThreadLocalContext& operator=(const ThreadLocalContext&) = delete;
 
-  GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION static T* get() { return current_; }
+  static T* get() { return current_; }
 
  private:
   T* const old_;
@@ -81,8 +83,8 @@ class Context<T, absl::void_t<typename ContextSubclass<T>::Base>>
     : public Context<typename ContextSubclass<T>::Base> {
  public:
   using Context<typename ContextSubclass<T>::Base>::Context;
-  GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION static T* get() {
-    return DownCast<T*>(Context<typename ContextSubclass<T>::Base>::get());
+  static T* get() {
+    return down_cast<T*>(Context<typename ContextSubclass<T>::Base>::get());
   }
 };
 
@@ -105,27 +107,16 @@ class WithContext {
 
 // Return true if a context of type T is currently active.
 template <typename T>
-GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION inline bool HasContext() {
+bool HasContext() {
   return promise_detail::Context<T>::get() != nullptr;
 }
 
 // Retrieve the current value of a context, or abort if the value is unset.
 template <typename T>
-GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION inline T* GetContext() {
+T* GetContext() {
   auto* p = promise_detail::Context<T>::get();
-  DCHECK_NE(p, nullptr);
+  GPR_ASSERT(p != nullptr);
   return p;
-}
-
-// Retrieve the current value of a context, or nullptr if the value is unset.
-template <typename T>
-GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION inline T* MaybeGetContext() {
-  return promise_detail::Context<T>::get();
-}
-
-template <typename T>
-GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION inline void SetContext(T* p) {
-  promise_detail::Context<T>::set(p);
 }
 
 // Given a promise and a context, return a promise that has that context set.

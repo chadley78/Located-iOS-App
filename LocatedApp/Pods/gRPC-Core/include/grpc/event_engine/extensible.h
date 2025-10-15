@@ -60,9 +60,6 @@ class Extensible {
   /// if (endpoint != nullptr) endpoint->Process();
   ///
   virtual void* QueryExtension(absl::string_view /*id*/) { return nullptr; }
-
- protected:
-  ~Extensible() = default;
 };
 
 }  // namespace experimental

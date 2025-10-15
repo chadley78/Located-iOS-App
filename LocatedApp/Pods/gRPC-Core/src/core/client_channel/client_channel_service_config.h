@@ -18,6 +18,7 @@
 #define GRPC_SRC_CORE_CLIENT_CHANNEL_CLIENT_CHANNEL_SERVICE_CONFIG_H
 
 #include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <memory>
@@ -25,21 +26,22 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-#include "src/core/config/core_configuration.h"
+
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/load_balancing/lb_policy.h"
+#include "src/core/lib/config/core_configuration.h"
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "src/core/lib/gprpp/time.h"
+#include "src/core/lib/gprpp/validation_errors.h"
+#include "src/core/lib/json/json.h"
+#include "src/core/lib/json/json_args.h"
+#include "src/core/lib/json/json_object_loader.h"
 #include "src/core/service_config/service_config_parser.h"
-#include "src/core/util/json/json.h"
-#include "src/core/util/json/json_args.h"
-#include "src/core/util/json/json_object_loader.h"
-#include "src/core/util/ref_counted_ptr.h"
-#include "src/core/util/time.h"
-#include "src/core/util/validation_errors.h"
+#include "src/core/load_balancing/lb_policy.h"
 
 namespace grpc_core {
 namespace internal {
 
-class ClientChannelGlobalParsedConfig final
+class ClientChannelGlobalParsedConfig
     : public ServiceConfigParser::ParsedConfig {
  public:
   RefCountedPtr<LoadBalancingPolicy::Config> parsed_lb_config() const {
@@ -70,7 +72,7 @@ class ClientChannelGlobalParsedConfig final
   HealthCheckConfig health_check_config_;
 };
 
-class ClientChannelMethodParsedConfig final
+class ClientChannelMethodParsedConfig
     : public ServiceConfigParser::ParsedConfig {
  public:
   Duration timeout() const { return timeout_; }
@@ -84,8 +86,7 @@ class ClientChannelMethodParsedConfig final
   absl::optional<bool> wait_for_ready_;
 };
 
-class ClientChannelServiceConfigParser final
-    : public ServiceConfigParser::Parser {
+class ClientChannelServiceConfigParser : public ServiceConfigParser::Parser {
  public:
   absl::string_view name() const override { return parser_name(); }
 

@@ -21,26 +21,28 @@
 #include <string>
 #include <utility>
 
-#include "absl/log/log.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "src/core/config/core_configuration.h"
+
+#include <grpc/support/log.h>
+
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/config/core_configuration.h"
+#include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/iomgr/port.h"
 #include "src/core/lib/iomgr/resolved_address.h"
 #include "src/core/resolver/endpoint_addresses.h"
 #include "src/core/resolver/resolver.h"
 #include "src/core/resolver/resolver_factory.h"
-#include "src/core/util/orphanable.h"
-#include "src/core/util/uri.h"
+#include "src/core/lib/uri/uri_parser.h"
 
 namespace grpc_core {
 
 namespace {
 
-class SockaddrResolver final : public Resolver {
+class SockaddrResolver : public Resolver {
  public:
   SockaddrResolver(EndpointAddressesList addresses, ResolverArgs args);
 
@@ -75,8 +77,8 @@ bool ParseUri(const URI& uri,
               bool parse(const URI& uri, grpc_resolved_address* dst),
               EndpointAddressesList* addresses) {
   if (!uri.authority().empty()) {
-    LOG(ERROR) << "authority-based URIs not supported by the " << uri.scheme()
-               << " scheme";
+    gpr_log(GPR_ERROR, "authority-based URIs not supported by the %s scheme",
+            uri.scheme().c_str());
     return false;
   }
   // Construct addresses.
@@ -108,7 +110,7 @@ OrphanablePtr<Resolver> CreateSockaddrResolver(
                                           std::move(args));
 }
 
-class IPv4ResolverFactory final : public ResolverFactory {
+class IPv4ResolverFactory : public ResolverFactory {
  public:
   absl::string_view scheme() const override { return "ipv4"; }
 
@@ -121,7 +123,7 @@ class IPv4ResolverFactory final : public ResolverFactory {
   }
 };
 
-class IPv6ResolverFactory final : public ResolverFactory {
+class IPv6ResolverFactory : public ResolverFactory {
  public:
   absl::string_view scheme() const override { return "ipv6"; }
 
@@ -135,7 +137,7 @@ class IPv6ResolverFactory final : public ResolverFactory {
 };
 
 #ifdef GRPC_HAVE_UNIX_SOCKET
-class UnixResolverFactory final : public ResolverFactory {
+class UnixResolverFactory : public ResolverFactory {
  public:
   absl::string_view scheme() const override { return "unix"; }
 
@@ -148,7 +150,7 @@ class UnixResolverFactory final : public ResolverFactory {
   }
 };
 
-class UnixAbstractResolverFactory final : public ResolverFactory {
+class UnixAbstractResolverFactory : public ResolverFactory {
  public:
   absl::string_view scheme() const override { return "unix-abstract"; }
 
@@ -163,7 +165,7 @@ class UnixAbstractResolverFactory final : public ResolverFactory {
 #endif  // GRPC_HAVE_UNIX_SOCKET
 
 #ifdef GRPC_HAVE_VSOCK
-class VSockResolverFactory final : public ResolverFactory {
+class VSockResolverFactory : public ResolverFactory {
  public:
   absl::string_view scheme() const override { return "vsock"; }
 

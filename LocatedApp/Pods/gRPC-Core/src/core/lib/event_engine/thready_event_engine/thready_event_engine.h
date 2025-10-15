@@ -15,9 +15,6 @@
 #ifndef GRPC_SRC_CORE_LIB_EVENT_ENGINE_THREADY_EVENT_ENGINE_THREADY_EVENT_ENGINE_H
 #define GRPC_SRC_CORE_LIB_EVENT_ENGINE_THREADY_EVENT_ENGINE_THREADY_EVENT_ENGINE_H
 
-#include <grpc/event_engine/endpoint_config.h>
-#include <grpc/event_engine/event_engine.h>
-#include <grpc/event_engine/memory_allocator.h>
 #include <grpc/support/port_platform.h>
 
 #include <memory>
@@ -27,6 +24,10 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+
+#include <grpc/event_engine/endpoint_config.h>
+#include <grpc/event_engine/event_engine.h>
+#include <grpc/event_engine/memory_allocator.h>
 
 namespace grpc_event_engine {
 namespace experimental {
@@ -77,9 +78,8 @@ class ThreadyEventEngine final : public EventEngine {
  private:
   class ThreadyDNSResolver final : public DNSResolver {
    public:
-    ThreadyDNSResolver(std::unique_ptr<DNSResolver> impl,
-                       std::shared_ptr<ThreadyEventEngine> engine)
-        : impl_(std::move(impl)), engine_(std::move(engine)) {}
+    explicit ThreadyDNSResolver(std::unique_ptr<DNSResolver> impl)
+        : impl_(std::move(impl)) {}
     void LookupHostname(LookupHostnameCallback on_resolve,
                         absl::string_view name,
                         absl::string_view default_port) override;
@@ -90,7 +90,7 @@ class ThreadyEventEngine final : public EventEngine {
 
    private:
     std::unique_ptr<DNSResolver> impl_;
-    std::shared_ptr<ThreadyEventEngine> engine_;
+    ThreadyEventEngine* engine_;
   };
 
   void Asynchronously(absl::AnyInvocable<void()> fn);

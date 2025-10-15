@@ -16,12 +16,10 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/channel/channel_args.h"
 
-#include <grpc/impl/channel_arg_names.h>
-#include <grpc/support/alloc.h>
-#include <grpc/support/port_platform.h>
-#include <grpc/support/string_util.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,13 +30,17 @@
 #include <string>
 #include <vector>
 
-#include "absl/log/check.h"
-#include "absl/log/log.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
-#include "src/core/util/useful.h"
+
+#include <grpc/impl/channel_arg_names.h>
+#include <grpc/support/alloc.h>
+#include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
+
+#include "src/core/lib/gpr/useful.h"
 
 namespace grpc_core {
 
@@ -262,7 +264,8 @@ absl::optional<bool> ChannelArgs::GetBool(absl::string_view name) const {
   if (v == nullptr) return absl::nullopt;
   auto i = v->GetIfInt();
   if (!i.has_value()) {
-    LOG(ERROR) << name << " ignored: it must be an integer";
+    gpr_log(GPR_ERROR, "%s ignored: it must be an integer",
+            std::string(name).c_str());
     return absl::nullopt;
   }
   switch (*i) {
@@ -271,8 +274,8 @@ absl::optional<bool> ChannelArgs::GetBool(absl::string_view name) const {
     case 1:
       return true;
     default:
-      LOG(ERROR) << name << " treated as bool but set to " << *i
-                 << " (assuming true)";
+      gpr_log(GPR_ERROR, "%s treated as bool but set to %d (assuming true)",
+              std::string(name).c_str(), *i);
       return true;
   }
 }
@@ -425,7 +428,7 @@ grpc_channel_args* grpc_channel_args_copy_and_add_and_remove(
   for (size_t i = 0; i < num_to_add; ++i) {
     dst->args[dst_idx++] = copy_arg(&to_add[i]);
   }
-  CHECK(dst_idx == dst->num_args);
+  GPR_ASSERT(dst_idx == dst->num_args);
   return dst;
 }
 
@@ -554,15 +557,17 @@ int grpc_channel_arg_get_integer(const grpc_arg* arg,
                                  const grpc_integer_options options) {
   if (arg == nullptr) return options.default_value;
   if (arg->type != GRPC_ARG_INTEGER) {
-    LOG(ERROR) << arg->key << " ignored: it must be an integer";
+    gpr_log(GPR_ERROR, "%s ignored: it must be an integer", arg->key);
     return options.default_value;
   }
   if (arg->value.integer < options.min_value) {
-    LOG(ERROR) << arg->key << " ignored: it must be >= " << options.min_value;
+    gpr_log(GPR_ERROR, "%s ignored: it must be >= %d", arg->key,
+            options.min_value);
     return options.default_value;
   }
   if (arg->value.integer > options.max_value) {
-    LOG(ERROR) << arg->key << " ignored: it must be <= " << options.max_value;
+    gpr_log(GPR_ERROR, "%s ignored: it must be <= %d", arg->key,
+            options.max_value);
     return options.default_value;
   }
   return arg->value.integer;
@@ -578,7 +583,7 @@ int grpc_channel_args_find_integer(const grpc_channel_args* args,
 char* grpc_channel_arg_get_string(const grpc_arg* arg) {
   if (arg == nullptr) return nullptr;
   if (arg->type != GRPC_ARG_STRING) {
-    LOG(ERROR) << arg->key << " ignored: it must be an string";
+    gpr_log(GPR_ERROR, "%s ignored: it must be an string", arg->key);
     return nullptr;
   }
   return arg->value.string;
@@ -593,7 +598,7 @@ char* grpc_channel_args_find_string(const grpc_channel_args* args,
 bool grpc_channel_arg_get_bool(const grpc_arg* arg, bool default_value) {
   if (arg == nullptr) return default_value;
   if (arg->type != GRPC_ARG_INTEGER) {
-    LOG(ERROR) << arg->key << " ignored: it must be an integer";
+    gpr_log(GPR_ERROR, "%s ignored: it must be an integer", arg->key);
     return default_value;
   }
   switch (arg->value.integer) {
@@ -602,8 +607,8 @@ bool grpc_channel_arg_get_bool(const grpc_arg* arg, bool default_value) {
     case 1:
       return true;
     default:
-      LOG(ERROR) << arg->key << " treated as bool but set to "
-                 << arg->value.integer << " (assuming true)";
+      gpr_log(GPR_ERROR, "%s treated as bool but set to %d (assuming true)",
+              arg->key, arg->value.integer);
       return true;
   }
 }
@@ -662,7 +667,8 @@ ChannelArgs ChannelArgsBuiltinPrecondition(const grpc_channel_args* src) {
     if (key == GRPC_ARG_PRIMARY_USER_AGENT_STRING ||
         key == GRPC_ARG_SECONDARY_USER_AGENT_STRING) {
       if (src->args[i].type != GRPC_ARG_STRING) {
-        LOG(ERROR) << "Channel argument '" << key << "' should be a string";
+        gpr_log(GPR_ERROR, "Channel argument '%s' should be a string",
+                std::string(key).c_str());
       } else {
         concatenated_values[key].push_back(src->args[i].value.string);
       }
@@ -694,7 +700,7 @@ grpc_channel_args_client_channel_creation_mutator g_mutator = nullptr;
 
 void grpc_channel_args_set_client_channel_creation_mutator(
     grpc_channel_args_client_channel_creation_mutator cb) {
-  DCHECK_EQ(g_mutator, nullptr);
+  GPR_DEBUG_ASSERT(g_mutator == nullptr);
   g_mutator = cb;
 }
 grpc_channel_args_client_channel_creation_mutator

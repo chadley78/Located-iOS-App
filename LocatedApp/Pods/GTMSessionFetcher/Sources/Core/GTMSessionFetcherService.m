@@ -18,26 +18,16 @@
 #endif
 
 #import "GTMSessionFetcher/GTMSessionFetcherService.h"
-#import "GTMSessionFetcherService+Internal.h"
-
-#include <os/lock.h>
 
 NSString *const kGTMSessionFetcherServiceSessionBecameInvalidNotification =
     @"kGTMSessionFetcherServiceSessionBecameInvalidNotification";
 NSString *const kGTMSessionFetcherServiceSessionKey = @"kGTMSessionFetcherServiceSessionKey";
 
-static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
-  static dispatch_once_t onceToken;
-  static id<GTMUserAgentProvider> standardUserAgentProvider;
-  dispatch_once(&onceToken, ^{
-    standardUserAgentProvider = [[GTMStandardUserAgentProvider alloc] initWithBundle:nil];
-  });
-  return standardUserAgentProvider;
-}
-
 #if !GTMSESSION_BUILD_COMBINED_SOURCES
 @interface GTMSessionFetcher (ServiceMethods)
-- (void)serviceRestartingFetcher;
+- (BOOL)beginFetchMayDelay:(BOOL)mayDelay
+              mayAuthorize:(BOOL)mayAuthorize
+               mayDecorate:(BOOL)mayDecorate;
 @end
 #endif  // !GTMSESSION_BUILD_COMBINED_SOURCES
 
@@ -91,13 +81,13 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
   GTMSessionFetcherSessionDelegateDispatcher *_delegateDispatcher;
 
   // Fetchers will wait on this if another fetcher is creating the shared NSURLSession.
-  os_unfair_lock _sessionCreationLock;
+  dispatch_semaphore_t _sessionCreationSemaphore;
 
   BOOL _callbackQueueIsConcurrent;
   dispatch_queue_t _callbackQueue;
   NSOperationQueue *_delegateQueue;
   NSHTTPCookieStorage *_cookieStorage;
-  id<GTMUserAgentProvider> _userAgentProvider;
+  NSString *_userAgent;
   NSTimeInterval _timeout;
 
   NSURLCredential *_credential;       // Username & password.
@@ -124,6 +114,7 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
             configuration = _configuration,
             configurationBlock = _configurationBlock,
             cookieStorage = _cookieStorage,
+            userAgent = _userAgent,
             challengeBlock = _challengeBlock,
             credential = _credential,
             proxyCredential = _proxyCredential,
@@ -137,10 +128,8 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
             metricsCollectionBlock = _metricsCollectionBlock,
             properties = _properties,
             unusedSessionTimeout = _unusedSessionTimeout,
-            userAgentProvider = _userAgentProvider,
             decoratorsPointerArray = _decoratorsPointerArray,
-            testBlock = _testBlock,
-            stopFetchingTriggersCompletionHandler = _stopFetchingTriggersCompletionHandler;
+            testBlock = _testBlock;
 // clang-format on
 
 #if GTM_BACKGROUND_TASK_FETCHING
@@ -163,15 +152,12 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
     _delegateQueue.maxConcurrentOperationCount = 1;
     _delegateQueue.name = @"com.google.GTMSessionFetcher.NSURLSessionDelegateQueue";
 
-    _sessionCreationLock = OS_UNFAIR_LOCK_INIT;
+    _sessionCreationSemaphore = dispatch_semaphore_create(1);
 
     // Starting with the SDKs for OS X 10.11/iOS 9, the service has a default useragent.
     // Apps can remove this and get the default system "CFNetwork" useragent by setting the
-    // fetcher service's userAgent or userAgentProvider properties to nil.
-    //
-    // Formatting the User-Agent string can be expensive, so create a shared cache
-    // which asynchronously calculates and caches the standard User-Agent.
-    _userAgentProvider = SharedStandardUserAgentProvider();
+    // fetcher service's userAgent property to nil.
+    _userAgent = GTMFetcherStandardUserAgentString(nil);
   }
   return self;
 }
@@ -194,7 +180,19 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
     if (!_callbackQueueIsConcurrent) return _callbackQueue;
 
     static const char *kQueueLabel = "com.google.GTMSessionFetcher.serialCallbackQueue";
-    return dispatch_queue_create_with_target(kQueueLabel, DISPATCH_QUEUE_SERIAL, _callbackQueue);
+    dispatch_queue_t queue;
+#if TARGET_OS_IOS && (__IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_10_0)
+    // All targets except iPhone < iOS 10 support dispatch_queue_create_with_target().
+    // iOS builds supporting <iOS 10 will create the queue and set the target separately,
+    // but all other builds have mininum support that includes the one-stop function.
+    queue = dispatch_queue_create(kQueueLabel, DISPATCH_QUEUE_SERIAL);
+    dispatch_set_target_queue(queue, _callbackQueue);
+#else
+    // All other targets support dispatch_queue_create_with_target()
+    queue = dispatch_queue_create_with_target(kQueueLabel, DISPATCH_QUEUE_SERIAL, _callbackQueue);
+#endif
+
+    return queue;
   }
 }
 
@@ -217,8 +215,9 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
   fetcher.retryBlock = self.retryBlock;
   fetcher.maxRetryInterval = self.maxRetryInterval;
   fetcher.minRetryInterval = self.minRetryInterval;
-  fetcher.metricsCollectionBlock = self.metricsCollectionBlock;
-  fetcher.stopFetchingTriggersCompletionHandler = self.stopFetchingTriggersCompletionHandler;
+  if (@available(iOS 10.0, *)) {
+    fetcher.metricsCollectionBlock = self.metricsCollectionBlock;
+  }
   fetcher.properties = self.properties;
   fetcher.service = self;
 
@@ -226,7 +225,10 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
   fetcher.skipBackgroundTask = self.skipBackgroundTask;
 #endif
 
-  fetcher.userAgentProvider = self.userAgentProvider;
+  NSString *userAgent = self.userAgent;
+  if (userAgent.length > 0 && [request valueForHTTPHeaderField:@"User-Agent"] == nil) {
+    [fetcher setRequestValue:userAgent forHTTPHeaderField:@"User-Agent"];
+  }
   fetcher.testBlock = self.testBlock;
 
   return fetcher;
@@ -288,40 +290,42 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
   }
 }
 
-- (NSURLSession *)sessionWithCreationBlock:
-    (NS_NOESCAPE GTMSessionFetcherSessionCreationBlock)creationBlock {
+// Returns a session for the fetcher's host, or nil.  For shared sessions, this
+// waits on a semaphore, blocking other fetchers while the caller creates the
+// session if needed.
+- (NSURLSession *)sessionForFetcherCreation {
   @synchronized(self) {
     GTMSessionMonitorSynchronized(self);
     if (!_delegateDispatcher) {
-      // This fetcher is creating a non-shared session, so skip locking.
-      return creationBlock(nil);
+      // This fetcher is creating a non-shared session, so skip the semaphore usage.
+      return nil;
     }
   }
 
-  @try {
-    NSURLSession *session;
-    // Wait if another fetcher is currently creating a session; avoid waiting inside the
-    // @synchronized block as that could deadlock.
-    os_unfair_lock_lock(&_sessionCreationLock);
-    @synchronized(self) {
-      GTMSessionMonitorSynchronized(self);
+  // Wait if another fetcher is currently creating a session; avoid waiting
+  // inside the @synchronized block, as that can deadlock.
+  dispatch_semaphore_wait(_sessionCreationSemaphore, DISPATCH_TIME_FOREVER);
 
-      // Before getting the NSURLSession for task creation, it is
-      // important to invalidate and nil out the session discard timer; otherwise
-      // the session can be invalidated between when it is returned to the
-      // fetcher, and when the fetcher attempts to create its NSURLSessionTask.
-      [_delegateDispatcher startSessionUsage];
+  @synchronized(self) {
+    GTMSessionMonitorSynchronized(self);
 
-      session = _delegateDispatcher.session;
-      if (!session) {
-        session = creationBlock(_delegateDispatcher);
-        _delegateDispatcher.session = session;
-      }
+    // Before getting the NSURLSession for task creation, it is
+    // important to invalidate and nil out the session discard timer; otherwise
+    // the session can be invalidated between when it is returned to the
+    // fetcher, and when the fetcher attempts to create its NSURLSessionTask.
+    [_delegateDispatcher startSessionUsage];
+
+    NSURLSession *session = _delegateDispatcher.session;
+    if (session) {
+      // The calling fetcher will receive a preexisting session, so
+      // we can allow other fetchers to create a session.
+      dispatch_semaphore_signal(_sessionCreationSemaphore);
+    } else {
+      // No existing session was obtained, so the calling fetcher will create the session;
+      // it *must* invoke fetcherDidCreateSession: to signal the dispatcher's semaphore after
+      // the session has been created (or fails to be created) to avoid a hang.
     }
     return session;
-  } @finally {
-    // Ensure the lock is always released, even if creationBlock throws.
-    os_unfair_lock_unlock(&_sessionCreationLock);
   }
 }
 
@@ -336,7 +340,6 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 #pragma mark Queue Management
 
 - (void)addRunningFetcher:(GTMSessionFetcher *)fetcher forHost:(NSString *)host {
-  GTMSessionCheckSynchronized(self);
   // Add to the array of running fetchers for this host, creating the array if needed.
   NSMutableArray *runningForHost = [_runningFetchersByHost objectForKey:host];
   if (runningForHost == nil) {
@@ -348,7 +351,6 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 }
 
 - (void)addDelayedFetcher:(GTMSessionFetcher *)fetcher forHost:(NSString *)host {
-  GTMSessionCheckSynchronized(self);
   // Add to the array of delayed fetchers for this host, creating the array if needed.
   NSMutableArray *delayedForHost = [_delayedFetchersByHost objectForKey:host];
   if (delayedForHost == nil) {
@@ -421,6 +423,10 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
   return shouldBeginResult;
 }
 
+- (void)startFetcher:(GTMSessionFetcher *)fetcher {
+  [fetcher beginFetchMayDelay:NO mayAuthorize:YES mayDecorate:YES];
+}
+
 // Internal utility. Returns a fetcher's delegate if it's a dispatcher, or nil if the fetcher
 // is its own delegate (possibly via proxy) and has no dispatcher.
 - (GTMSessionFetcherSessionDelegateDispatcher *)delegateDispatcherForFetcher:
@@ -443,6 +449,26 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
     }
   }
   return nil;
+}
+
+- (void)fetcherDidCreateSession:(GTMSessionFetcher *)fetcher {
+  if (fetcher.canShareSession) {
+    NSURLSession *fetcherSession = fetcher.session;
+    GTMSESSION_ASSERT_DEBUG(fetcherSession != nil, @"Fetcher missing its session: %@", fetcher);
+
+    GTMSessionFetcherSessionDelegateDispatcher *delegateDispatcher =
+        [self delegateDispatcherForFetcher:fetcher];
+    if (delegateDispatcher) {
+      GTMSESSION_ASSERT_DEBUG(delegateDispatcher.session == nil,
+                              @"Fetcher made an extra session: %@", fetcher);
+
+      // Save this fetcher's session.
+      delegateDispatcher.session = fetcherSession;
+
+      // Allow other fetchers to request this session now.
+      dispatch_semaphore_signal(_sessionCreationSemaphore);
+    }
+  }
 }
 
 - (void)fetcherDidBeginFetching:(GTMSessionFetcher *)fetcher {
@@ -479,10 +505,6 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 }
 
 - (void)fetcherDidStop:(GTMSessionFetcher *)fetcher {
-  [self fetcherDidStop:fetcher callbacksPending:false];
-}
-
-- (void)fetcherDidStop:(GTMSessionFetcher *)fetcher callbacksPending:(BOOL)callbacksPending {
   // Entry point from the fetcher
   NSString *host = fetcher.serviceHost;
   if (!host) {
@@ -492,11 +514,9 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 
   // This removeFetcher: invocation is a fallback; typically, fetchers are removed from the task
   // map when the task completes.
-  if (!callbacksPending) {
-    GTMSessionFetcherSessionDelegateDispatcher *delegateDispatcher =
-        [self delegateDispatcherForFetcher:fetcher];
-    [delegateDispatcher removeFetcher:fetcher];
-  }
+  GTMSessionFetcherSessionDelegateDispatcher *delegateDispatcher =
+      [self delegateDispatcherForFetcher:fetcher];
+  [delegateDispatcher removeFetcher:fetcher];
 
   NSMutableArray *fetchersToStart;
 
@@ -550,7 +570,7 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 
   // Start fetchers outside of the synchronized block to avoid a deadlock.
   for (GTMSessionFetcher *nextFetcher in fetchersToStart) {
-    [nextFetcher serviceRestartingFetcher];
+    [self startFetcher:nextFetcher];
   }
 
   // The fetcher is no longer in the running or the delayed array,
@@ -653,8 +673,6 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
     [_runningFetchersByHost removeAllObjects];
   }
 
-  // Stop the delayed fetchers first so a delayed one doesn't get started when canceling
-  // a running one.
   for (NSArray *delayedForHost in delayedFetchersByHost) {
     for (GTMSessionFetcher *fetcher in delayedForHost) {
       [self stopFetcher:fetcher];
@@ -706,14 +724,14 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 
 - (void)resetSession {
   GTMSessionCheckNotSynchronized(self);
-  os_unfair_lock_lock(&_sessionCreationLock);
+  dispatch_semaphore_wait(_sessionCreationSemaphore, DISPATCH_TIME_FOREVER);
 
   @synchronized(self) {
     GTMSessionMonitorSynchronized(self);
     [self resetSessionInternal];
   }
 
-  os_unfair_lock_unlock(&_sessionCreationLock);
+  dispatch_semaphore_signal(_sessionCreationSemaphore);
 }
 
 - (void)resetSessionInternal {
@@ -731,7 +749,7 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 - (void)resetSessionForDispatcherDiscardTimer:(NSTimer *)timer {
   GTMSessionCheckNotSynchronized(self);
 
-  os_unfair_lock_lock(&_sessionCreationLock);
+  dispatch_semaphore_wait(_sessionCreationSemaphore, DISPATCH_TIME_FOREVER);
   @synchronized(self) {
     GTMSessionMonitorSynchronized(self);
 
@@ -749,7 +767,7 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
     }
   }
 
-  os_unfair_lock_unlock(&_sessionCreationLock);
+  dispatch_semaphore_signal(_sessionCreationSemaphore);
 }
 
 - (NSTimeInterval)unusedSessionTimeout {
@@ -903,36 +921,6 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 
     _delegateQueue = queue ?: [NSOperationQueue mainQueue];
   }  // @synchronized(self)
-}
-
-- (nullable NSString *)userAgent {
-  @synchronized(self) {
-    return _userAgentProvider.userAgent;
-  }
-}
-
-- (void)setUserAgent:(nullable NSString *)userAgent {
-  @synchronized(self) {
-    if (userAgent) {
-      _userAgentProvider = [[GTMUserAgentStringProvider alloc]
-          initWithUserAgentString:(NSString *_Nonnull)userAgent];
-    } else {
-      // Support setUserAgent:nil to disable `GTMStandardUserAgentProvider`.
-      _userAgentProvider = nil;
-    }
-  }
-}
-
-- (nullable id<GTMUserAgentProvider>)userAgentProvider {
-  @synchronized(self) {
-    return _userAgentProvider;
-  }
-}
-
-- (void)setUserAgentProvider:(nullable id<GTMUserAgentProvider>)userAgentProvider {
-  @synchronized(self) {
-    _userAgentProvider = userAgentProvider;
-  }
 }
 
 - (NSOperationQueue *)delegateQueue {
@@ -1329,7 +1317,8 @@ static id<GTMUserAgentProvider> SharedStandardUserAgentProvider(void) {
 
 - (void)URLSession:(NSURLSession *)session
                           task:(NSURLSessionTask *)task
-    didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics {
+    didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics
+    API_AVAILABLE(ios(10.0), macosx(10.12), tvos(10.0), watchos(6.0)) {
   id<NSURLSessionTaskDelegate> fetcher = [self fetcherForTask:task];
   [fetcher URLSession:session task:task didFinishCollectingMetrics:metrics];
 }

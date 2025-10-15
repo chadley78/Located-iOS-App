@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-@_exported import class FirebaseCore.Timestamp
+#if SWIFT_PACKAGE
+  @_exported import FirebaseFirestoreInternalWrapper
+#else
+  @_exported import FirebaseFirestoreInternal
+#endif // SWIFT_PACKAGE
 
 /// A type that can initialize itself from a Firestore Timestamp, which makes
 /// it suitable for use with the `@ServerTimestamp` property wrapper.
@@ -105,5 +109,3 @@ public struct ServerTimestamp<Value>: Codable
 extension ServerTimestamp: Equatable where Value: Equatable {}
 
 extension ServerTimestamp: Hashable where Value: Hashable {}
-
-extension ServerTimestamp: Sendable where Value: Sendable {}

@@ -143,12 +143,12 @@ public struct FirestoreQuery<T>: DynamicProperty {
   /// The results of the query.
   ///
   /// This property returns an empty collection when there are no matching results.
-  @MainActor @preconcurrency public var wrappedValue: T {
+  public var wrappedValue: T {
     firestoreQueryObservable.items
   }
 
   /// A binding to the request's mutable configuration properties
-  @MainActor @preconcurrency public var projectedValue: Configuration {
+  public var projectedValue: Configuration {
     get {
       firestoreQueryObservable.configuration
     }

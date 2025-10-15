@@ -3,19 +3,21 @@
  *     udpa/annotations/status.proto
  *
  * Do not edit -- your changes will be discarded when the file is
- * regenerated.
- * NO CHECKED-IN PROTOBUF GENCODE */
+ * regenerated. */
 
-#ifndef UDPA_ANNOTATIONS_STATUS_PROTO_UPB_H__UPBDEFS_H_
-#define UDPA_ANNOTATIONS_STATUS_PROTO_UPB_H__UPBDEFS_H_
+#ifndef UDPA_ANNOTATIONS_STATUS_PROTO_UPBDEFS_H_
+#define UDPA_ANNOTATIONS_STATUS_PROTO_UPBDEFS_H_
 
 #include "upb/reflection/def.h"
 #include "upb/reflection/internal/def_pool.h"
-
-#include "upb/port/def.inc" // Must be last.
+#include "upb/port/def.inc"
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "upb/reflection/def.h"
+
+#include "upb/port/def.inc"
 
 extern _upb_DefPool_Init udpa_annotations_status_proto_upbdefinit;
 
@@ -30,4 +32,4 @@ UPB_INLINE const upb_MessageDef *udpa_annotations_StatusAnnotation_getmsgdef(upb
 
 #include "upb/port/undef.inc"
 
-#endif  /* UDPA_ANNOTATIONS_STATUS_PROTO_UPB_H__UPBDEFS_H_ */
+#endif  /* UDPA_ANNOTATIONS_STATUS_PROTO_UPBDEFS_H_ */

@@ -18,7 +18,7 @@
 #define FIRESTORE_CORE_SRC_API_FIRESTORE_H_
 
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
 #include "Firestore/core/src/api/api_fwd.h"

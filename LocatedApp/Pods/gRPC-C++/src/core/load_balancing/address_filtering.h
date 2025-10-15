@@ -26,9 +26,10 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+
+#include "src/core/lib/gprpp/ref_counted.h"
+#include "src/core/lib/gprpp/ref_counted_string.h"
 #include "src/core/resolver/endpoint_addresses.h"
-#include "src/core/util/ref_counted.h"
-#include "src/core/util/ref_counted_string.h"
 
 // The resolver returns a flat list of addresses.  When a hierarchy of
 // LB policies is in use, each leaf of the hierarchy will need a
@@ -86,7 +87,7 @@ namespace grpc_core {
 
 // An address channel arg containing the hierarchical path
 // to be associated with the address.
-class HierarchicalPathArg final : public RefCounted<HierarchicalPathArg> {
+class HierarchicalPathArg : public RefCounted<HierarchicalPathArg> {
  public:
   explicit HierarchicalPathArg(std::vector<RefCountedStringValue> path)
       : path_(std::move(path)) {}

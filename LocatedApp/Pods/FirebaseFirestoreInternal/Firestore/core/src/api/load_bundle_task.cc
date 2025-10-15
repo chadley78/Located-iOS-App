@@ -16,7 +16,7 @@
 
 #include "Firestore/core/src/api/load_bundle_task.h"
 
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <utility>
 
 #include "Firestore/core/src/util/autoid.h"

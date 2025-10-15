@@ -18,6 +18,7 @@
 #define GRPC_SRC_CORE_CLIENT_CHANNEL_RETRY_SERVICE_CONFIG_H
 
 #include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -25,20 +26,21 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-#include "src/core/config/core_configuration.h"
+
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/status_util.h"
+#include "src/core/lib/config/core_configuration.h"
+#include "src/core/lib/gprpp/time.h"
+#include "src/core/lib/gprpp/validation_errors.h"
+#include "src/core/lib/json/json.h"
+#include "src/core/lib/json/json_args.h"
+#include "src/core/lib/json/json_object_loader.h"
 #include "src/core/service_config/service_config_parser.h"
-#include "src/core/util/json/json.h"
-#include "src/core/util/json/json_args.h"
-#include "src/core/util/json/json_object_loader.h"
-#include "src/core/util/time.h"
-#include "src/core/util/validation_errors.h"
 
 namespace grpc_core {
 namespace internal {
 
-class RetryGlobalConfig final : public ServiceConfigParser::ParsedConfig {
+class RetryGlobalConfig : public ServiceConfigParser::ParsedConfig {
  public:
   uintptr_t max_milli_tokens() const { return max_milli_tokens_; }
   uintptr_t milli_token_ratio() const { return milli_token_ratio_; }
@@ -52,7 +54,7 @@ class RetryGlobalConfig final : public ServiceConfigParser::ParsedConfig {
   uintptr_t milli_token_ratio_ = 0;
 };
 
-class RetryMethodConfig final : public ServiceConfigParser::ParsedConfig {
+class RetryMethodConfig : public ServiceConfigParser::ParsedConfig {
  public:
   int max_attempts() const { return max_attempts_; }
   Duration initial_backoff() const { return initial_backoff_; }
@@ -78,7 +80,7 @@ class RetryMethodConfig final : public ServiceConfigParser::ParsedConfig {
   absl::optional<Duration> per_attempt_recv_timeout_;
 };
 
-class RetryServiceConfigParser final : public ServiceConfigParser::Parser {
+class RetryServiceConfigParser : public ServiceConfigParser::Parser {
  public:
   absl::string_view name() const override { return parser_name(); }
 

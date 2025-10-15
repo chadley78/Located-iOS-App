@@ -24,7 +24,7 @@
 #import <Foundation/Foundation.h>
 
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 #include <utility>
 

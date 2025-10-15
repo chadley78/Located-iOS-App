@@ -14,9 +14,10 @@
 // limitations under the License.
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/filters/stateful_session/stateful_session_filter.h"
 
-#include <grpc/support/port_platform.h>
 #include <string.h>
 
 #include <algorithm>
@@ -26,7 +27,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/log/check.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
@@ -35,10 +35,16 @@
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/types/optional.h"
-#include "src/core/config/core_configuration.h"
+
+#include <grpc/support/log.h>
+
 #include "src/core/ext/filters/stateful_session/stateful_session_service_config_parser.h"
 #include "src/core/lib/channel/channel_stack.h"
+#include "src/core/lib/channel/context.h"
+#include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/debug/trace.h"
+#include "src/core/lib/gprpp/crash.h"
+#include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/promise/context.h"
 #include "src/core/lib/promise/map.h"
 #include "src/core/lib/promise/pipe.h"
@@ -48,14 +54,11 @@
 #include "src/core/lib/transport/transport.h"
 #include "src/core/resolver/xds/xds_resolver_attributes.h"
 #include "src/core/service_config/service_config_call_data.h"
-#include "src/core/util/crash.h"
-#include "src/core/util/latent_see.h"
-#include "src/core/util/time.h"
 
 namespace grpc_core {
 
+TraceFlag grpc_stateful_session_filter_trace(false, "stateful_session_filter");
 const NoInterceptor StatefulSessionFilter::Call::OnClientToServerMessage;
-const NoInterceptor StatefulSessionFilter::Call::OnClientToServerHalfClose;
 const NoInterceptor StatefulSessionFilter::Call::OnServerToClientMessage;
 const NoInterceptor StatefulSessionFilter::Call::OnFinalize;
 
@@ -66,16 +69,18 @@ UniqueTypeName XdsOverrideHostAttribute::TypeName() {
 
 const grpc_channel_filter StatefulSessionFilter::kFilter =
     MakePromiseBasedFilter<StatefulSessionFilter, FilterEndpoint::kClient,
-                           kFilterExaminesServerInitialMetadata>();
+                           kFilterExaminesServerInitialMetadata>(
+        "stateful_session_filter");
 
-absl::StatusOr<std::unique_ptr<StatefulSessionFilter>>
-StatefulSessionFilter::Create(const ChannelArgs&,
-                              ChannelFilter::Args filter_args) {
-  return std::make_unique<StatefulSessionFilter>(filter_args);
+absl::StatusOr<StatefulSessionFilter> StatefulSessionFilter::Create(
+    const ChannelArgs&, ChannelFilter::Args filter_args) {
+  return StatefulSessionFilter(filter_args);
 }
 
 StatefulSessionFilter::StatefulSessionFilter(ChannelFilter::Args filter_args)
-    : index_(filter_args.instance_id()),
+    : index_(grpc_channel_stack_filter_instance_number(
+          filter_args.channel_stack(),
+          filter_args.uninitialized_channel_element())),
       service_config_parser_index_(
           StatefulSessionServiceConfigParser::ParserIndex()) {}
 
@@ -139,7 +144,7 @@ absl::string_view GetClusterToUse(
   // Get cluster assigned by the XdsConfigSelector.
   auto cluster_attribute =
       service_config_call_data->GetCallAttribute<XdsClusterAttribute>();
-  CHECK_NE(cluster_attribute, nullptr);
+  GPR_ASSERT(cluster_attribute != nullptr);
   auto current_cluster = cluster_attribute->cluster();
   static constexpr absl::string_view kClusterPrefix = "cluster:";
   // If prefix is not "cluster:", then we can't use cluster override.
@@ -153,7 +158,7 @@ absl::string_view GetClusterToUse(
   // Use cluster from the cookie if it is configured for the route.
   auto route_data =
       service_config_call_data->GetCallAttribute<XdsRouteStateAttribute>();
-  CHECK_NE(route_data, nullptr);
+  GPR_ASSERT(route_data != nullptr);
   // Cookie cluster was not configured for route - use the one from the
   // attribute
   if (!route_data->HasClusterForRoute(cluster_from_cookie)) {
@@ -198,7 +203,7 @@ bool IsConfiguredPath(absl::string_view configured_path,
   // Check to see if the configured path matches the request path.
   const Slice* path_slice =
       client_initial_metadata.get_pointer(HttpPathMetadata());
-  CHECK_NE(path_slice, nullptr);
+  GPR_ASSERT(path_slice != nullptr);
   absl::string_view path = path_slice->as_string_view();
   // Matching criteria from
   // https://www.rfc-editor.org/rfc/rfc6265#section-5.1.4.
@@ -218,17 +223,18 @@ bool IsConfiguredPath(absl::string_view configured_path,
 
 void StatefulSessionFilter::Call::OnClientInitialMetadata(
     ClientMetadata& md, StatefulSessionFilter* filter) {
-  GRPC_LATENT_SEE_INNER_SCOPE(
-      "StatefulSessionFilter::Call::OnClientInitialMetadata");
   // Get config.
-  auto* service_config_call_data = GetContext<ServiceConfigCallData>();
-  CHECK_NE(service_config_call_data, nullptr);
+  auto* service_config_call_data = static_cast<ServiceConfigCallData*>(
+      GetContext<
+          grpc_call_context_element>()[GRPC_CONTEXT_SERVICE_CONFIG_CALL_DATA]
+          .value);
+  GPR_ASSERT(service_config_call_data != nullptr);
   auto* method_params = static_cast<StatefulSessionMethodParsedConfig*>(
       service_config_call_data->GetMethodParsedConfig(
           filter->service_config_parser_index_));
-  CHECK_NE(method_params, nullptr);
+  GPR_ASSERT(method_params != nullptr);
   cookie_config_ = method_params->GetConfig(filter->index_);
-  CHECK_NE(cookie_config_, nullptr);
+  GPR_ASSERT(cookie_config_ != nullptr);
   if (!cookie_config_->name.has_value() ||
       !IsConfiguredPath(cookie_config_->path, md)) {
     return;
@@ -259,8 +265,6 @@ void StatefulSessionFilter::Call::OnClientInitialMetadata(
 }
 
 void StatefulSessionFilter::Call::OnServerInitialMetadata(ServerMetadata& md) {
-  GRPC_LATENT_SEE_INNER_SCOPE(
-      "StatefulSessionFilter::Call::OnServerInitialMetadata");
   if (!perform_filtering_) return;
   // Add cookie to server initial metadata if needed.
   MaybeUpdateServerInitialMetadata(cookie_config_, cluster_changed_,
@@ -269,8 +273,6 @@ void StatefulSessionFilter::Call::OnServerInitialMetadata(ServerMetadata& md) {
 }
 
 void StatefulSessionFilter::Call::OnServerTrailingMetadata(ServerMetadata& md) {
-  GRPC_LATENT_SEE_INNER_SCOPE(
-      "StatefulSessionFilter::Call::OnServerTrailingMetadata");
   if (!perform_filtering_) return;
   // If we got a Trailers-Only response, then add the
   // cookie to the trailing metadata instead of the

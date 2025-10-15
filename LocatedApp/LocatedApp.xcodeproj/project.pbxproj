@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		11F4D978FC78613E345605CF /* Pods_LocatedAppTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC6663F76EDEC6E3DCB37895 /* Pods_LocatedAppTests.framework */; };
-		3E63E35F591AE52BC81C0EC6 /* Pods_LocatedApp_LocatedAppUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3D51478AF5725561DB9B7135 /* Pods_LocatedApp_LocatedAppUITests.framework */; };
-		E5BEFDF7DB76AC65EF6D79FD /* Pods_LocatedApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9B00348EC104D1C4FC36345 /* Pods_LocatedApp.framework */; };
+		14365DC64E6CC7556407D04D /* Pods_LocatedAppTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1A6B7971CDC42D429146E33 /* Pods_LocatedAppTests.framework */; };
+		A9EB3587893F63340979301B /* Pods_LocatedApp_LocatedAppUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9819590034E18DB2E0010922 /* Pods_LocatedApp_LocatedAppUITests.framework */; };
+		EC86998E0A46008524AC8424 /* Pods_LocatedApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4851403F4D2182C41D852047 /* Pods_LocatedApp.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -30,18 +30,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1D71781C8E55ABD5E90EE0CA /* Pods-LocatedApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp.release.xcconfig"; path = "Target Support Files/Pods-LocatedApp/Pods-LocatedApp.release.xcconfig"; sourceTree = "<group>"; };
-		243AEB886E49A2B9E05DABEA /* Pods-LocatedApp-LocatedAppUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp-LocatedAppUITests.debug.xcconfig"; path = "Target Support Files/Pods-LocatedApp-LocatedAppUITests/Pods-LocatedApp-LocatedAppUITests.debug.xcconfig"; sourceTree = "<group>"; };
-		3D51478AF5725561DB9B7135 /* Pods_LocatedApp_LocatedAppUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LocatedApp_LocatedAppUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		423246DE0174ACAE7621FE2D /* Pods-LocatedAppTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedAppTests.debug.xcconfig"; path = "Target Support Files/Pods-LocatedAppTests/Pods-LocatedAppTests.debug.xcconfig"; sourceTree = "<group>"; };
+		1428F084336A2234FEB9E09C /* Pods-LocatedAppTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedAppTests.debug.xcconfig"; path = "Target Support Files/Pods-LocatedAppTests/Pods-LocatedAppTests.debug.xcconfig"; sourceTree = "<group>"; };
+		4851403F4D2182C41D852047 /* Pods_LocatedApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LocatedApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		521696427100CAF3C177AF77 /* Pods-LocatedApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp.debug.xcconfig"; path = "Target Support Files/Pods-LocatedApp/Pods-LocatedApp.debug.xcconfig"; sourceTree = "<group>"; };
 		5991B3222E73141D0007442E /* LocatedApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocatedApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5991B3302E73141E0007442E /* LocatedAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LocatedAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5991B33A2E73141E0007442E /* LocatedAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LocatedAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		69E781F9E9C23B92EE916F03 /* Pods-LocatedApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp.debug.xcconfig"; path = "Target Support Files/Pods-LocatedApp/Pods-LocatedApp.debug.xcconfig"; sourceTree = "<group>"; };
-		CA2280796F9CF69390CAFA46 /* Pods-LocatedApp-LocatedAppUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp-LocatedAppUITests.release.xcconfig"; path = "Target Support Files/Pods-LocatedApp-LocatedAppUITests/Pods-LocatedApp-LocatedAppUITests.release.xcconfig"; sourceTree = "<group>"; };
-		CC6663F76EDEC6E3DCB37895 /* Pods_LocatedAppTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LocatedAppTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		E65008B5CD77D4DFA3989852 /* Pods-LocatedAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedAppTests.release.xcconfig"; path = "Target Support Files/Pods-LocatedAppTests/Pods-LocatedAppTests.release.xcconfig"; sourceTree = "<group>"; };
-		E9B00348EC104D1C4FC36345 /* Pods_LocatedApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LocatedApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		71204171B58BD9ADFA7316CC /* Pods-LocatedApp-LocatedAppUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp-LocatedAppUITests.debug.xcconfig"; path = "Target Support Files/Pods-LocatedApp-LocatedAppUITests/Pods-LocatedApp-LocatedAppUITests.debug.xcconfig"; sourceTree = "<group>"; };
+		94A9401077908226CD29E6D8 /* Pods-LocatedAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedAppTests.release.xcconfig"; path = "Target Support Files/Pods-LocatedAppTests/Pods-LocatedAppTests.release.xcconfig"; sourceTree = "<group>"; };
+		9819590034E18DB2E0010922 /* Pods_LocatedApp_LocatedAppUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LocatedApp_LocatedAppUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		DF4F193219CF65EF224945DB /* Pods-LocatedApp-LocatedAppUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp-LocatedAppUITests.release.xcconfig"; path = "Target Support Files/Pods-LocatedApp-LocatedAppUITests/Pods-LocatedApp-LocatedAppUITests.release.xcconfig"; sourceTree = "<group>"; };
+		E97068B91ED6CA82A36C90E3 /* Pods-LocatedApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LocatedApp.release.xcconfig"; path = "Target Support Files/Pods-LocatedApp/Pods-LocatedApp.release.xcconfig"; sourceTree = "<group>"; };
+		F1A6B7971CDC42D429146E33 /* Pods_LocatedAppTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LocatedAppTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -114,7 +114,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E5BEFDF7DB76AC65EF6D79FD /* Pods_LocatedApp.framework in Frameworks */,
+				EC86998E0A46008524AC8424 /* Pods_LocatedApp.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -122,7 +122,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				11F4D978FC78613E345605CF /* Pods_LocatedAppTests.framework in Frameworks */,
+				14365DC64E6CC7556407D04D /* Pods_LocatedAppTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,7 +130,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3E63E35F591AE52BC81C0EC6 /* Pods_LocatedApp_LocatedAppUITests.framework in Frameworks */,
+				A9EB3587893F63340979301B /* Pods_LocatedApp_LocatedAppUITests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,7 +145,7 @@
 				5991B33D2E73141E0007442E /* LocatedAppUITests */,
 				5991B3232E73141D0007442E /* Products */,
 				B6DDC2FD3D097A0C3FDB8FAE /* Pods */,
-				F4043CE0782B814285AAF271 /* Frameworks */,
+				DB67DF132725F9B3F24C8BE7 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -162,22 +162,22 @@
 		B6DDC2FD3D097A0C3FDB8FAE /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				69E781F9E9C23B92EE916F03 /* Pods-LocatedApp.debug.xcconfig */,
-				1D71781C8E55ABD5E90EE0CA /* Pods-LocatedApp.release.xcconfig */,
-				243AEB886E49A2B9E05DABEA /* Pods-LocatedApp-LocatedAppUITests.debug.xcconfig */,
-				CA2280796F9CF69390CAFA46 /* Pods-LocatedApp-LocatedAppUITests.release.xcconfig */,
-				423246DE0174ACAE7621FE2D /* Pods-LocatedAppTests.debug.xcconfig */,
-				E65008B5CD77D4DFA3989852 /* Pods-LocatedAppTests.release.xcconfig */,
+				521696427100CAF3C177AF77 /* Pods-LocatedApp.debug.xcconfig */,
+				E97068B91ED6CA82A36C90E3 /* Pods-LocatedApp.release.xcconfig */,
+				71204171B58BD9ADFA7316CC /* Pods-LocatedApp-LocatedAppUITests.debug.xcconfig */,
+				DF4F193219CF65EF224945DB /* Pods-LocatedApp-LocatedAppUITests.release.xcconfig */,
+				1428F084336A2234FEB9E09C /* Pods-LocatedAppTests.debug.xcconfig */,
+				94A9401077908226CD29E6D8 /* Pods-LocatedAppTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
 		};
-		F4043CE0782B814285AAF271 /* Frameworks */ = {
+		DB67DF132725F9B3F24C8BE7 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				E9B00348EC104D1C4FC36345 /* Pods_LocatedApp.framework */,
-				3D51478AF5725561DB9B7135 /* Pods_LocatedApp_LocatedAppUITests.framework */,
-				CC6663F76EDEC6E3DCB37895 /* Pods_LocatedAppTests.framework */,
+				4851403F4D2182C41D852047 /* Pods_LocatedApp.framework */,
+				9819590034E18DB2E0010922 /* Pods_LocatedApp_LocatedAppUITests.framework */,
+				F1A6B7971CDC42D429146E33 /* Pods_LocatedAppTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -189,11 +189,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5991B3442E73141E0007442E /* Build configuration list for PBXNativeTarget "LocatedApp" */;
 			buildPhases = (
-				F9F32A4493B165E4ECD53D90 /* [CP] Check Pods Manifest.lock */,
+				83ADA3457C9D7AA66F8877ED /* [CP] Check Pods Manifest.lock */,
 				5991B31E2E73141D0007442E /* Sources */,
 				5991B31F2E73141D0007442E /* Frameworks */,
 				5991B3202E73141D0007442E /* Resources */,
-				880103835BCB715802D5EFAD /* [CP] Copy Pods Resources */,
+				538F3A2A7D30CF17BC67742E /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -211,7 +211,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5991B3472E73141E0007442E /* Build configuration list for PBXNativeTarget "LocatedAppTests" */;
 			buildPhases = (
-				266554558801A70E8193EAFD /* [CP] Check Pods Manifest.lock */,
+				15C6EA780D88A2EE58B44D95 /* [CP] Check Pods Manifest.lock */,
 				5991B32C2E73141E0007442E /* Sources */,
 				5991B32D2E73141E0007442E /* Frameworks */,
 				5991B32E2E73141E0007442E /* Resources */,
@@ -233,11 +233,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5991B34A2E73141E0007442E /* Build configuration list for PBXNativeTarget "LocatedAppUITests" */;
 			buildPhases = (
-				FB95F03148A764FD10D612C5 /* [CP] Check Pods Manifest.lock */,
+				E32405B197BA0D25B51F92AB /* [CP] Check Pods Manifest.lock */,
 				5991B3362E73141E0007442E /* Sources */,
 				5991B3372E73141E0007442E /* Frameworks */,
 				5991B3382E73141E0007442E /* Resources */,
-				539F4D13E889BDCD0CB254FA /* [CP] Copy Pods Resources */,
+				53260ABB523D1ED10324B96D /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -321,7 +321,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		266554558801A70E8193EAFD /* [CP] Check Pods Manifest.lock */ = {
+		15C6EA780D88A2EE58B44D95 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -343,7 +343,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		539F4D13E889BDCD0CB254FA /* [CP] Copy Pods Resources */ = {
+		53260ABB523D1ED10324B96D /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -360,7 +360,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LocatedApp-LocatedAppUITests/Pods-LocatedApp-LocatedAppUITests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		880103835BCB715802D5EFAD /* [CP] Copy Pods Resources */ = {
+		538F3A2A7D30CF17BC67742E /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -377,7 +377,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LocatedApp/Pods-LocatedApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		F9F32A4493B165E4ECD53D90 /* [CP] Check Pods Manifest.lock */ = {
+		83ADA3457C9D7AA66F8877ED /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -399,7 +399,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		FB95F03148A764FD10D612C5 /* [CP] Check Pods Manifest.lock */ = {
+		E32405B197BA0D25B51F92AB /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -579,7 +579,7 @@
 		};
 		5991B3452E73141E0007442E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 69E781F9E9C23B92EE916F03 /* Pods-LocatedApp.debug.xcconfig */;
+			baseConfigurationReference = 521696427100CAF3C177AF77 /* Pods-LocatedApp.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -592,12 +592,16 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LocatedApp/Info.plist;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Located needs continuous access to your location to keep your family safe. This allows geofence alerts (like arriving at school) and real-time location sharing to work even when the app is closed.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Located needs background location access to keep your family safe. This allows geofence alerts and location sharing to work even when the app is closed.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Located needs access to your location to show where you are on the family map.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -628,7 +632,7 @@
 		};
 		5991B3462E73141E0007442E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1D71781C8E55ABD5E90EE0CA /* Pods-LocatedApp.release.xcconfig */;
+			baseConfigurationReference = E97068B91ED6CA82A36C90E3 /* Pods-LocatedApp.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -641,12 +645,16 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LocatedApp/Info.plist;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Located needs continuous access to your location to keep your family safe. This allows geofence alerts (like arriving at school) and real-time location sharing to work even when the app is closed.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Located needs background location access to keep your family safe. This allows geofence alerts and location sharing to work even when the app is closed.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Located needs access to your location to show where you are on the family map.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -677,7 +685,7 @@
 		};
 		5991B3482E73141E0007442E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 423246DE0174ACAE7621FE2D /* Pods-LocatedAppTests.debug.xcconfig */;
+			baseConfigurationReference = 1428F084336A2234FEB9E09C /* Pods-LocatedAppTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -701,7 +709,7 @@
 		};
 		5991B3492E73141E0007442E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E65008B5CD77D4DFA3989852 /* Pods-LocatedAppTests.release.xcconfig */;
+			baseConfigurationReference = 94A9401077908226CD29E6D8 /* Pods-LocatedAppTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -725,7 +733,7 @@
 		};
 		5991B34B2E73141E0007442E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 243AEB886E49A2B9E05DABEA /* Pods-LocatedApp-LocatedAppUITests.debug.xcconfig */;
+			baseConfigurationReference = 71204171B58BD9ADFA7316CC /* Pods-LocatedApp-LocatedAppUITests.debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -748,7 +756,7 @@
 		};
 		5991B34C2E73141E0007442E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CA2280796F9CF69390CAFA46 /* Pods-LocatedApp-LocatedAppUITests.release.xcconfig */;
+			baseConfigurationReference = DF4F193219CF65EF224945DB /* Pods-LocatedApp-LocatedAppUITests.release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

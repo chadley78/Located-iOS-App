@@ -16,7 +16,7 @@
 
 #include "Firestore/core/src/util/executor_std.h"
 
-#include <future>
+#include <future>  // NOLINT(build/c++11)
 #include <memory>
 #include <sstream>
 

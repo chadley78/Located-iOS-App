@@ -935,8 +935,7 @@ BSSL_NAMESPACE_END
 using namespace bssl;
 
 ssl_session_st::ssl_session_st(const SSL_X509_METHOD *method)
-    : RefCounted(CheckSubClass()),
-      x509_method(method),
+    : x509_method(method),
       extended_master_secret(false),
       peer_sha256_valid(false),
       not_resumable(false),
@@ -958,14 +957,18 @@ SSL_SESSION *SSL_SESSION_new(const SSL_CTX *ctx) {
 }
 
 int SSL_SESSION_up_ref(SSL_SESSION *session) {
-  session->UpRefInternal();
+  CRYPTO_refcount_inc(&session->references);
   return 1;
 }
 
 void SSL_SESSION_free(SSL_SESSION *session) {
-  if (session != nullptr) {
-    session->DecRefInternal();
+  if (session == NULL ||
+      !CRYPTO_refcount_dec_and_test_zero(&session->references)) {
+    return;
   }
+
+  session->~ssl_session_st();
+  OPENSSL_free(session);
 }
 
 const uint8_t *SSL_SESSION_get_id(const SSL_SESSION *session,
@@ -1203,7 +1206,12 @@ int SSL_SESSION_get_ex_new_index(long argl, void *argp,
                                  CRYPTO_EX_unused *unused,
                                  CRYPTO_EX_dup *dup_unused,
                                  CRYPTO_EX_free *free_func) {
-  return CRYPTO_get_ex_new_index_ex(&g_ex_data_class, argl, argp, free_func);
+  int index;
+  if (!CRYPTO_get_ex_new_index(&g_ex_data_class, &index, argl, argp,
+                               free_func)) {
+    return -1;
+  }
+  return index;
 }
 
 int SSL_SESSION_set_ex_data(SSL_SESSION *session, int idx, void *arg) {

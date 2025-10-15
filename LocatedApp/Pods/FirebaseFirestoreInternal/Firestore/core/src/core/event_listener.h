@@ -18,7 +18,7 @@
 #define FIRESTORE_CORE_SRC_CORE_EVENT_LISTENER_H_
 
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <utility>
 
 #include "Firestore/core/src/util/executor.h"

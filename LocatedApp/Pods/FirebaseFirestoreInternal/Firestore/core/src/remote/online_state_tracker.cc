@@ -16,7 +16,7 @@
 
 #include "Firestore/core/src/remote/online_state_tracker.h"
 
-#include <chrono>
+#include <chrono>  // NOLINT(build/c++11)
 
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/hard_assert.h"

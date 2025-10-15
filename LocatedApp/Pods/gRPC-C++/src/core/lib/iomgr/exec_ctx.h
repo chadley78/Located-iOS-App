@@ -31,16 +31,15 @@
 #include <grpc/impl/grpc_types.h>
 #include <grpc/support/atm.h>
 #include <grpc/support/cpu.h>
+#include <grpc/support/log.h>
 #include <grpc/support/time.h>
 
-#include "absl/log/check.h"
-#include "src/core/lib/experiments/experiments.h"
+#include "src/core/lib/gpr/time_precise.h"
+#include "src/core/lib/gprpp/crash.h"
+#include "src/core/lib/gprpp/debug_location.h"
+#include "src/core/lib/gprpp/fork.h"
+#include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/iomgr/closure.h"
-#include "src/core/util/debug_location.h"
-#include "src/core/util/fork.h"
-#include "src/core/util/latent_see.h"
-#include "src/core/util/time.h"
-#include "src/core/util/time_precise.h"
 
 #if !defined(_WIN32) || !defined(_DLL)
 #define EXEC_CTX exec_ctx_
@@ -108,33 +107,17 @@ class Combiner;
 ///               since that implies a core re-entry outside of application
 ///               callbacks.
 ///
-class GRPC_DLL ExecCtx : public latent_see::ParentScope {
+class GRPC_DLL ExecCtx {
  public:
   /// Default Constructor
 
-  ExecCtx()
-      : latent_see::ParentScope(GRPC_LATENT_SEE_METADATA("ExecCtx")),
-        flags_(GRPC_EXEC_CTX_FLAG_IS_FINISHED) {
-#if !TARGET_OS_IPHONE
-    if (!IsTimeCachingInPartyEnabled()) {
-      time_cache_.emplace();
-    }
-#endif
+  ExecCtx() : flags_(GRPC_EXEC_CTX_FLAG_IS_FINISHED) {
     Fork::IncExecCtxCount();
     Set(this);
   }
 
   /// Parameterised Constructor
-  explicit ExecCtx(uintptr_t fl)
-      : ExecCtx(fl, GRPC_LATENT_SEE_METADATA("ExecCtx")) {}
-
-  explicit ExecCtx(uintptr_t fl, latent_see::Metadata* latent_see_metadata)
-      : latent_see::ParentScope(latent_see_metadata), flags_(fl) {
-#if !TARGET_OS_IPHONE
-    if (!IsTimeCachingInPartyEnabled()) {
-      time_cache_.emplace();
-    }
-#endif
+  explicit ExecCtx(uintptr_t fl) : flags_(fl) {
     if (!(GRPC_EXEC_CTX_FLAG_IS_INTERNAL_THREAD & flags_)) {
       Fork::IncExecCtxCount();
     }
@@ -204,18 +187,23 @@ class GRPC_DLL ExecCtx : public latent_see::ParentScope {
   Timestamp Now() { return Timestamp::Now(); }
 
   void InvalidateNow() {
-    if (time_cache_.has_value()) time_cache_->InvalidateCache();
+#if !TARGET_OS_IPHONE
+    time_cache_.InvalidateCache();
+#endif
   }
 
   void SetNowIomgrShutdown() {
+#if !TARGET_OS_IPHONE
     // We get to do a test only set now on this path just because iomgr
     // is getting removed and no point adding more interfaces for it.
-    TestOnlySetNow(Timestamp::InfFuture());
+    time_cache_.TestOnlySetNow(Timestamp::InfFuture());
+#endif
   }
 
   void TestOnlySetNow(Timestamp now) {
-    if (!time_cache_.has_value()) time_cache_.emplace();
-    time_cache_->TestOnlySetNow(now);
+#if !TARGET_OS_IPHONE
+    time_cache_.TestOnlySetNow(now);
+#endif
   }
 
   /// Gets pointer to current exec_ctx.
@@ -241,7 +229,9 @@ class GRPC_DLL ExecCtx : public latent_see::ParentScope {
   CombinerData combiner_data_ = {nullptr, nullptr};
   uintptr_t flags_;
 
-  absl::optional<ScopedTimeCache> time_cache_;
+#if !TARGET_OS_IPHONE
+  ScopedTimeCache time_cache_;
+#endif
 
 #if !defined(_WIN32) || !defined(_DLL)
   static thread_local ExecCtx* exec_ctx_;
@@ -324,8 +314,8 @@ class GRPC_DLL ApplicationCallbackExecCtx {
         Fork::DecExecCtxCount();
       }
     } else {
-      DCHECK_EQ(head_, nullptr);
-      DCHECK_EQ(tail_, nullptr);
+      GPR_DEBUG_ASSERT(head_ == nullptr);
+      GPR_DEBUG_ASSERT(tail_ == nullptr);
     }
   }
 

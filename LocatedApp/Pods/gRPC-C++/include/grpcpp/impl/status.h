@@ -21,8 +21,9 @@
 
 // IWYU pragma: private, include <grpcpp/support/status.h>
 
-#include <grpc/status.h>
 #include <grpc/support/port_platform.h>
+
+#include <grpc/status.h>
 #include <grpcpp/support/config.h>
 #include <grpcpp/support/status_code_enum.h>
 

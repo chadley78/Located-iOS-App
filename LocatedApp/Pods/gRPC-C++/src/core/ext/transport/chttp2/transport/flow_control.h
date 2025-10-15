@@ -20,6 +20,7 @@
 #define GRPC_SRC_CORE_EXT_TRANSPORT_CHTTP2_TRANSPORT_FLOW_CONTROL_H
 
 #include <grpc/support/port_platform.h>
+
 #include <limits.h>
 #include <stdint.h>
 
@@ -28,15 +29,19 @@
 #include <utility>
 
 #include "absl/functional/function_ref.h"
-#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+
+#include <grpc/support/log.h>
+
 #include "src/core/ext/transport/chttp2/transport/http2_settings.h"
 #include "src/core/lib/debug/trace.h"
+#include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/resource_quota/memory_quota.h"
 #include "src/core/lib/transport/bdp_estimator.h"
-#include "src/core/util/time.h"
+
+extern grpc_core::TraceFlag grpc_flowctl_trace;
 
 namespace grpc {
 namespace testing {
@@ -128,7 +133,7 @@ class GRPC_MUST_USE_RESULT FlowControlAction {
   static const char* UrgencyString(Urgency u);
   std::string DebugString() const;
 
-  void AssertEmpty() { CHECK(*this == FlowControlAction()); }
+  void AssertEmpty() { GPR_ASSERT(*this == FlowControlAction()); }
 
   bool operator==(const FlowControlAction& other) const {
     return send_stream_update_ == other.send_stream_update_ &&
@@ -191,7 +196,7 @@ class TransportFlowControl final {
   class IncomingUpdateContext {
    public:
     explicit IncomingUpdateContext(TransportFlowControl* tfc) : tfc_(tfc) {}
-    ~IncomingUpdateContext() { CHECK_EQ(tfc_, nullptr); }
+    ~IncomingUpdateContext() { GPR_ASSERT(tfc_ == nullptr); }
 
     IncomingUpdateContext(const IncomingUpdateContext&) = delete;
     IncomingUpdateContext& operator=(const IncomingUpdateContext&) = delete;

@@ -16,7 +16,7 @@
 
 #include "Firestore/core/src/remote/stream.h"
 
-#include <chrono>
+#include <chrono>  // NOLINT(build/c++11)
 #include <utility>
 
 #include "Firestore/core/include/firebase/firestore/firestore_errors.h"
@@ -380,7 +380,7 @@ void Stream::Write(grpc::ByteBuffer&& message) {
 
 std::string Stream::GetDebugDescription() const {
   EnsureOnQueue();
-  return StringFormat("%s (%x)", GetDebugName(), this);
+  return StringFormat("%s (%s)", GetDebugName(), this);
 }
 
 }  // namespace remote

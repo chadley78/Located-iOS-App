@@ -16,16 +16,18 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/slice/percent_encoding.h"
 
-#include <grpc/support/port_platform.h>
 #include <stdlib.h>
 
 #include <cstdint>
 #include <utility>
 
-#include "absl/log/check.h"
-#include "src/core/util/bitset.h"
+#include <grpc/support/log.h>
+
+#include "src/core/lib/gprpp/bitset.h"
 
 namespace grpc_core {
 
@@ -99,7 +101,7 @@ Slice PercentEncodeSlice(Slice slice, PercentEncodingType type) {
       *q++ = hex[c & 15];
     }
   }
-  CHECK(q == out.end());
+  GPR_ASSERT(q == out.end());
   return Slice(std::move(out));
 }
 

@@ -310,7 +310,7 @@ class AuthenticationService: ObservableObject {
                 throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "No root view controller"])
             }
             
-            // Start the sign in flow
+            // Start the sign in flow - updated for GoogleSignIn 6.x
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
             let user = result.user
             

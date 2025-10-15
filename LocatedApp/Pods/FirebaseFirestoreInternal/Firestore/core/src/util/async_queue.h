@@ -18,10 +18,10 @@
 #define FIRESTORE_CORE_SRC_UTIL_ASYNC_QUEUE_H_
 
 #include <atomic>
-#include <chrono>
+#include <chrono>  // NOLINT(build/c++11)
 #include <functional>
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <vector>
 
 #include "Firestore/core/src/util/executor.h"

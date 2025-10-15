@@ -19,7 +19,6 @@
 #ifndef GRPC_GRPC_AUDIT_LOGGING_H
 #define GRPC_GRPC_AUDIT_LOGGING_H
 
-#include <grpc/support/json.h>
 #include <grpc/support/port_platform.h>
 
 #include <memory>
@@ -27,6 +26,8 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+
+#include <grpc/support/json.h>
 
 namespace grpc_core {
 namespace experimental {

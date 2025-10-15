@@ -269,22 +269,11 @@ unsigned long X509_VERIFY_PARAM_get_flags(const X509_VERIFY_PARAM *param) {
 }
 
 int X509_VERIFY_PARAM_set_purpose(X509_VERIFY_PARAM *param, int purpose) {
-  if (X509_PURPOSE_get0(purpose) == NULL) {
-    OPENSSL_PUT_ERROR(X509V3, X509V3_R_INVALID_PURPOSE);
-    return 0;
-  }
-  param->purpose = purpose;
-  return 1;
+  return X509_PURPOSE_set(&param->purpose, purpose);
 }
 
 int X509_VERIFY_PARAM_set_trust(X509_VERIFY_PARAM *param, int trust) {
-  if (!X509_is_valid_trust_id(trust)) {
-    OPENSSL_PUT_ERROR(X509, X509_R_UNKNOWN_TRUST_ID);
-    return 0;
-  }
-
-  param->trust = trust;
-  return 1;
+  return X509_TRUST_set(&param->trust, trust);
 }
 
 void X509_VERIFY_PARAM_set_depth(X509_VERIFY_PARAM *param, int depth) {

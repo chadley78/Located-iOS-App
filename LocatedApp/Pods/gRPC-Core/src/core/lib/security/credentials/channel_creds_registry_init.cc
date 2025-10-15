@@ -16,12 +16,7 @@
 //
 //
 
-#include <grpc/credentials.h>
-#include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
-#include <grpc/support/json.h>
 #include <grpc/support/port_platform.h>
-#include <grpc/support/time.h>
 
 #include <map>
 #include <memory>
@@ -29,7 +24,19 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "src/core/config/core_configuration.h"
+
+#include <grpc/grpc.h>
+#include <grpc/grpc_security.h>
+#include <grpc/support/json.h>
+#include <grpc/support/time.h>
+
+#include "src/core/lib/config/core_configuration.h"
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "src/core/lib/gprpp/time.h"
+#include "src/core/lib/gprpp/validation_errors.h"
+#include "src/core/lib/json/json.h"
+#include "src/core/lib/json/json_args.h"
+#include "src/core/lib/json/json_object_loader.h"
 #include "src/core/lib/security/credentials/channel_creds_registry.h"
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/security/credentials/fake/fake_credentials.h"
@@ -37,12 +44,6 @@
 #include "src/core/lib/security/credentials/tls/grpc_tls_certificate_provider.h"
 #include "src/core/lib/security/credentials/tls/grpc_tls_credentials_options.h"
 #include "src/core/lib/security/credentials/tls/tls_credentials.h"
-#include "src/core/util/json/json.h"
-#include "src/core/util/json/json_args.h"
-#include "src/core/util/json/json_object_loader.h"
-#include "src/core/util/ref_counted_ptr.h"
-#include "src/core/util/time.h"
-#include "src/core/util/validation_errors.h"
 
 namespace grpc_core {
 
@@ -95,8 +96,6 @@ class TlsChannelCredsFactory : public ChannelCredsFactory<> {
     }
     options->set_watch_root_cert(!config->ca_certificate_file().empty());
     options->set_watch_identity_pair(!config->certificate_file().empty());
-    options->set_certificate_verifier(
-        MakeRefCounted<HostNameCertificateVerifier>());
     return MakeRefCounted<TlsCredentials>(std::move(options));
   }
 

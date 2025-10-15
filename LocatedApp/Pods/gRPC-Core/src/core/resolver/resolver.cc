@@ -16,9 +16,12 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/resolver/resolver.h"
 
-#include <grpc/support/port_platform.h>
+grpc_core::DebugOnlyTraceFlag grpc_trace_resolver_refcount(false,
+                                                           "resolver_refcount");
 
 namespace grpc_core {
 
@@ -27,7 +30,8 @@ namespace grpc_core {
 //
 
 Resolver::Resolver()
-    : InternallyRefCounted(
-          GRPC_TRACE_FLAG_ENABLED(resolver_refcount) ? "Resolver" : nullptr) {}
+    : InternallyRefCounted(GRPC_TRACE_FLAG_ENABLED(grpc_trace_resolver_refcount)
+                               ? "Resolver"
+                               : nullptr) {}
 
 }  // namespace grpc_core

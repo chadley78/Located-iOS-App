@@ -20,6 +20,7 @@
 #define GRPC_SRC_CORE_LIB_IOMGR_TIMER_MANAGER_H
 
 #include <grpc/support/port_platform.h>
+
 #include <stdbool.h>
 
 // Timer Manager tries to keep only one thread waiting for the next timeout at

@@ -19,7 +19,7 @@
 #include <cstdlib>
 
 #include <algorithm>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 #include <utility>
 

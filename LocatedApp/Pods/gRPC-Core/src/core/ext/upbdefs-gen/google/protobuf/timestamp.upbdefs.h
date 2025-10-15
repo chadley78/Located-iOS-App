@@ -3,19 +3,21 @@
  *     google/protobuf/timestamp.proto
  *
  * Do not edit -- your changes will be discarded when the file is
- * regenerated.
- * NO CHECKED-IN PROTOBUF GENCODE */
+ * regenerated. */
 
-#ifndef GOOGLE_PROTOBUF_TIMESTAMP_PROTO_UPB_H__UPBDEFS_H_
-#define GOOGLE_PROTOBUF_TIMESTAMP_PROTO_UPB_H__UPBDEFS_H_
+#ifndef GOOGLE_PROTOBUF_TIMESTAMP_PROTO_UPBDEFS_H_
+#define GOOGLE_PROTOBUF_TIMESTAMP_PROTO_UPBDEFS_H_
 
 #include "upb/reflection/def.h"
 #include "upb/reflection/internal/def_pool.h"
-
-#include "upb/port/def.inc" // Must be last.
+#include "upb/port/def.inc"
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "upb/reflection/def.h"
+
+#include "upb/port/def.inc"
 
 extern _upb_DefPool_Init google_protobuf_timestamp_proto_upbdefinit;
 
@@ -30,4 +32,4 @@ UPB_INLINE const upb_MessageDef *google_protobuf_Timestamp_getmsgdef(upb_DefPool
 
 #include "upb/port/undef.inc"
 
-#endif  /* GOOGLE_PROTOBUF_TIMESTAMP_PROTO_UPB_H__UPBDEFS_H_ */
+#endif  /* GOOGLE_PROTOBUF_TIMESTAMP_PROTO_UPBDEFS_H_ */

@@ -3,19 +3,21 @@
  *     envoy/extensions/transport_sockets/tls/v3/secret.proto
  *
  * Do not edit -- your changes will be discarded when the file is
- * regenerated.
- * NO CHECKED-IN PROTOBUF GENCODE */
+ * regenerated. */
 
-#ifndef ENVOY_EXTENSIONS_TRANSPORT_SOCKETS_TLS_V3_SECRET_PROTO_UPB_H__UPBDEFS_H_
-#define ENVOY_EXTENSIONS_TRANSPORT_SOCKETS_TLS_V3_SECRET_PROTO_UPB_H__UPBDEFS_H_
+#ifndef ENVOY_EXTENSIONS_TRANSPORT_SOCKETS_TLS_V3_SECRET_PROTO_UPBDEFS_H_
+#define ENVOY_EXTENSIONS_TRANSPORT_SOCKETS_TLS_V3_SECRET_PROTO_UPBDEFS_H_
 
 #include "upb/reflection/def.h"
 #include "upb/reflection/internal/def_pool.h"
-
-#include "upb/port/def.inc" // Must be last.
+#include "upb/port/def.inc"
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "upb/reflection/def.h"
+
+#include "upb/port/def.inc"
 
 extern _upb_DefPool_Init envoy_extensions_transport_sockets_tls_v3_secret_proto_upbdefinit;
 
@@ -40,4 +42,4 @@ UPB_INLINE const upb_MessageDef *envoy_extensions_transport_sockets_tls_v3_Secre
 
 #include "upb/port/undef.inc"
 
-#endif  /* ENVOY_EXTENSIONS_TRANSPORT_SOCKETS_TLS_V3_SECRET_PROTO_UPB_H__UPBDEFS_H_ */
+#endif  /* ENVOY_EXTENSIONS_TRANSPORT_SOCKETS_TLS_V3_SECRET_PROTO_UPBDEFS_H_ */
