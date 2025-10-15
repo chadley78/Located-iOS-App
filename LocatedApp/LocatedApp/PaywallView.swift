@@ -129,8 +129,8 @@ struct PaywallView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if canDismiss {
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if canDismiss {
                         Button("Close") {
                             dismiss()
                         }
