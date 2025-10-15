@@ -5,21 +5,7 @@ import FirebaseFirestore
 
 // MARK: - Subscription Models
 
-enum SubscriptionStatus: String, Codable {
-    case trial = "trial"
-    case active = "active"
-    case expired = "expired"
-    case canceled = "canceled"
-    
-    var displayName: String {
-        switch self {
-        case .trial: return "Free Trial"
-        case .active: return "Active"
-        case .expired: return "Expired"
-        case .canceled: return "Canceled"
-        }
-    }
-}
+// Note: SubscriptionStatus is defined in FamilyModels.swift
 
 struct SubscriptionInfo {
     let status: SubscriptionStatus
