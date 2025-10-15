@@ -263,7 +263,7 @@ struct StatusBadge: View {
 // MARK: - Preview
 
 #Preview {
-    NavigationStack {
+    NavigationView {
         SubscriptionManagementView()
             .environmentObject(SubscriptionService())
             .environmentObject(FamilyService())

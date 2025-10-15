@@ -53,9 +53,6 @@ class SubscriptionService: ObservableObject {
         Purchases.logLevel = .debug // Set to .info in production
         Purchases.configure(withAPIKey: revenueCatAPIKey)
         
-        // Set up delegate to listen for subscription changes
-        Purchases.shared.delegate = self
-        
         print("✅ RevenueCat SDK configured")
     }
     
@@ -292,15 +289,6 @@ class SubscriptionService: ObservableObject {
     }
 }
 
-// MARK: - PurchasesDelegate
-
-extension SubscriptionService: PurchasesDelegate {
-    nonisolated func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
-        print("🔐 Received subscription update from RevenueCat")
-        
-        Task { @MainActor in
-            await self.processCustomerInfo(customerInfo)
-        }
-    }
-}
+// Note: In RevenueCat 5.x, we manually check subscription status rather than using delegates
+// This avoids NSObject inheritance requirements and works better with SwiftUI's @MainActor
 
