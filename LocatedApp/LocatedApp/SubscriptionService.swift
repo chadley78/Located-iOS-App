@@ -37,9 +37,8 @@ class SubscriptionService: ObservableObject {
     private let db = Firestore.firestore()
     private let auth = Auth.auth()
     
-    // Configuration - Replace with your actual RevenueCat API key
-    // TODO: Replace this with your RevenueCat API key from the dashboard
-    private let revenueCatAPIKey = "REPLACE_WITH_YOUR_REVENUECAT_API_KEY"
+    // Configuration - RevenueCat API key
+    private let revenueCatAPIKey = "appl_BzdMszzsXGmbrHCdlMJxdKkpFUg"
     
     init() {
         print("🔐 SubscriptionService initialized")
