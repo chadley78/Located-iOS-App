@@ -23,7 +23,7 @@ struct GeofenceManagementView: View {
                 Text("Location Alerts")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundColor(AppColors.overlayLight)
+                    .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                     .padding(.top)
@@ -32,13 +32,13 @@ struct GeofenceManagementView: View {
                 if geofenceService.isLoading {
                     ProgressView("Loading location alerts...")
                         .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                         .padding(.top, 60)
                     Spacer()
                 } else if geofenceService.geofences.isEmpty {
                     // Empty State
                     VStack(spacing: 20) {
-                        Image("Tiger1")
+                        Image("PlanetWithRings")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxWidth: .infinity)
@@ -48,11 +48,11 @@ struct GeofenceManagementView: View {
                         VStack(spacing: 8) {
                             Text("No Location Alerts Yet")
                                 .font(.radioCanadaBig(20, weight: .semibold))
-                                .foregroundColor(AppColors.overlayLight)
+                                .foregroundColor(AppColors.textPrimary)
                             
                             Text("Create your first location alert to get notified when family members enter or leave specific areas.")
                                 .font(.radioCanadaBig(14, weight: .regular))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(AppColors.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
                         }
@@ -65,10 +65,10 @@ struct GeofenceManagementView: View {
                                 Text("Create First Location Alert")
                             }
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(AppColors.accent)
+                            .background(AppColors.primary)
                             .cornerRadius(25)
                         }
                         .padding(.horizontal, 30)
@@ -109,10 +109,10 @@ struct GeofenceManagementView: View {
                             Text("Add Location Alert")
                         }
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(AppColors.accent)
+                        .background(AppColors.primary)
                         .cornerRadius(25)
                     }
                     .padding(.horizontal, 30)
@@ -175,7 +175,7 @@ struct GeofenceCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(geofence.name)
                         .font(.radioCanadaBig(18, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     Text("\(Int(geofence.radius))m radius")
                         .font(.radioCanadaBig(12, weight: .regular))

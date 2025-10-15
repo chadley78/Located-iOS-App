@@ -2103,7 +2103,14 @@ struct ChildrenListView: View {
             backgroundColor: AppColors.background
         ) {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 0) {
+                    // Full bleed image at top
+                    Image("CreateFamily")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                    
+                    VStack(spacing: 20) {
                     if familyService.currentFamily != nil {
                         familyHeaderView
                         
@@ -2122,21 +2129,16 @@ struct ChildrenListView: View {
                             }
                             .primaryAButtonStyle()
                             
-                            // Add Parent Button
+                            // Add Parent Button (Link style)
                             Button(action: {
                                 showingInviteParent = true
                             }) {
-                                HStack {
-                                    Image(systemName: "person.2.badge.plus")
-                                    Text("Invite Parent")
-                                }
-                                .font(.radioCanadaBig(16, weight: .semibold))
-                                .foregroundColor(AppColors.overlayLight)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(AppColors.overlayLight.opacity(0.2))
-                                .cornerRadius(12)
+                                Text("Invite Parent")
+                                    .font(.radioCanadaBig(16, weight: .medium))
+                                    .foregroundColor(AppColors.primary)
+                                    .underline(true)
                             }
+                            .padding(.top, 8)
                         }
                         
                         familyMembersListView
@@ -2167,8 +2169,10 @@ struct ChildrenListView: View {
                     }
                 }
                 .padding()
+                }
             }
         }
+        .accentColor(AppColors.textPrimary)
         .sheet(isPresented: $showingInviteChild) {
             InviteChildView()
                 .environmentObject(familyService)
@@ -2271,9 +2275,9 @@ struct ChildrenListView: View {
         let allChildren = familyService.getAllChildren()
         
         return VStack(alignment: .leading, spacing: 12) {
-            if sortedMembers.count + allChildren.count <= 5 {
-                // Show as VStack for small lists (no scroll needed)
-                VStack(spacing: 8) {
+            // Family members list (unified ScrollView for all sizes)
+            ScrollView {
+                LazyVStack(spacing: 8) {
                     // Show parents first
                     ForEach(sortedMembers, id: \.0) { userId, member in
                                     if member.role == .parent && removedParentId != userId {
@@ -2285,7 +2289,7 @@ struct ChildrenListView: View {
                                                 .overlay(
                                                     Image(systemName: "person.fill")
                                                         .font(.system(size: 24))
-                                                        .foregroundColor(AppColors.overlayLight)
+                                                        .foregroundColor(AppColors.textPrimary)
                                                 )
                                             
                                             VStack(alignment: .leading, spacing: 1) {
@@ -2304,7 +2308,7 @@ struct ChildrenListView: View {
                                             // Settings icon
                                             Image(systemName: "ellipsis.circle")
                                                 .font(.system(size: 24))
-                                                .foregroundColor(.white.opacity(0.6))
+                                                .foregroundColor(AppColors.primary)
                                         }
                                         .padding(.vertical, 12)
                                         .contentShape(Rectangle())
@@ -2336,7 +2340,7 @@ struct ChildrenListView: View {
                                                             } else {
                                                                 Text(String(child.name.prefix(1)).uppercased())
                                                                     .font(.radioCanadaBig(24, weight: .bold))
-                                                                    .foregroundColor(AppColors.overlayLight)
+                                                                    .foregroundColor(AppColors.textPrimary)
                                                             }
                                                         }
                                                     )
@@ -2354,11 +2358,10 @@ struct ChildrenListView: View {
                                                 
                                                 Spacer()
                                                 
-                                                if !child.isPending {
-                                                    Image(systemName: "chevron.right")
-                                                        .font(.caption)
-                                                        .foregroundColor(.white.opacity(0.5))
-                                                }
+                                                // Settings icon
+                                                Image(systemName: "ellipsis.circle")
+                                                    .font(.system(size: 24))
+                                                    .foregroundColor(AppColors.primary)
                                             }
                                             .padding(.vertical, 12)
                                             .contentShape(Rectangle())
@@ -2381,124 +2384,10 @@ struct ChildrenListView: View {
                                         .opacity(removedChildId == child.id ? 0.0 : 1.0)
                                         .animation(.easeInOut(duration: 0.8), value: removedChildId)
                                     }
-                                }
-                            }
-                        } else {
-                            // Show as ScrollView for larger lists
-                            ScrollView {
-                                LazyVStack(spacing: 8) {
-                                    // Show parents first
-                                    ForEach(sortedMembers, id: \.0) { userId, member in
-                                        if member.role == .parent && removedParentId != userId {
-                                            HStack(spacing: 12) {
-                                                // User icon
-                                                Circle()
-                                                    .fill(AppColors.overlayLight.opacity(0.2))
-                                                    .frame(width: 55, height: 55)
-                                                    .overlay(
-                                                        Image(systemName: "person.fill")
-                                                            .font(.system(size: 24))
-                                                            .foregroundColor(AppColors.overlayLight)
-                                                    )
-                                                
-                                                VStack(alignment: .leading, spacing: 1) {
-                                                    Text(member.name)
-                                                        .font(.radioCanadaBig(24, weight: .regular))
-                                                        .tracking(-1.2)
-                                                        .foregroundColor(AppColors.overlayLight)
-                                                    
-                                                    Text("Parent")
-                                                        .font(.radioCanadaBig(16, weight: .regular))
-                                                        .foregroundColor(.white.opacity(0.7))
-                                                }
-                                                
-                                                Spacer()
-                                                
-                                                // Settings icon
-                                                Image(systemName: "ellipsis.circle")
-                                                    .font(.system(size: 24))
-                                                    .foregroundColor(.white.opacity(0.6))
-                                            }
-                                            .padding(.vertical, 12)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                selectedParent = (id: userId, name: member.name)
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Show all children (pending + accepted)
-                                    ForEach(Array(allChildren.enumerated()), id: \.element.id) { index, child in
-                                        if removedChildId != child.id {
-                                            VStack(spacing: 0) {
-                                                HStack(spacing: 12) {
-                                                    // User icon with photo or initial
-                                                    Circle()
-                                                        .fill(AppColors.overlayLight.opacity(0.2))
-                                                        .frame(width: 55, height: 55)
-                                                        .overlay(
-                                                            Group {
-                                                                if let imageBase64 = child.imageBase64, !imageBase64.isEmpty,
-                                                                   let imageData = Data(base64Encoded: imageBase64),
-                                                                   let uiImage = UIImage(data: imageData) {
-                                                                    Image(uiImage: uiImage)
-                                                                        .resizable()
-                                                                        .aspectRatio(contentMode: .fill)
-                                                                        .frame(width: 50, height: 50)
-                                                                        .clipShape(Circle())
-                                                                } else {
-                                                                    Text(String(child.name.prefix(1)).uppercased())
-                                                                        .font(.radioCanadaBig(24, weight: .bold))
-                                                                        .foregroundColor(AppColors.overlayLight)
-                                                                }
-                                                            }
-                                                        )
-                                                    
-                                                    VStack(alignment: .leading, spacing: 1) {
-                                                        Text(child.name)
-                                                            .font(.radioCanadaBig(24, weight: .regular))
-                                                            .tracking(-1.2)
-                                                            .foregroundColor(AppColors.overlayLight)
-                                                        
-                                                        Text(child.isPending ? "Invite not accepted" : "Child")
-                                                            .font(.radioCanadaBig(16, weight: .regular))
-                                                            .foregroundColor(.white.opacity(0.7))
-                                                    }
-                                                    
-                                                    Spacer()
-                                                    
-                                                    if !child.isPending {
-                                                        Image(systemName: "chevron.right")
-                                                            .font(.caption)
-                                                            .foregroundColor(.white.opacity(0.5))
-                                                    }
-                                                }
-                                                .padding(.vertical, 12)
-                                                .contentShape(Rectangle())
-                                                .onTapGesture {
-                                                    if !child.isPending {
-                                                        childProfileData.setChild(id: child.id, name: child.name)
-                                                    } else {
-                                                        selectedPendingChild = child
-                                                    }
-                                                }
-                                                
-                                                // Divider
-                                                if index < allChildren.count - 1 {
-                                                    Divider()
-                                                        .background(AppColors.overlayLight.opacity(0.2))
-                                                        .padding(.horizontal, 15)
-                                                }
-                                            }
-                                            .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
-                                            .opacity(removedChildId == child.id ? 0.0 : 1.0)
-                                            .animation(.easeInOut(duration: 0.8), value: removedChildId)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 16)
                             }
                         }
+                    }
+                    .padding(.horizontal, 16)
         }
     }
     
@@ -3441,7 +3330,7 @@ struct SettingsView: View {
                 Text("Settings")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundColor(AppColors.overlayLight)
+                    .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                     .padding(.top)
@@ -3452,7 +3341,7 @@ struct SettingsView: View {
                     Text("Type: \(authService.currentUser?.userType.rawValue.capitalized ?? "Unknown")")
                 }
                 .font(.body)
-                .foregroundColor(AppColors.overlayLight)
+                .foregroundColor(AppColors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
                 

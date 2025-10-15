@@ -36,7 +36,7 @@ struct CreateGeofenceView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "New Location Alert",
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.background,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -53,11 +53,11 @@ struct CreateGeofenceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Location Alert Name")
                         .font(.headline)
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     TextField("e.g., School, Home, Park", text: $geofenceName)
                         .padding(12)
-                        .background(AppColors.overlayLight)
+                        .background(AppColors.surface)
                         .cornerRadius(8)
                 }
                 
@@ -65,15 +65,15 @@ struct CreateGeofenceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Radius")
                         .font(.headline)
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     HStack {
                         Slider(value: $selectedRadius, in: 50...1000, step: 50)
-                            .accentColor(AppColors.accent)
+                            .accentColor(AppColors.primary)
                         
                         Text("\(Int(selectedRadius))m")
                             .font(.subheadline)
-                            .foregroundColor(AppColors.overlayLight)
+                            .foregroundColor(AppColors.textPrimary)
                             .frame(width: 60)
                     }
                     
@@ -88,9 +88,9 @@ struct CreateGeofenceView: View {
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(
-                                        selectedRadius == radius ? AppColors.accent : AppColors.overlayLight.opacity(0.3)
+                                        selectedRadius == radius ? AppColors.primary : AppColors.buttonSurface
                                     )
-                                    .foregroundColor(selectedRadius == radius ? .black : .white)
+                                    .foregroundColor(selectedRadius == radius ? .white : AppColors.textPrimary)
                                     .cornerRadius(8)
                             }
                         }
@@ -101,20 +101,20 @@ struct CreateGeofenceView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Location")
                         .font(.headline)
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     if let coordinate = selectedCoordinate {
                         HStack {
                             Image(systemName: "mappin.circle.fill")
-                                .foregroundColor(AppColors.accent)
+                                .foregroundColor(AppColors.primary)
                             
                             VStack(alignment: .leading) {
                                 Text("Lat: \(coordinate.latitude, specifier: "%.6f")")
                                     .font(.caption)
-                                    .foregroundColor(AppColors.overlayLight)
+                                    .foregroundColor(AppColors.textSecondary)
                                 Text("Lng: \(coordinate.longitude, specifier: "%.6f")")
                                     .font(.caption)
-                                    .foregroundColor(AppColors.overlayLight)
+                                    .foregroundColor(AppColors.textSecondary)
                             }
                             
                             Spacer()
@@ -124,15 +124,15 @@ struct CreateGeofenceView: View {
                             }) {
                                 Text("Change")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.white)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(AppColors.accent)
+                                    .background(AppColors.primary)
                                     .cornerRadius(8)
                             }
                         }
                         .padding()
-                        .background(AppColors.overlayLight.opacity(0.2))
+                        .background(AppColors.buttonSurface)
                         .cornerRadius(8)
                     } else {
                         Button(action: {
@@ -143,10 +143,10 @@ struct CreateGeofenceView: View {
                                 Text("Select Location")
                             }
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(AppColors.accent)
+                            .background(AppColors.primary)
                             .cornerRadius(25)
                         }
                         .padding(.horizontal, 30)
@@ -171,7 +171,7 @@ struct CreateGeofenceView: View {
                 // Error Message
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.errorColor)
                         .font(.caption)
                         .multilineTextAlignment(.center)
                 }
