@@ -1580,6 +1580,7 @@ struct ParentHomeView: View {
             .sheet(isPresented: $showingFamilyManagement) {
                 FamilyManagementView()
                     .environmentObject(authService)
+                    .environmentObject(subscriptionService)
             }
             .sheet(isPresented: $showingInviteChild) {
                 InviteChildView()
