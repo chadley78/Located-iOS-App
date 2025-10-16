@@ -14,26 +14,44 @@ const db = admin.firestore();
 async function fixFamilySubscription() {
   const familyId = '1c0e25f1-88c8-4030-a601-afa377978d92';
   
+  // Get command line argument: 'expire' or 'reset' (default: reset)
+  const mode = process.argv[2] || 'reset';
+  
   try {
-    // Calculate new trial end date (7 days from now)
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    let trialEndsAt;
+    let subscriptionStatus;
+    
+    if (mode === 'expire') {
+      // Set trial to expired (past date)
+      trialEndsAt = new Date('2025-10-10T00:00:00Z'); // Past date
+      subscriptionStatus = 'expired';
+      
+      console.log('🔴 Expiring trial for testing...');
+    } else {
+      // Reset to 7 days from now
+      trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+      subscriptionStatus = 'trial';
+      
+      console.log('🟢 Resetting trial to 7 days...');
+    }
     
     // Update family document
     await db.collection('families').doc(familyId).update({
-      subscriptionStatus: 'trial',
+      subscriptionStatus: subscriptionStatus,
       trialEndsAt: trialEndsAt,
       subscriptionExpiresAt: trialEndsAt
     });
     
-    console.log('✅ Family subscription status fixed!');
-    console.log('   Status: trial');
+    console.log('✅ Family subscription status updated!');
+    console.log('   Status:', subscriptionStatus);
     console.log('   Trial ends:', trialEndsAt.toISOString());
     console.log('   Expires:', trialEndsAt.toISOString());
+    console.log('\n💡 Restart your app to see changes!');
     
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error fixing family subscription:', error);
+    console.error('❌ Error updating family subscription:', error);
     process.exit(1);
   }
 }
