@@ -28,6 +28,11 @@
 		<string>RadioCanadaBig-SemiBold.ttf</string>
 		<string>RadioCanadaBig-Bold.ttf</string>
 	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.locatedapp.refresh</string>
+		<string>com.locatedapp.locationUpdate</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
