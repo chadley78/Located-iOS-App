@@ -1907,6 +1907,7 @@ struct ChildLocationCard: View {
 // MARK: - Child Home View
 struct ChildHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var subscriptionService: SubscriptionService
     @EnvironmentObject var locationService: LocationService
     @EnvironmentObject var familyService: FamilyService
     @StateObject private var geofenceService = GeofenceService()
@@ -2130,6 +2131,8 @@ struct ChildHomeView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
                     .environmentObject(authService)
+                    .environmentObject(subscriptionService)
+                    .environmentObject(familyService)
             }
             .alert("Location Permission Required", isPresented: $showingLocationPermissionAlert) {
                 Button("Settings") {
@@ -3438,8 +3441,12 @@ struct EditParentNameView: View {
 // MARK: - Settings View
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthenticationService
+    @EnvironmentObject var subscriptionService: SubscriptionService
+    @EnvironmentObject var familyService: FamilyService
     @EnvironmentObject var notificationService: NotificationService
     @Environment(\.dismiss) private var dismiss
+    
+    @State private var showingSubscriptionManagement = false
     
     var body: some View {
         NavigationView {
@@ -3461,6 +3468,55 @@ struct SettingsView: View {
                 .foregroundColor(AppColors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
+                
+                // Subscription section (parent only)
+                if authService.currentUser?.userType == .parent {
+                    VStack(spacing: 12) {
+                        // Subscription status card
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Subscription")
+                                    .font(.radioCanadaBig(16, weight: .semibold))
+                                    .foregroundColor(AppColors.textPrimary)
+                                
+                                if let family = familyService.currentFamily {
+                                    if let status = family.subscriptionStatus {
+                                        HStack(spacing: 8) {
+                                            StatusBadge(status: status)
+                                            
+                                            if status == .trial, let trialEndsAt = family.trialEndsAt {
+                                                let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: trialEndsAt).day ?? 0
+                                                Text("\(max(0, daysRemaining)) days left")
+                                                    .font(.radioCanadaBig(14))
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                    } else {
+                                        Text("No subscription")
+                                            .font(.radioCanadaBig(14))
+                                            .foregroundColor(.secondary)
+                                    }
+                                } else {
+                                    Text("Loading...")
+                                        .font(.radioCanadaBig(14))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(AppColors.surface1)
+                        .cornerRadius(12)
+                        .onTapGesture {
+                            showingSubscriptionManagement = true
+                        }
+                    }
+                    .padding(.horizontal)
+                }
                 
                 // Test notification button (child only)
                 if authService.currentUser?.userType == .child {
@@ -3524,6 +3580,12 @@ struct SettingsView: View {
                 Spacer()
             }
             .background(AppColors.background)
+            .sheet(isPresented: $showingSubscriptionManagement) {
+                SubscriptionManagementView()
+                    .environmentObject(subscriptionService)
+                    .environmentObject(authService)
+                    .environmentObject(familyService)
+            }
             .alert(
                 notificationService.errorMessage != nil ? "Error" : "Success",
                 isPresented: $notificationService.showTestAlert
