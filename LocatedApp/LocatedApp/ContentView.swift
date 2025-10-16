@@ -3496,6 +3496,14 @@ struct SettingsView: View {
                                             .font(.radioCanadaBig(14))
                                             .foregroundColor(.secondary)
                                     }
+                                    
+                                    // Show info text for non-creator parents
+                                    if !isCurrentUserCreator(family: family) {
+                                        Text("Managed by family creator")
+                                            .font(.radioCanadaBig(12))
+                                            .foregroundColor(.secondary)
+                                            .italic()
+                                    }
                                 } else {
                                     Text("Loading...")
                                         .font(.radioCanadaBig(14))
@@ -3505,14 +3513,20 @@ struct SettingsView: View {
                             
                             Spacer()
                             
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
+                            // Only show chevron for family creator
+                            if let family = familyService.currentFamily, isCurrentUserCreator(family: family) {
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         .padding()
                         .background(AppColors.surface1)
                         .cornerRadius(12)
                         .onTapGesture {
-                            showingSubscriptionManagement = true
+                            // Only allow family creator to manage subscription
+                            if let family = familyService.currentFamily, isCurrentUserCreator(family: family) {
+                                showingSubscriptionManagement = true
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -3603,6 +3617,12 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+    
+    // Helper function to check if current user is family creator
+    private func isCurrentUserCreator(family: Family) -> Bool {
+        guard let userId = authService.currentUser?.id else { return false }
+        return family.createdBy == userId
     }
 }
 
