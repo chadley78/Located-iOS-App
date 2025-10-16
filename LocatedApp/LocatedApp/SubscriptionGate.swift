@@ -27,6 +27,8 @@ struct SubscriptionGate: ViewModifier {
         .sheet(isPresented: $showPaywall) {
             PaywallView(canDismiss: false)
                 .environmentObject(subscriptionService)
+                .environmentObject(authService)
+                .environmentObject(familyService)
         }
     }
     

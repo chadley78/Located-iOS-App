@@ -171,6 +171,8 @@ struct SubscriptionManagementView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallView(canDismiss: true)
                 .environmentObject(subscriptionService)
+                .environmentObject(authService)
+                .environmentObject(familyService)
         }
     }
     

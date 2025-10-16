@@ -1,6 +1,0 @@
-framework module Pods_LocatedApp_LocatedAppUITests {
-  umbrella header "Pods-LocatedApp-LocatedAppUITests-umbrella.h"
-
-  export *
-  module * { export * }
-}

@@ -261,7 +261,8 @@ class SubscriptionService: ObservableObject {
             
             var updateData: [String: Any] = [:]
             
-            if let info = subscriptionInfo {
+            if let info = subscriptionInfo, info.isActive {
+                // Only update if there's an active RevenueCat subscription
                 updateData["subscriptionStatus"] = info.status.rawValue
                 
                 if let expiresAt = info.expiresAt {
@@ -271,15 +272,14 @@ class SubscriptionService: ObservableObject {
                 if info.status == .trial, let expiresAt = info.expiresAt {
                     updateData["trialEndsAt"] = expiresAt
                 }
+                
+                try await db.collection("families").document(familyId).updateData(updateData)
+                print("✅ Subscription synced to Firestore")
             } else {
-                // Clear subscription data
-                updateData["subscriptionStatus"] = SubscriptionStatus.expired.rawValue
-                updateData["subscriptionExpiresAt"] = FieldValue.delete()
-                updateData["trialEndsAt"] = FieldValue.delete()
+                // Don't overwrite Firestore trial - only update when there's an active RevenueCat subscription
+                // The Firestore-based 7-day trial should remain until it naturally expires
+                print("ℹ️ No active RevenueCat subscription - preserving Firestore trial status")
             }
-            
-            try await db.collection("families").document(familyId).updateData(updateData)
-            print("✅ Subscription synced to Firestore")
             
         } catch {
             print("❌ Error syncing subscription to Firestore: \(error)")

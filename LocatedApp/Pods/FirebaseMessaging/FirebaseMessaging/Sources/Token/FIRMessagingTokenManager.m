@@ -333,7 +333,7 @@
               handler:^(NSError *error) {
                 if (!error) {
                   // Do not send the token back in case the save was unsuccessful. Since with
-                  // the new asychronous fetch mechanism this can lead to infinite loops, for
+                  // the new asynchronous fetch mechanism this can lead to infinite loops, for
                   // example, we will return a valid token even though we weren't able to store
                   // it in our cache. The first token will lead to a onTokenRefresh callback
                   // wherein the user again calls `getToken` but since we weren't able to save
@@ -744,7 +744,7 @@
                                         handler:^(NSString *_Nullable token,
                                                   NSError *_Nullable error){
                                             // Do nothing as callback is not needed and the
-                                            // sub-funciton already handle errors.
+                                            // sub-function already handle errors.
                                         }];
       }
       if ([self->_tokenStore cachedTokenInfos].count == 0) {
@@ -752,7 +752,7 @@
                                   scope:kFIRMessagingDefaultTokenScope
                                 options:tokenOptions
                                 handler:^(NSString *_Nullable FCMToken, NSError *_Nullable error){
-                                    // Do nothing as callback is not needed and the sub-funciton
+                                    // Do nothing as callback is not needed and the sub-function
                                     // already handle errors.
                                 }];
       }
