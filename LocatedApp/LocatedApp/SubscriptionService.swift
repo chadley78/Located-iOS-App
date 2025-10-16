@@ -63,6 +63,9 @@ class SubscriptionService: ObservableObject {
             _ = try await Purchases.shared.logIn(userId)
             print("✅ User identified in RevenueCat")
             
+            // Sync Firestore trial info to RevenueCat attributes
+            await syncFirestoreTrialToRevenueCat(userId: userId)
+            
             // Check subscription status after identifying
             await checkSubscriptionStatus()
         } catch {
@@ -231,6 +234,60 @@ class SubscriptionService: ObservableObject {
     /// Check if user has active subscription or trial
     func isSubscriptionActive() -> Bool {
         return subscriptionInfo?.isActive ?? false
+    }
+    
+    /// Sync Firestore trial information to RevenueCat as custom attributes
+    /// This allows viewing trial status in RevenueCat dashboard
+    private func syncFirestoreTrialToRevenueCat(userId: String) async {
+        do {
+            // Get user document to find familyId
+            let userDoc = try await db.collection("users").document(userId).getDocument()
+            guard let familyId = userDoc.data()?["familyId"] as? String else {
+                print("ℹ️ Cannot sync trial to RevenueCat: user has no familyId")
+                return
+            }
+            
+            // Get family document to check trial status
+            let familyDoc = try await db.collection("families").document(familyId).getDocument()
+            guard let familyData = familyDoc.data() else {
+                print("ℹ️ Cannot sync trial to RevenueCat: no family data")
+                return
+            }
+            
+            // Build custom attributes for RevenueCat
+            var attributes: [String: String] = [:]
+            
+            if let status = familyData["subscriptionStatus"] as? String {
+                attributes["subscription_status"] = status
+            }
+            
+            if let trialEndsAt = (familyData["trialEndsAt"] as? Timestamp)?.dateValue() {
+                let formatter = ISO8601DateFormatter()
+                attributes["trial_ends_at"] = formatter.string(from: trialEndsAt)
+                
+                // Calculate days remaining
+                let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: trialEndsAt).day ?? 0
+                attributes["trial_days_remaining"] = String(max(0, daysRemaining))
+            }
+            
+            if let familyName = familyData["name"] as? String {
+                attributes["family_name"] = familyName
+            }
+            
+            attributes["family_id"] = familyId
+            
+            // Check if user is family creator
+            let isCreator = familyData["createdBy"] as? String == userId
+            attributes["is_family_creator"] = isCreator ? "true" : "false"
+            
+            // Set attributes in RevenueCat
+            Purchases.shared.attribution.setAttributes(attributes)
+            
+            print("✅ Synced trial info to RevenueCat attributes: \(attributes)")
+            
+        } catch {
+            print("❌ Error syncing trial to RevenueCat: \(error)")
+        }
     }
     
     /// Sync subscription status to Firestore (for cross-platform access)
