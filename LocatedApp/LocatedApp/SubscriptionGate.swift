@@ -3,32 +3,56 @@ import SwiftUI
 // MARK: - Subscription Gate View Modifier
 
 struct SubscriptionGate: ViewModifier {
-    @EnvironmentObject var subscriptionService: SubscriptionService
-    @EnvironmentObject var familyService: FamilyService
-    @EnvironmentObject var authService: AuthenticationService
+    // Injected directly instead of using @EnvironmentObject
+    @ObservedObject var subscriptionService: SubscriptionService
+    @ObservedObject var familyService: FamilyService
+    @ObservedObject var authService: AuthenticationService
     
     @State private var showPaywall = false
+    @State private var shouldShowGateState = false
+    @State private var isCreator = false
+    @State private var creatorName = "the family admin"
     
     func body(content: Content) -> some View {
         ZStack {
             content
             
             // Show gate if subscription expired
-            if shouldShowGate() {
+            if shouldShowGateState {
                 SubscriptionGateView(
-                    isCreator: isCurrentUserCreator(),
-                    creatorName: getCreatorName(),
+                    isCreator: isCreator,
+                    creatorName: creatorName,
                     onUpgrade: {
                         showPaywall = true
                     }
                 )
             }
         }
+        .onAppear {
+            updateGateState()
+        }
+        .onChange(of: subscriptionService.isLoading) { _ in
+            updateGateState()
+        }
+        .onChange(of: familyService.currentFamily?.id) { _ in
+            updateGateState()
+        }
+        .onChange(of: familyService.currentFamily?.subscriptionStatus) { _ in
+            updateGateState()
+        }
         .sheet(isPresented: $showPaywall) {
             PaywallView(canDismiss: false)
                 .environmentObject(subscriptionService)
                 .environmentObject(authService)
                 .environmentObject(familyService)
+        }
+    }
+    
+    private func updateGateState() {
+        shouldShowGateState = shouldShowGate()
+        if shouldShowGateState {
+            isCreator = isCurrentUserCreator()
+            creatorName = getCreatorName()
         }
     }
     
@@ -157,8 +181,16 @@ struct SubscriptionGateView: View {
 // MARK: - View Extension
 
 extension View {
-    func subscriptionGate() -> some View {
-        self.modifier(SubscriptionGate())
+    func subscriptionGate(
+        subscriptionService: SubscriptionService,
+        familyService: FamilyService,
+        authService: AuthenticationService
+    ) -> some View {
+        self.modifier(SubscriptionGate(
+            subscriptionService: subscriptionService,
+            familyService: familyService,
+            authService: authService
+        ))
     }
 }
 

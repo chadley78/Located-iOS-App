@@ -57,7 +57,11 @@ struct ContentView: View {
                         .environmentObject(familyService)
                         .environmentObject(invitationService)
                         .environmentObject(subscriptionService)
-                        .subscriptionGate()
+                        .subscriptionGate(
+                            subscriptionService: subscriptionService,
+                            familyService: familyService,
+                            authService: authService
+                        )
                 } else {
                     // Show loading while user data is being fetched
                     VStack {
