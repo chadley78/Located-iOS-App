@@ -32,23 +32,35 @@ struct SubscriptionGate: ViewModifier {
     
     private func shouldShowGate() -> Bool {
         // Don't show if still loading
-        guard !subscriptionService.isLoading else { return false }
+        guard !subscriptionService.isLoading else {
+            print("🚪 Gate: Not showing - subscription service is loading")
+            return false
+        }
         
         // Check if family has active subscription
-        if let family = familyService.currentFamily {
-            // Check subscription status from family
-            if let status = family.subscriptionStatus {
-                return status == .expired || status == .canceled
-            }
-            
-            // Also check trial expiration
-            if let trialEndsAt = family.trialEndsAt, trialEndsAt < Date() {
-                // Trial has expired, check if they have active subscription
-                return !subscriptionService.isSubscriptionActive()
-            }
+        guard let family = familyService.currentFamily else {
+            print("🚪 Gate: Not showing - no family loaded")
+            return false
+        }
+        
+        // Check subscription status from family
+        if let status = family.subscriptionStatus {
+            let shouldShow = status == .expired || status == .canceled
+            print("🚪 Gate: Family status = \(status), shouldShow = \(shouldShow)")
+            return shouldShow
+        }
+        
+        // Check trial expiration (Firestore-based trial)
+        if let trialEndsAt = family.trialEndsAt {
+            let isTrialExpired = trialEndsAt < Date()
+            let hasActiveSubscription = subscriptionService.isSubscriptionActive()
+            let shouldShow = isTrialExpired && !hasActiveSubscription
+            print("🚪 Gate: Trial ends at \(trialEndsAt), expired = \(isTrialExpired), hasActiveSub = \(hasActiveSubscription), shouldShow = \(shouldShow)")
+            return shouldShow
         }
         
         // Default to not showing gate if we can't determine
+        print("🚪 Gate: Not showing - no subscription info available")
         return false
     }
     
@@ -165,4 +177,5 @@ extension View {
         onUpgrade: {}
     )
 }
+
 

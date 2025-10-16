@@ -68,6 +68,9 @@ class SubscriptionService: ObservableObject {
         } catch {
             print("❌ Error identifying user in RevenueCat: \(error)")
             errorMessage = "Failed to verify subscription: \(error.localizedDescription)"
+            
+            // Ensure loading state is cleared even on error
+            isLoading = false
         }
     }
     
@@ -80,17 +83,21 @@ class SubscriptionService: ObservableObject {
         do {
             let customerInfo = try await Purchases.shared.customerInfo()
             await processCustomerInfo(customerInfo)
-            isLoading = false
         } catch {
             print("❌ Error checking subscription status: \(error)")
             errorMessage = "Failed to check subscription: \(error.localizedDescription)"
-            isLoading = false
         }
+        
+        // Always clear loading state
+        isLoading = false
+        print("🔐 Subscription status check complete, isLoading = false")
     }
     
     /// Process customer info and update subscription status
     private func processCustomerInfo(_ customerInfo: CustomerInfo) async {
         print("🔐 Processing customer info")
+        print("🔐 Active entitlements: \(customerInfo.entitlements.active.keys)")
+        print("🔐 All entitlements: \(customerInfo.entitlements.all.keys)")
         
         // Check for active entitlements
         if let entitlement = customerInfo.entitlements.active["premium"] {
