@@ -1143,6 +1143,7 @@ struct MainTabView: View {
 struct ParentHomeView: View {
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var familyService: FamilyService
+    @EnvironmentObject var subscriptionService: SubscriptionService
     @EnvironmentObject var geofenceStatusService: GeofenceStatusService
     @EnvironmentObject var locationService: LocationService
     @EnvironmentObject var notificationService: NotificationService
