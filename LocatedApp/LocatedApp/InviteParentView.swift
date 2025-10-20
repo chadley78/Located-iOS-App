@@ -32,7 +32,7 @@ struct InviteParentView: View {
                     Image("InviteParent")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: 215)
                     
                     VStack(spacing: 24) {
                     // Header

@@ -45,7 +45,7 @@ struct GeofenceManagementView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxWidth: .infinity)
-                            .padding(.horizontal, -16)
+                            .padding(.horizontal, 10)
                             .padding(.top, 20)
                         
                         VStack(spacing: 8) {
@@ -304,14 +304,14 @@ struct GeofenceCard: View {
                     .font(.radioCanadaBig(12, weight: .regular))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(AppColors.errorColor.opacity(0.1))
-                    .foregroundColor(AppColors.errorColor)
+                    .background(AppColors.accent)
+                    .foregroundColor(.black)
                     .cornerRadius(6)
                 }
             }
         }
         .padding()
-        .background(AppColors.background)
+        .background(.white)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         .alert("Delete Location Alert", isPresented: $showingDeleteAlert) {

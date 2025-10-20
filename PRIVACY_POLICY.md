@@ -100,8 +100,8 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 If you have any questions about this Privacy Policy or our privacy practices, please contact us at:
 
-**Email**: [INSERT YOUR EMAIL]
-**Address**: [INSERT YOUR ADDRESS]
+**Email**: chadley78@gmail.com
+**Address**: 1 Butterfield Grove, Rathfarnham, Dublin, D14NY16, Ireland
 
 ## Compliance
 

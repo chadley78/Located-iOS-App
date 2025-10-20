@@ -1141,7 +1141,7 @@ struct MainTabView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .accentColor(.white)
+        .accentColor(AppColors.textPrimary)
     }
 }
 
@@ -1303,42 +1303,48 @@ struct ParentHomeView: View {
                                     VStack(spacing: 0) {
                                         // Banner section
                                         ZStack(alignment: .topLeading) {
-                                            // Background image (visible from bottom up, covers full panel)
-                                            GeometryReader { geometry in
-                                                Image("InviteChild")
-                                                    .resizable()
-                                                    .scaledToFill()
-                                                    .frame(width: geometry.size.width, height: geometry.size.height)
-                                                    .offset(y: geometry.size.height * -0.05) // Offset by 7.5% of height
-                                                    .clipped()
-                                            }
+                                            // Background color
+                                            AppColors.accent
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                            
-                                           // Content
-                                           VStack(alignment: .leading, spacing: 20) {
-                                               // Title
-                                               Text("Let's add your first child")
-                                                   .headingLarge()
-                                                   .frame(maxWidth: .infinity, alignment: .leading)
-                                               
-                                               // Button below title
-                                               Button("Add a Child") {
-                                                   showingInviteChild = true
+                                           // Content - Horizontal layout
+                                           HStack(alignment: .top, spacing: 0) {
+                                               // Left side - Title and Button (60% width)
+                                               VStack(alignment: .leading, spacing: 20) {
+                                                   Text("Let's add your first child")
+                                                       .headingLarge()
+                                                       .frame(maxWidth: .infinity, alignment: .leading)
+                                                   
+                                                   Button("Add a Child") {
+                                                       showingInviteChild = true
+                                                   }
+                                                   .font(.system(size: 16, weight: .semibold))
+                                                   .foregroundColor(.white)
+                                                   .padding(.horizontal, 20)
+                                                   .padding(.vertical, 12)
+                                                   .background(AppColors.primary)
+                                                   .cornerRadius(25)
+                                                   
+                                                   Spacer()
                                                }
-                                               .font(.system(size: 16, weight: .semibold))
-                                               .foregroundColor(.white)
-                                               .padding(.horizontal, 20)
-                                               .padding(.vertical, 12)
-                                               .background(AppColors.primary)
-                                               .cornerRadius(25)
+                                               .frame(maxWidth: .infinity)
+                                               .padding(.leading, 30)
+                                               .padding(.vertical, 30)
                                                
-                                               Spacer()
+                                               // Right side - InviteChild image (40% width, fills height)
+                                               GeometryReader { geometry in
+                                                   Image("InviteChild")
+                                                       .resizable()
+                                                       .aspectRatio(contentMode: .fit)
+                                                       .frame(width: geometry.size.width, height: geometry.size.height)
+                                               }
+                                               .frame(width: UIScreen.main.bounds.width * 0.4 * 0.85) // 40% of panel width (accounting for panel margins)
+                                               .padding(.trailing, 30)
                                            }
-                                           .padding(.horizontal, 30)
-                                           .padding(.vertical, 30)
                                         }
                                     }
                                     .frame(height: 300)
-                                    .background(AppColors.accent)
+                                    .background(AppColors.surfaceGray)
                                     .cornerRadius(12)
                                 } else {
                                     // Children list (pending + accepted)
@@ -1388,20 +1394,14 @@ struct ParentHomeView: View {
                                          AppColors.accent
                                              .frame(maxWidth: .infinity, maxHeight: .infinity)
                                         
-                                        // Content
-                                        VStack(spacing: 0) {
-                                            // Title spanning full width at top
-                                            Text("Let's set-up your family")
-                                                .headingLarge()
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .padding(.horizontal, 30)
-                                                .padding(.top, 30)
-                                            
-                                            Spacer()
-                                            
-                                            // Bottom section with buttons and rocket
-                                            HStack(alignment: .bottom) {
-                                                // Left side - Buttons
+                                        // Content - Horizontal layout
+                                        HStack(alignment: .top, spacing: 0) {
+                                            // Left side - Title and Buttons (60% width)
+                                            VStack(alignment: .leading, spacing: 20) {
+                                                Text("Let's set-up your family")
+                                                    .headingLarge()
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                
                                                 VStack(alignment: .leading, spacing: 16) {
                                                     Button("Create Family") {
                                                         showingFamilySetup = true
@@ -1419,21 +1419,24 @@ struct ParentHomeView: View {
                                                         Text("Join Existing Family")
                                                             .font(.system(size: 16, weight: .medium))
                                                             .foregroundColor(AppColors.primary)
-                                                            .underline()
                                                     }
                                                 }
-                                                .padding(.leading, 30)
-                                                .padding(.bottom, 30)
                                                 
                                                 Spacer()
-                                                
-                                                // Right side - Rocket image (fills available horizontal space)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.leading, 30)
+                                            .padding(.vertical, 30)
+                                            
+                                            // Right side - Rocket image (40% width, fills height)
+                                            GeometryReader { geometry in
                                                 Image("Rocket")
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fit)
-                                                    .padding(.trailing, 30)
-                                                    .padding(.bottom, 30)
+                                                    .frame(width: geometry.size.width, height: geometry.size.height)
                                             }
+                                            .frame(width: UIScreen.main.bounds.width * 0.4 * 0.85) // 40% of panel width (accounting for panel margins)
+                                            .padding(.trailing, 30)
                                         }
                                      }
                                  }
@@ -2802,10 +2805,11 @@ struct ChildProfileView: View {
                                 
                                 Text(inviteCode)
                                     .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                    .foregroundColor(AppColors.highlight)
+                                    .foregroundColor(.black)
                                     .padding()
-                                    .background(AppColors.surface1)
+                                    .background(.white)
                                     .cornerRadius(8)
+                                    .colorScheme(.light)
                                 
                                 Text("This code expires in 24 hours")
                                     .font(.radioCanadaBig(12, weight: .regular))
