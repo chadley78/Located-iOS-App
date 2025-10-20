@@ -80,7 +80,7 @@ struct FamilySetupView: View {
                 }
                 .padding()
             }
-            .background(AppColors.background)
+            .background(AppColors.accent)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -332,7 +332,7 @@ struct InviteChildView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "Invite Child",
-            backgroundColor: AppColors.background,
+            backgroundColor: AppColors.accent,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
@@ -349,7 +349,7 @@ struct InviteChildView: View {
                 Image("InviteChild")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: 215)
                 
                 VStack(spacing: 24) {
                 // Header

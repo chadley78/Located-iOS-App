@@ -28,6 +28,9 @@ struct GeofenceManagementView: View {
                     .padding(.horizontal)
                     .padding(.top)
                     .padding(.bottom, 10)
+                    .background(
+                        geofenceService.geofences.isEmpty ? AppColors.accent : AppColors.background
+                    )
                 
                 if geofenceService.isLoading {
                     ProgressView("Loading location alerts...")
@@ -75,6 +78,7 @@ struct GeofenceManagementView: View {
                         
                         Spacer()
                     }
+                    .background(AppColors.accent)
                 } else {
                     // Location Alerts List
                     ScrollView {
@@ -307,7 +311,7 @@ struct GeofenceCard: View {
             }
         }
         .padding()
-        .background(AppColors.overlayLight)
+        .background(AppColors.background)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         .alert("Delete Location Alert", isPresented: $showingDeleteAlert) {

@@ -183,7 +183,7 @@ struct WelcomeView: View {
             }
             .padding()
             .navigationBarHidden(true)
-            .background(AppColors.background)
+            .background(AppColors.accent)
         }
     }
 }
@@ -567,6 +567,7 @@ struct SignInView: View {
                 Spacer()
                 }
             }
+            .background(AppColors.background)
             .onAppear {
                 // Set initial focus to email field
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -894,6 +895,7 @@ struct SignUpView: View {
             Spacer()
             }
         }
+        .background(AppColors.background)
         .navigationTitle("Create Account")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -1270,7 +1272,25 @@ struct ParentHomeView: View {
                                     if !allChildren.isEmpty {
                                         HStack {
                                             Text("My Family")
-                                                .font(.radioCanadaBig(28, weight: .semibold))
+                                                .font(.radioCanadaBig(16, weight: .semibold))
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 8)
+                                                .background(AppColors.background)
+                                                .clipShape(UnevenRoundedCorners(
+                                                    topLeadingRadius: 0,
+                                                    topTrailingRadius: 15,
+                                                    bottomLeadingRadius: 15,
+                                                    bottomTrailingRadius: 0
+                                                ))
+                                                .overlay(
+                                                    UnevenRoundedCorners(
+                                                        topLeadingRadius: 0,
+                                                        topTrailingRadius: 15,
+                                                        bottomLeadingRadius: 15,
+                                                        bottomTrailingRadius: 0
+                                                    )
+                                                    .stroke(Color(hex: "#DEDEDE"), lineWidth: 1)
+                                                )
                                             Spacer()
                                         }
                                     }
@@ -1285,7 +1305,7 @@ struct ParentHomeView: View {
                                         ZStack(alignment: .topLeading) {
                                             // Background image (visible from bottom up, covers full panel)
                                             GeometryReader { geometry in
-                                                Image("Bicycle")
+                                                Image("InviteChild")
                                                     .resizable()
                                                     .scaledToFill()
                                                     .frame(width: geometry.size.width, height: geometry.size.height)
@@ -1318,15 +1338,14 @@ struct ParentHomeView: View {
                                         }
                                     }
                                     .frame(height: 300)
-                                    .background(AppColors.surfaceGray)
+                                    .background(AppColors.accent)
                                     .cornerRadius(12)
                                 } else {
                                     // Children list (pending + accepted)
-                                    VStack(spacing: 0) {
+                                    VStack(spacing: 12) {
                                         ForEach(Array(allChildren.enumerated()), id: \.element.id) { index, child in
                                             let childLocation = mapViewModel.childrenLocations.first { $0.childId == child.id }
                                             let lastSeen = childLocation?.lastSeen
-                                            let isLastChild = index == allChildren.count - 1
                                             
                                             ChildRowView(
                                                 child: child,
@@ -1354,7 +1373,7 @@ struct ParentHomeView: View {
                                                 onSettingsTap: {
                                                     selectedChildForProfile = child
                                                 },
-                                                showDivider: !isLastChild,
+                                                showDivider: false,
                                                 geofenceStatus: geofenceStatusService.getStatusForChild(childId: child.id)
                                             )
                                         }
@@ -1512,7 +1531,7 @@ struct ParentHomeView: View {
                     }
                     }
                     .background(
-                        AppColors.systemBackground
+                        AppColors.background
                             .clipShape(RoundedCorner(radius: 20, corners: [.topLeft, .topRight]))
                             .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
                     )
@@ -2224,20 +2243,23 @@ struct ChildrenListView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "",
-            backgroundColor: AppColors.background
+            backgroundColor: familyService.currentFamily != nil ? AppColors.background : AppColors.accent
         ) {
             ScrollView {
                 VStack(spacing: 0) {
-                    // Full bleed image at top
-                    Image("CreateFamily")
+                    // Family name at the very top
+                    if familyService.currentFamily != nil {
+                        familyHeaderView
+                    }
+                    
+                    // Full bleed image
+                    Image("Rocket")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: 237)
                     
                     VStack(spacing: 20) {
                     if familyService.currentFamily != nil {
-                        familyHeaderView
-                        
                         Spacer()
                         
                         // Invite Buttons
@@ -2401,40 +2423,57 @@ struct ChildrenListView: View {
         return VStack(alignment: .leading, spacing: 12) {
             // Family members list (unified ScrollView for all sizes)
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: 12) {
                     // Show parents first
                     ForEach(sortedMembers, id: \.0) { userId, member in
                                     if member.role == .parent && removedParentId != userId {
                                         HStack(spacing: 12) {
-                                            // User icon
-                                            Circle()
-                                                .fill(AppColors.overlayLight.opacity(0.2))
-                                                .frame(width: 55, height: 55)
-                                                .overlay(
-                                                    Image(systemName: "person.fill")
-                                                        .font(.system(size: 24))
-                                                        .foregroundColor(AppColors.textPrimary)
-                                                )
+                                            // Parent pin (always green for accepted parents)
+                                            ZStack {
+                                                Image("GreenPin")
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 55, height: 55)
+                                                
+                                                // Parent icon in pin
+                                                Image(systemName: "person.fill")
+                                                    .font(.system(size: 20))
+                                                    .foregroundColor(.primary)
+                                                    .offset(y: -6)
+                                            }
                                             
-                                            VStack(alignment: .leading, spacing: 1) {
+                                            VStack(alignment: .leading, spacing: 0) {
                                                 Text(member.name)
-                                                    .font(.radioCanadaBig(24, weight: .regular))
-                                                    .tracking(-1.2)
+                                                    .font(.radioCanadaBig(32, weight: .bold))
+                                                    .tracking(-1.6)
                                                     .foregroundColor(AppColors.textPrimary)
                                                 
                                                 Text("Parent")
                                                     .font(.radioCanadaBig(16, weight: .regular))
-                                                    .foregroundColor(AppColors.textSecondary)
+                                                    .foregroundColor(AppColors.textPrimary)
                                             }
                                             
                                             Spacer()
                                             
                                             // Settings icon
-                                            Image(systemName: "ellipsis.circle")
-                                                .font(.system(size: 24))
-                                                .foregroundColor(AppColors.primary)
+                                            Button(action: {
+                                                selectedParent = (id: userId, name: member.name)
+                                            }) {
+                                                Image(systemName: "gearshape.fill")
+                                                    .font(.system(size: 20))
+                                                    .foregroundColor(AppColors.textSecondary)
+                                                    .frame(width: 44, height: 44)
+                                                    .contentShape(Rectangle())
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
                                         }
-                                        .padding(.vertical, 12)
+                                        .padding(16)
+                                        .background(AppColors.background)
+                                        .cornerRadius(20)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(Color(hex: "#DEDEDE"), lineWidth: 1)
+                                        )
                                         .contentShape(Rectangle())
                                         .onTapGesture {
                                             selectedParent = (id: userId, name: member.name)
@@ -2445,63 +2484,71 @@ struct ChildrenListView: View {
                                 // Show all children (pending + accepted)
                                 ForEach(Array(allChildren.enumerated()), id: \.element.id) { index, child in
                                     if removedChildId != child.id {
-                                        VStack(spacing: 0) {
-                                            HStack(spacing: 12) {
-                                                // User icon with photo or initial
-                                                Circle()
-                                                    .fill(AppColors.overlayLight.opacity(0.2))
+                                        HStack(spacing: 12) {
+                                            // Child pin with photo or initial
+                                            ZStack {
+                                                // Pin color based on invitation status
+                                                Image(child.isPending ? "OrangePin" : "GreenPin")
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
                                                     .frame(width: 55, height: 55)
-                                                    .overlay(
-                                                        Group {
-                                                            if let imageBase64 = child.imageBase64, !imageBase64.isEmpty,
-                                                               let imageData = Data(base64Encoded: imageBase64),
-                                                               let uiImage = UIImage(data: imageData) {
-                                                                Image(uiImage: uiImage)
-                                                                    .resizable()
-                                                                    .aspectRatio(contentMode: .fill)
-                                                                    .frame(width: 50, height: 50)
-                                                                    .clipShape(Circle())
-                                                            } else {
-                                                                Text(String(child.name.prefix(1)).uppercased())
-                                                                    .font(.radioCanadaBig(24, weight: .bold))
-                                                                    .foregroundColor(AppColors.textPrimary)
-                                                            }
-                                                        }
-                                                    )
                                                 
-                                                VStack(alignment: .leading, spacing: 1) {
-                                                    Text(child.name)
-                                                        .font(.radioCanadaBig(24, weight: .regular))
-                                                        .tracking(-1.2)
-                                                        .foregroundColor(AppColors.textPrimary)
-                                                    
-                                                    Text(child.isPending ? "Invite not accepted" : "Child")
-                                                        .font(.radioCanadaBig(16, weight: .regular))
-                                                        .foregroundColor(AppColors.textSecondary)
+                                                // Child photo or initial inside pin
+                                                if let imageBase64 = child.imageBase64, !imageBase64.isEmpty,
+                                                   let imageData = Data(base64Encoded: imageBase64),
+                                                   let uiImage = UIImage(data: imageData) {
+                                                    Image(uiImage: uiImage)
+                                                        .resizable()
+                                                        .aspectRatio(contentMode: .fill)
+                                                        .frame(width: 35, height: 35)
+                                                        .clipShape(Circle())
+                                                        .offset(y: -6)
+                                                } else {
+                                                    Text(String(child.name.prefix(1)).uppercased())
+                                                        .font(.radioCanadaBig(20, weight: .bold))
+                                                        .foregroundColor(.primary)
+                                                        .offset(y: -6)
                                                 }
-                                                
-                                                Spacer()
-                                                
-                                                // Settings icon
-                                                Image(systemName: "ellipsis.circle")
-                                                    .font(.system(size: 24))
-                                                    .foregroundColor(AppColors.primary)
                                             }
-                                            .padding(.vertical, 12)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
+                                            
+                                            VStack(alignment: .leading, spacing: 0) {
+                                                Text(child.name)
+                                                    .font(.radioCanadaBig(32, weight: .bold))
+                                                    .tracking(-1.6)
+                                                    .foregroundColor(AppColors.textPrimary)
+                                                
+                                                Text(child.isPending ? "Invite not accepted" : "Child")
+                                                    .font(.radioCanadaBig(16, weight: .regular))
+                                                    .foregroundColor(AppColors.textPrimary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            // Settings icon
+                                            Button(action: {
                                                 if !child.isPending {
                                                     childProfileData.setChild(id: child.id, name: child.name)
                                                 } else {
                                                     selectedPendingChild = child
                                                 }
+                                            }) {
+                                                Image(systemName: "gearshape.fill")
+                                                    .font(.system(size: 20))
+                                                    .foregroundColor(AppColors.textSecondary)
+                                                    .frame(width: 44, height: 44)
+                                                    .contentShape(Rectangle())
                                             }
-                                            
-                                            // Divider
-                                            if index < allChildren.count - 1 {
-                                                Divider()
-                                                    .background(AppColors.overlayLight.opacity(0.2))
-                                                    .padding(.horizontal, 15)
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                        .padding(16)
+                                        .background(Color(hex: "#FFFFFF"))
+                                        .cornerRadius(20)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            if !child.isPending {
+                                                childProfileData.setChild(id: child.id, name: child.name)
+                                            } else {
+                                                selectedPendingChild = child
                                             }
                                         }
                                         .scaleEffect(removedChildId == child.id ? 0.1 : 1.0)
@@ -5167,6 +5214,83 @@ struct RoundedCorner: Shape {
     }
 }
 
+// MARK: - Uneven Rounded Corners Shape
+struct UnevenRoundedCorners: Shape {
+    var topLeadingRadius: CGFloat = 0
+    var topTrailingRadius: CGFloat = 0
+    var bottomLeadingRadius: CGFloat = 0
+    var bottomTrailingRadius: CGFloat = 0
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        let width = rect.width
+        let height = rect.height
+        
+        // Start at top-left (after radius)
+        path.move(to: CGPoint(x: topLeadingRadius, y: 0))
+        
+        // Top edge to top-right corner
+        path.addLine(to: CGPoint(x: width - topTrailingRadius, y: 0))
+        
+        // Top-right corner
+        if topTrailingRadius > 0 {
+            path.addArc(
+                center: CGPoint(x: width - topTrailingRadius, y: topTrailingRadius),
+                radius: topTrailingRadius,
+                startAngle: Angle(degrees: -90),
+                endAngle: Angle(degrees: 0),
+                clockwise: false
+            )
+        }
+        
+        // Right edge to bottom-right corner
+        path.addLine(to: CGPoint(x: width, y: height - bottomTrailingRadius))
+        
+        // Bottom-right corner
+        if bottomTrailingRadius > 0 {
+            path.addArc(
+                center: CGPoint(x: width - bottomTrailingRadius, y: height - bottomTrailingRadius),
+                radius: bottomTrailingRadius,
+                startAngle: Angle(degrees: 0),
+                endAngle: Angle(degrees: 90),
+                clockwise: false
+            )
+        }
+        
+        // Bottom edge to bottom-left corner
+        path.addLine(to: CGPoint(x: bottomLeadingRadius, y: height))
+        
+        // Bottom-left corner
+        if bottomLeadingRadius > 0 {
+            path.addArc(
+                center: CGPoint(x: bottomLeadingRadius, y: height - bottomLeadingRadius),
+                radius: bottomLeadingRadius,
+                startAngle: Angle(degrees: 90),
+                endAngle: Angle(degrees: 180),
+                clockwise: false
+            )
+        }
+        
+        // Left edge to top-left corner
+        path.addLine(to: CGPoint(x: 0, y: topLeadingRadius))
+        
+        // Top-left corner
+        if topLeadingRadius > 0 {
+            path.addArc(
+                center: CGPoint(x: topLeadingRadius, y: topLeadingRadius),
+                radius: topLeadingRadius,
+                startAngle: Angle(degrees: 180),
+                endAngle: Angle(degrees: 270),
+                clockwise: false
+            )
+        }
+        
+        path.closeSubpath()
+        return path
+    }
+}
+
 // MARK: - Edit Family Name View
 struct EditFamilyNameView: View {
     let currentName: String
@@ -5398,48 +5522,42 @@ struct ChildRowView: View {
     let geofenceStatus: GeofenceStatus? // New parameter
     
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                // Child pin
-                ChildPinView(child: child, lastSeen: lastSeen)
+        HStack(spacing: 12) {
+            // Child pin
+            ChildPinView(child: child, lastSeen: lastSeen)
+            
+            // Child info
+            VStack(alignment: .leading, spacing: 0) {
+                Text(child.name)
+                    .font(.radioCanadaBig(32, weight: .bold))
+                    .tracking(-1.6) // 5% reduced letter spacing (32 * 0.05 = 1.6)
+                    .foregroundColor(.primary)
                 
-                // Child info
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(child.name)
-                        .font(.radioCanadaBig(24, weight: .regular))
-                        .tracking(-1.2) // 5% reduced letter spacing (32 * 0.05 = 1.6)
-                        .foregroundColor(.primary)
-                    
-                    Text(statusText)
-                        .font(.radioCanadaBig(16, weight: .regular))
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                
-                Spacer()
-                
-                // Settings button
-                if let onSettingsTap = onSettingsTap {
-                    Button(action: onSettingsTap) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(AppColors.textSecondary)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-            }
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                onTap()
+                Text(statusText)
+                    .font(.radioCanadaBig(16, weight: .regular))
+                    .foregroundColor(AppColors.textPrimary)
             }
             
-            // Divider
-            if showDivider {
-                Divider()
-                    .padding(.horizontal, 15) // 15pt from each side
+            Spacer()
+            
+            // Settings button
+            if let onSettingsTap = onSettingsTap {
+                Button(action: onSettingsTap) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(AppColors.textSecondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
             }
+        }
+        .padding(16)
+        .background(Color(hex: "#FFFFFF"))
+        .cornerRadius(20)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
         }
     }
     

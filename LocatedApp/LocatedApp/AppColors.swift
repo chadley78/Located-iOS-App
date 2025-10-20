@@ -4,11 +4,11 @@ import SwiftUI
 // New vibrant playful design - Purple/Pink/Yellow theme
 struct AppColors {
     // MARK: - Core Palette
-    static let primary = Color(hex: "#7B61FF")      // Primary brand color – main buttons and interactive elements
+    static let primary = Color(hex: "#7B61FF")      // Primary brand color – Purple, main buttons and interactive elements
     static let secondary = Color(hex: "#F9A65A")    // Secondary color – accent icons, small highlights, or illustrations
-    static let accent = Color(hex: "#FFE36E")       // Accent color – cheerful highlights and visual emphasis
+    static let accent = Color(hex: "#FFE36E")       // Accent color – Yellow, cheerful highlights and visual emphasis
     static let surface = Color(hex: "#FFFFFF")      // Surface color – cards, text fields, and modal backgrounds
-    static let background = Color(hex: "#F2A6B5")   // Background color – soft pink backdrop for screens and sections
+    static let background = Color(hex: "#F4F4F4")   // Background color – Grey, soft pink backdrop for screens and sections #F2A6B5
     static let highlight = Color(hex: "#FFB8A1")    // Highlight color – subtle gradients or hover effects
     static let textPrimary = Color(hex: "#1C1C1E")  // Text primary – headings and core text elements
     static let textSecondary = Color(hex: "#4A4A4A")// Text secondary – captions, helper text, and secondary labels

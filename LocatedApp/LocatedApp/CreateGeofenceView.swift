@@ -36,7 +36,7 @@ struct CreateGeofenceView: View {
     var body: some View {
         CustomNavigationContainer(
             title: "New Location Alert",
-            backgroundColor: AppColors.background,
+            backgroundColor: AppColors.accent,
             leadingButton: CustomNavigationBar.NavigationButton(title: "Cancel") {
                 dismiss()
             },
