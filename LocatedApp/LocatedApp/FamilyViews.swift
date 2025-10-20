@@ -390,75 +390,28 @@ struct InviteChildView: View {
                 
                 // Success State
                 if let inviteCode = inviteCode {
-                    VStack(spacing: 16) {
-                        Text("Invitation Created!")
-                            .font(.radioCanadaBig(22, weight: .semibold))
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        Text("Share this code with your child:")
-                            .font(.radioCanadaBig(16, weight: .regular))
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        Text(inviteCode)
-                            .font(.system(size: 24, weight: .bold, design: .monospaced))
-                            .foregroundColor(AppColors.textPrimary)
-                            .padding()
-                            .background(AppColors.surface)
-                            .cornerRadius(8)
-                        
-                        Text("This code expires in 24 hours")
-                            .font(.radioCanadaBig(12, weight: .regular))
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        // Share buttons
-                        HStack(spacing: 16) {
-                            Button(action: {
-                                // Copy to clipboard
-                                UIPasteboard.general.string = inviteCode
-                            }) {
-                                HStack {
-                                    Image(systemName: "doc.on.doc")
-                                    Text("Copy")
-                                }
-                                .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(AppColors.primary)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(AppColors.surface)
-                                .cornerRadius(6)
-                            }
+                    InvitationCodePanel(
+                        inviteCode: inviteCode,
+                        recipientName: "your child",
+                        onCopy: {
+                            UIPasteboard.general.string = inviteCode
+                        },
+                        onShare: {
+                            // Share invitation with deep link
+                            let deepLink = invitationService.generateInvitationLink(inviteCode: inviteCode)
+                            let universalLink = invitationService.generateUniversalLink(inviteCode: inviteCode)
+                            let shareText = "Join my family on Located! Use this code: \(inviteCode)\n\nOr click this link: \(deepLink)\n\nIf the link doesn't work, use this: \(universalLink)"
                             
-                            Button(action: {
-                                // Share invitation with deep link
-                                let deepLink = invitationService.generateInvitationLink(inviteCode: inviteCode)
-                                let universalLink = invitationService.generateUniversalLink(inviteCode: inviteCode)
-                                let shareText = "Join my family on Located! Use this code: \(inviteCode)\n\nOr click this link: \(deepLink)\n\nIf the link doesn't work, use this: \(universalLink)"
-                                
-                                let activityVC = UIActivityViewController(
-                                    activityItems: [shareText],
-                                    applicationActivities: nil
-                                )
-                                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                   let window = windowScene.windows.first {
-                                    window.rootViewController?.present(activityVC, animated: true)
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "square.and.arrow.up")
-                                    Text("Share")
-                                }
-                                .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(AppColors.primary)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(AppColors.surface)
-                                .cornerRadius(6)
+                            let activityVC = UIActivityViewController(
+                                activityItems: [shareText],
+                                applicationActivities: nil
+                            )
+                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                               let window = windowScene.windows.first {
+                                window.rootViewController?.present(activityVC, animated: true)
                             }
                         }
-                    }
-                    .padding()
-                    .background(AppColors.accent)
-                    .cornerRadius(12)
+                    )
                     .padding(.horizontal)
                 }
                 

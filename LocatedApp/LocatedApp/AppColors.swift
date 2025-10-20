@@ -26,6 +26,10 @@ struct AppColors {
     static let warningColor = Color.orange // System orange for warnings
     static let buttonSurface = Color(white: 0.92) // Light gray surface for navigation buttons
     
+    // MARK: - Invitation Panel Colors
+    static let invitationPanelBackground = Color(hex: "#E4A9B3") // Panel background for invitation code
+    static let invitationCodeBackground = Color(hex: "#FFF0F2") // Background for the invitation code text
+    
     // MARK: - Overlay Colors
     static let overlayLight = Color.white
     static let overlayDark = Color.black

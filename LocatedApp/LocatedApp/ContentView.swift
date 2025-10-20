@@ -24,13 +24,13 @@ struct ContentView: View {
         Group {
             if !showContent {
                 // Show launch screen while transitioning
-                AppColors.background
+                AppColors.accent
                     .ignoresSafeArea()
             } else if authService.isInitializing {
                 // Show loading screen while checking authentication state
                 VStack(spacing: 20) {
                     Circle()
-                        .fill(AppColors.background)
+                        .fill(AppColors.accent)
                         .frame(width: 80, height: 80)
                         .overlay(
                             Image("AppSplash")
@@ -48,7 +48,7 @@ struct ContentView: View {
                         .foregroundColor(AppColors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.background)
+                .background(AppColors.accent)
             } else if authService.isAuthenticated {
                 if authService.currentUser != nil {
                     MainTabView()
@@ -72,7 +72,7 @@ struct ContentView: View {
                             .padding(.top)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(AppColors.background)
+                    .background(AppColors.accent)
                 }
             } else {
                 WelcomeView(invitationCode: invitationCode)
@@ -2794,73 +2794,25 @@ struct ChildProfileView: View {
                         
                         // New Invitation Code Display
                         if let inviteCode = newInviteCode {
-                            VStack(spacing: 16) {
-                                Text("Invitation Created!")
-                                    .font(.radioCanadaBig(22, weight: .semibold))
-                                    .foregroundColor(AppColors.overlayLight)
-                                
-                                Text("Share this code with \(childName):")
-                                    .font(.radioCanadaBig(16, weight: .regular))
-                                    .foregroundColor(AppColors.overlayLight)
-                                
-                                Text(inviteCode)
-                                    .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.black)
-                                    .padding()
-                                    .background(.white)
-                                    .cornerRadius(8)
-                                    .colorScheme(.light)
-                                
-                                Text("This code expires in 24 hours")
-                                    .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(.white.opacity(0.7))
-                                
-                                // Share buttons
-                                HStack(spacing: 16) {
-                                    Button(action: {
-                                        // Copy to clipboard
-                                        UIPasteboard.general.string = inviteCode
-                                    }) {
-                                        HStack {
-                                            Image(systemName: "doc.on.doc")
-                                            Text("Copy")
-                                        }
-                                        .font(.radioCanadaBig(12, weight: .regular))
-                                        .foregroundColor(AppColors.highlight)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(AppColors.surface1)
-                                        .cornerRadius(6)
-                                    }
-                                    
-                                    Button(action: {
-                                        // Share invitation
-                                        let shareText = "Join my family on Located! Use this code: \(inviteCode)"
-                                        let activityVC = UIActivityViewController(
-                                            activityItems: [shareText],
-                                            applicationActivities: nil
-                                        )
-                                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                           let window = windowScene.windows.first {
-                                            window.rootViewController?.present(activityVC, animated: true)
-                                        }
-                                    }) {
-                                        HStack {
-                                            Image(systemName: "square.and.arrow.up")
-                                            Text("Share")
-                                        }
-                                        .font(.radioCanadaBig(12, weight: .regular))
-                                        .foregroundColor(AppColors.highlight)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(AppColors.surface1)
-                                        .cornerRadius(6)
+                            InvitationCodePanel(
+                                inviteCode: inviteCode,
+                                recipientName: childName,
+                                onCopy: {
+                                    UIPasteboard.general.string = inviteCode
+                                },
+                                onShare: {
+                                    // Share invitation
+                                    let shareText = "Join my family on Located! Use this code: \(inviteCode)"
+                                    let activityVC = UIActivityViewController(
+                                        activityItems: [shareText],
+                                        applicationActivities: nil
+                                    )
+                                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                       let window = windowScene.windows.first {
+                                        window.rootViewController?.present(activityVC, animated: true)
                                     }
                                 }
-                            }
-                            .padding()
-                            .background(AppColors.overlayLight.opacity(0.1))
-                            .cornerRadius(12)
+                            )
                         }
                         
                         // Delete Child Button

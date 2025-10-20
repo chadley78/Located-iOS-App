@@ -73,71 +73,24 @@ struct InviteParentView: View {
                     
                     // Success State
                     if let inviteCode = inviteCode {
-                        VStack(spacing: 16) {
-                            Text("Invitation Created!")
-                                .font(.radioCanadaBig(22, weight: .semibold))
-                                .foregroundColor(AppColors.textPrimary)
-                            
-                            Text("Share this code with another parent:")
-                                .font(.radioCanadaBig(16, weight: .regular))
-                                .foregroundColor(AppColors.textPrimary)
-                            
-                            Text(inviteCode)
-                                .font(.system(size: 24, weight: .bold, design: .monospaced))
-                                .foregroundColor(AppColors.textPrimary)
-                                .padding()
-                                .background(AppColors.surface)
-                                .cornerRadius(8)
-                            
-                            Text("This code expires in 24 hours")
-                                .font(.radioCanadaBig(12, weight: .regular))
-                                .foregroundColor(AppColors.textPrimary)
-                            
-                            // Share buttons
-                            HStack(spacing: 16) {
-                                Button(action: {
-                                    // Copy to clipboard
-                                    UIPasteboard.general.string = inviteCode
-                                }) {
-                                    HStack {
-                                        Image(systemName: "doc.on.doc")
-                                        Text("Copy")
-                                    }
-                                    .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(AppColors.primary)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(AppColors.surface)
-                                    .cornerRadius(8)
-                                }
+                        InvitationCodePanel(
+                            inviteCode: inviteCode,
+                            recipientName: "another parent",
+                            onCopy: {
+                                UIPasteboard.general.string = inviteCode
+                            },
+                            onShare: {
+                                // Share via system share sheet
+                                let text = "Join my family on Located! Use invitation code: \(inviteCode)"
+                                let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
                                 
-                                Button(action: {
-                                    // Share via system share sheet
-                                    let text = "Join my family on Located! Use invitation code: \(inviteCode)"
-                                    let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
-                                    
-                                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                       let window = windowScene.windows.first,
-                                       let rootVC = window.rootViewController {
-                                        rootVC.present(av, animated: true)
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "square.and.arrow.up")
-                                        Text("Share")
-                                    }
-                                    .font(.radioCanadaBig(12, weight: .regular))
-                                    .foregroundColor(AppColors.primary)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(AppColors.surface)
-                                    .cornerRadius(8)
+                                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                                   let window = windowScene.windows.first,
+                                   let rootVC = window.rootViewController {
+                                    rootVC.present(av, animated: true)
                                 }
                             }
-                        }
-                        .padding()
-                        .background(AppColors.accent)
-                        .cornerRadius(12)
+                        )
                         .padding(.horizontal)
                     } else {
                         Spacer()
