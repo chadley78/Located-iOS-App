@@ -159,16 +159,10 @@ struct ChildWelcomeView: View {
             
             // App Logo - matching parent loading screen
             VStack(spacing: 24) {
-                Circle()
-                    .fill(AppColors.accent)
-                    .frame(width: 120, height: 120)
-                    .overlay(
-                        Image("AppSplash")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                    )
+                Image("InviteChild")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: 215)
                 
                 // Welcome Text
                 VStack(spacing: 16) {
@@ -296,6 +290,7 @@ struct ChildWelcomeView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.accent)
         .onAppear {
             // After a short delay, transition from "Setting up" to "Welcome"
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
@@ -366,16 +361,10 @@ struct ChildWelcomeBackView: View {
             
             // App Logo - matching parent loading screen
             VStack(spacing: 24) {
-                Circle()
-                    .fill(AppColors.accent)
-                    .frame(width: 120, height: 120)
-                    .overlay(
-                        Image("AppSplash")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                    )
+                Image("InviteChild")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: 215)
                 
                 // Welcome Back Text
                 VStack(spacing: 16) {
@@ -407,7 +396,7 @@ struct ChildWelcomeBackView: View {
             .padding(.bottom, 50)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.background)
+        .background(AppColors.accent)
         .ignoresSafeArea()
     }
 }
@@ -422,9 +411,10 @@ struct WelcomeToFamilyView: View {
             Spacer()
             
             // Welcome Icon
-            Image(systemName: "house.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
+            Image("InviteChild")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: 215)
             
             // Welcome Text
             VStack(spacing: 16) {
@@ -460,6 +450,8 @@ struct WelcomeToFamilyView: View {
             .padding(.bottom)
         }
         .padding()
+        .background(AppColors.accent)
+        .ignoresSafeArea()
     }
 }
 

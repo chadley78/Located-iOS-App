@@ -272,17 +272,14 @@ struct ChildSignUpView: View {
                     
                     // Header
                     VStack(spacing: 16) {
-                        Image(systemName: "person.badge.plus")
-                            .font(.system(size: 50))
-                            .foregroundColor(AppColors.systemGreen)
-                        
-                        Text("Join Your Family")
-                            .font(.title)
-                            .font(.system(size: 28, weight: .bold))
+                        Image("Rocket")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: 237)
                         
                 Text("Enter the invitation code your parent shared with you.")
-                    .font(.body)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.radioCanadaBig(16))
+                    .foregroundColor(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
@@ -291,14 +288,14 @@ struct ChildSignUpView: View {
                 // Invitation Code Field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Invitation Code")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(AppColors.textSecondary)
+                        .font(.radioCanadaBig(13, weight: .medium))
+                        .foregroundColor(AppColors.textPrimary)
                     
                     TextField("Enter invitation code", text: $inviteCode)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.allCharacters)
                         .disableAutocorrection(true)
-                        .font(.system(size: 18, weight: .medium, design: .monospaced))
+                        .font(.radioCanadaBig(18, weight: .medium))
                 }
             }
             .padding(.horizontal, 30)
@@ -329,6 +326,7 @@ struct ChildSignUpView: View {
                     Spacer()
                     }
                 }
+                .background(AppColors.accent)
                 .onAppear {
                     // Pre-fill invitation code if provided
                     if let code = invitationCode {
@@ -1986,70 +1984,15 @@ struct ChildHomeView: View {
                     .cornerRadius(12)
                 }
                 
-                // Debug Information Card
-                VStack(spacing: 16) {
-                    Text("Debug Information")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(AppColors.warningColor)
-                    
-                    VStack(spacing: 12) {
-                        // Child Name
-                        HStack {
-                            Text("Child Name:")
-                                .font(.system(size: 16, weight: .medium))
-                            Spacer()
-                            Text(authService.currentUser?.name ?? "Not Available")
-                                .font(.system(size: 16))
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                        
-                        // Family Name
-                        HStack {
-                            Text("Family Name:")
-                                .font(.system(size: 16, weight: .medium))
-                            Spacer()
-                            Text(familyService.currentFamily?.name ?? "Not Available")
-                                .font(.system(size: 16))
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                        
-                        // Family ID
-                        HStack {
-                            Text("Family ID:")
-                                .font(.system(size: 16, weight: .medium))
-                            Spacer()
-                            Text(authService.currentUser?.familyId ?? "Not Available")
-                                .font(.system(size: 16))
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                        
-                        // User ID
-                        HStack {
-                            Text("User ID:")
-                                .font(.system(size: 16, weight: .medium))
-                            Spacer()
-                            Text(authService.currentUser?.id ?? "Not Available")
-                                .font(.system(size: 16))
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                    }
-                }
-                .padding()
-                .background(AppColors.warningColor.opacity(0.1))
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(AppColors.warningColor.opacity(0.3), lineWidth: 1)
-                )
                 
                 // Status Card
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 16) {
                     Text("Your Status")
                         .font(.title2)
                         .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 12) {
                         // Location Sharing Status
                         HStack {
                             Circle()
@@ -2111,10 +2054,10 @@ struct ChildHomeView: View {
                             Text(locationService.isLocationSharingEnabled ? "Stop Sharing Location" : "Start Sharing Location")
                         }
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(AppColors.overlayLight)
+                        .foregroundColor(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(locationService.isLocationSharingEnabled ? AppColors.errorColor : AppColors.systemBlue)
+                        .background(locationService.isLocationSharingEnabled ? AppColors.accent : AppColors.systemBlue)
                         .cornerRadius(25)
                     }
                     
@@ -2189,6 +2132,7 @@ struct ChildHomeView: View {
                     geofenceService.stopMonitoringAllGeofences()
                 }
             }
+            .background(AppColors.background)
         }
     }
     
@@ -3466,15 +3410,75 @@ struct SettingsView: View {
                     .padding(.horizontal)
                     .padding(.top)
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("User: \(authService.currentUser?.name ?? "Unknown")")
-                    Text("Email: \(authService.currentUser?.email ?? "Unknown")")
-                    Text("Type: \(authService.currentUser?.userType.rawValue.capitalized ?? "Unknown")")
+                // VStack(alignment: .leading, spacing: 8) {
+                //     Text("User: \(authService.currentUser?.name ?? "Unknown")")
+                //     Text("Email: \(authService.currentUser?.email ?? "Unknown")")
+                //     Text("Type: \(authService.currentUser?.userType.rawValue.capitalized ?? "Unknown")")
+                // }
+                // .font(.body)
+                // .foregroundColor(AppColors.textPrimary)
+                // .frame(maxWidth: .infinity, alignment: .leading)
+                // .padding(.horizontal)
+                
+                // Debug Information Card (child only)
+                if authService.currentUser?.userType == .child {
+                    VStack(spacing: 16) {
+                        Text("Debug Information")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(AppColors.warningColor)
+                        
+                        VStack(spacing: 12) {
+                            // Child Name
+                            HStack {
+                                Text("Child Name:")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
+                                Text(authService.currentUser?.name ?? "Not Available")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                            
+                            // Family Name
+                            HStack {
+                                Text("Family Name:")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
+                                Text(familyService.currentFamily?.name ?? "Not Available")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                            
+                            // Family ID
+                            HStack {
+                                Text("Family ID:")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
+                                Text(authService.currentUser?.familyId ?? "Not Available")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                            
+                            // User ID
+                            HStack {
+                                Text("User ID:")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
+                                Text(authService.currentUser?.id ?? "Not Available")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(AppColors.warningColor.opacity(0.1))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(AppColors.warningColor.opacity(0.3), lineWidth: 1)
+                    )
+                    .padding(.horizontal)
                 }
-                .font(.body)
-                .foregroundColor(AppColors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
                 
                 // Subscription section (parent only)
                 if authService.currentUser?.userType == .parent {
@@ -3540,27 +3544,27 @@ struct SettingsView: View {
                 }
                 
                 // Test notification button (child only)
-                if authService.currentUser?.userType == .child {
-                    Button(action: {
-                        Task {
-                            await notificationService.sendTestGeofenceNotification()
-                        }
-                    }) {
-                        HStack {
-                            if notificationService.isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                Text("Sending...")
-                            } else {
-                                Image(systemName: "bell.badge")
-                                Text("Test Parent Notification")
-                            }
-                        }
-                    }
-                    .primaryBButtonStyle()
-                    .disabled(notificationService.isLoading)
-                    .padding(.horizontal)
-                }
+                // if authService.currentUser?.userType == .child {
+                //     Button(action: {
+                //         Task {
+                //             await notificationService.sendTestGeofenceNotification()
+                //         }
+                //     }) {
+                //         HStack {
+                //             if notificationService.isLoading {
+                //                 ProgressView()
+                //                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                //                 Text("Sending...")
+                //             } else {
+                //                 Image(systemName: "bell.badge")
+                //                 Text("Test Parent Notification")
+                //             }
+                //         }
+                //     }
+                //     .primaryBButtonStyle()
+                //     .disabled(notificationService.isLoading)
+                //     .padding(.horizontal)
+                // }
                 
                 // Test self-notification button (parent only)
                 if authService.currentUser?.userType == .parent {
@@ -4417,8 +4421,6 @@ struct MapViewRepresentable: UIViewRepresentable {
                 photoImageView.layer.cornerRadius = overlaySize / 2
                 photoImageView.clipsToBounds = true
                 photoImageView.contentMode = .scaleAspectFill
-                photoImageView.layer.borderWidth = 2
-                photoImageView.layer.borderColor = UIColor.white.cgColor
                 
                 if let imageData = Data(base64Encoded: imageBase64!), let childImage = UIImage(data: imageData) {
                     photoImageView.image = childImage
@@ -4426,26 +4428,19 @@ struct MapViewRepresentable: UIViewRepresentable {
                 
                 containerView.addSubview(photoImageView)
             } else {
-                // Add initial letter in a circle
-                let initialView = UIView(frame: CGRect(
+                // Add initial letter (no background circle, just text)
+                let initialLabel = UILabel(frame: CGRect(
                     x: (size - overlaySize) / 2,
                     y: (size - overlaySize) / 2 + overlayYOffset,
                     width: overlaySize,
                     height: overlaySize
                 ))
-                initialView.layer.cornerRadius = overlaySize / 2
-                initialView.backgroundColor = .white
-                initialView.layer.borderWidth = 2
-                initialView.layer.borderColor = UIColor.lightGray.cgColor
-                
-                let initialLabel = UILabel(frame: CGRect(x: 0, y: 0, width: overlaySize, height: overlaySize))
                 initialLabel.text = String(childName.prefix(1)).uppercased()
                 initialLabel.textAlignment = .center
                 initialLabel.font = UIFont.systemFont(ofSize: overlaySize * 0.5, weight: .bold)
                 initialLabel.textColor = .darkGray
                 
-                initialView.addSubview(initialLabel)
-                containerView.addSubview(initialView)
+                containerView.addSubview(initialLabel)
             }
             
             return containerView
