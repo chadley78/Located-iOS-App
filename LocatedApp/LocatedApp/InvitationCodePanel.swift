@@ -4,8 +4,10 @@ import SwiftUI
 struct InvitationCodePanel: View {
     let inviteCode: String
     let recipientName: String
+    let shareText: String
     let onCopy: () -> Void
-    let onShare: () -> Void
+    
+    @State private var showingShareSheet = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -44,7 +46,9 @@ struct InvitationCodePanel: View {
                     .cornerRadius(6)
                 }
                 
-                Button(action: onShare) {
+                Button(action: {
+                    showingShareSheet = true
+                }) {
                     HStack {
                         Image(systemName: "square.and.arrow.up")
                         Text("Share")
@@ -61,6 +65,9 @@ struct InvitationCodePanel: View {
         .padding()
         .background(AppColors.invitationPanelBackground)
         .cornerRadius(12)
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(items: [shareText])
+        }
     }
 }
 
@@ -68,8 +75,8 @@ struct InvitationCodePanel: View {
     InvitationCodePanel(
         inviteCode: "ABC123",
         recipientName: "Emma Smith",
-        onCopy: { print("Copy tapped") },
-        onShare: { print("Share tapped") }
+        shareText: "Join my family on Located! Use this code: ABC123",
+        onCopy: { print("Copy tapped") }
     )
     .padding()
 }

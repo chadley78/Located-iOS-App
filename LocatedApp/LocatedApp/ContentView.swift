@@ -2741,20 +2741,9 @@ struct ChildProfileView: View {
                             InvitationCodePanel(
                                 inviteCode: inviteCode,
                                 recipientName: childName,
+                                shareText: "Join my family on Located! Use this code: \(inviteCode)",
                                 onCopy: {
                                     UIPasteboard.general.string = inviteCode
-                                },
-                                onShare: {
-                                    // Share invitation
-                                    let shareText = "Join my family on Located! Use this code: \(inviteCode)"
-                                    let activityVC = UIActivityViewController(
-                                        activityItems: [shareText],
-                                        applicationActivities: nil
-                                    )
-                                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                       let window = windowScene.windows.first {
-                                        window.rootViewController?.present(activityVC, animated: true)
-                                    }
                                 }
                             )
                         }

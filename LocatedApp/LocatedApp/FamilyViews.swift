@@ -390,26 +390,16 @@ struct InviteChildView: View {
                 
                 // Success State
                 if let inviteCode = inviteCode {
+                    let deepLink = invitationService.generateInvitationLink(inviteCode: inviteCode)
+                    let universalLink = invitationService.generateUniversalLink(inviteCode: inviteCode)
+                    let shareText = "Join my family on Located! Use this code: \(inviteCode)\n\nOr click this link: \(deepLink)\n\nIf the link doesn't work, use this: \(universalLink)"
+                    
                     InvitationCodePanel(
                         inviteCode: inviteCode,
                         recipientName: "your child",
+                        shareText: shareText,
                         onCopy: {
                             UIPasteboard.general.string = inviteCode
-                        },
-                        onShare: {
-                            // Share invitation with deep link
-                            let deepLink = invitationService.generateInvitationLink(inviteCode: inviteCode)
-                            let universalLink = invitationService.generateUniversalLink(inviteCode: inviteCode)
-                            let shareText = "Join my family on Located! Use this code: \(inviteCode)\n\nOr click this link: \(deepLink)\n\nIf the link doesn't work, use this: \(universalLink)"
-                            
-                            let activityVC = UIActivityViewController(
-                                activityItems: [shareText],
-                                applicationActivities: nil
-                            )
-                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                               let window = windowScene.windows.first {
-                                window.rootViewController?.present(activityVC, animated: true)
-                            }
                         }
                     )
                     .padding(.horizontal)

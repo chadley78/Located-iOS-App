@@ -76,19 +76,9 @@ struct InviteParentView: View {
                         InvitationCodePanel(
                             inviteCode: inviteCode,
                             recipientName: "another parent",
+                            shareText: "Join my family on Located! Use invitation code: \(inviteCode)",
                             onCopy: {
                                 UIPasteboard.general.string = inviteCode
-                            },
-                            onShare: {
-                                // Share via system share sheet
-                                let text = "Join my family on Located! Use invitation code: \(inviteCode)"
-                                let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
-                                
-                                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                                   let window = windowScene.windows.first,
-                                   let rootVC = window.rootViewController {
-                                    rootVC.present(av, animated: true)
-                                }
                             }
                         )
                         .padding(.horizontal)
@@ -155,17 +145,6 @@ struct InviteParentView: View {
 }
 
 // MARK: - Share Sheet
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
 #Preview {
     InviteParentView()
         .environmentObject(AuthenticationService())
