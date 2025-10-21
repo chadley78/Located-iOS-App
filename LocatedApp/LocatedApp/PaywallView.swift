@@ -3,6 +3,7 @@ import RevenueCat
 
 struct PaywallView: View {
     @EnvironmentObject var subscriptionService: SubscriptionService
+    @EnvironmentObject var authService: AuthenticationService
     @Environment(\.dismiss) var dismiss
     
     @State private var selectedPackage: Package?
@@ -15,28 +16,21 @@ struct PaywallView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [Color(red: 0.95, green: 0.98, blue: 1.0), Color.white],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                // Background color
+                AppColors.accent
+                    .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 30) {
                         // Header
                         VStack(spacing: 12) {
-                            Image(systemName: "star.circle.fill")
-                                .font(.system(size: 60))
-                                .foregroundColor(.orange)
-                            
-                            Text("Upgrade to Premium")
+                            Text("1 Year Located Subscription")
                                 .font(.radioCanadaBig(28, weight: .bold))
+                                .foregroundColor(AppColors.textPrimary)
                             
-                            Text("Keep your family connected and safe")
+                            Text("Always know where your children are for the next 12 months")
                                 .font(.radioCanadaBig(16))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textPrimary)
                                 .multilineTextAlignment(.center)
                         }
                         .padding(.top, 40)
@@ -87,32 +81,36 @@ struct PaywallView: View {
                         
                         // Subscribe button
                         Button(action: subscribeTapped) {
-                            HStack {
-                                if isPurchasing {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                } else {
-                                    Text(getButtonText())
-                                        .font(.radioCanadaBig(18, weight: .semibold))
-                                }
+                            if isPurchasing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text(getButtonText())
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(28)
                         }
+                        .primaryAButtonStyle()
                         .disabled(isPurchasing || selectedPackage == nil)
-                        .opacity((isPurchasing || selectedPackage == nil) ? 0.6 : 1.0)
                         .padding(.horizontal, 30)
                         
                         // Restore purchases
                         Button(action: restorePurchases) {
                             Text("Restore Purchases")
                                 .font(.radioCanadaBig(14))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textPrimary)
                         }
                         .disabled(isPurchasing)
+                        
+                        // Sign out link
+                        Button(action: {
+                            Task {
+                                await authService.signOut()
+                            }
+                        }) {
+                            Text("Sign Out")
+                                .font(.radioCanadaBig(14))
+                                .foregroundColor(AppColors.textPrimary)
+                        }
                         
                         // Terms and privacy
                         HStack(spacing: 4) {
@@ -121,7 +119,7 @@ struct PaywallView: View {
                             Link("Privacy Policy", destination: URL(string: "https://yourapp.com/privacy")!)
                         }
                         .font(.radioCanadaBig(12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textPrimary)
                         
                         Spacer(minLength: 40)
                     }
@@ -223,16 +221,17 @@ struct FeatureRow: View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 24))
-                .foregroundColor(.orange)
+                .foregroundColor(AppColors.textPrimary)
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.radioCanadaBig(16, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
                 
                 Text(description)
                     .font(.radioCanadaBig(14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textPrimary)
             }
         }
     }
@@ -251,17 +250,17 @@ struct PackageCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(package.storeProduct.localizedTitle)
                         .font(.radioCanadaBig(18, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     if let intro = package.storeProduct.introductoryDiscount,
                        intro.paymentMode == .freeTrial {
                         Text("7-day free trial, then \(package.localizedPriceString)")
                             .font(.radioCanadaBig(14))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textPrimary)
                     } else {
                         Text(package.localizedPriceString)
                             .font(.radioCanadaBig(14))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textPrimary)
                     }
                 }
                 
@@ -269,17 +268,17 @@ struct PackageCard: View {
                 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 24))
-                    .foregroundColor(isSelected ? .orange : .gray)
+                    .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
             }
             .padding(20)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.white)
-                    .shadow(color: isSelected ? Color.orange.opacity(0.3) : Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                    .shadow(color: isSelected ? AppColors.textPrimary.opacity(0.3) : Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.orange : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? AppColors.textPrimary : Color.clear, lineWidth: 2)
             )
         }
         .buttonStyle(PlainButtonStyle())

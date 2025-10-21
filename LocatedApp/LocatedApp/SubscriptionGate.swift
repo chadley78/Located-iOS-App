@@ -116,46 +116,43 @@ struct SubscriptionGateView: View {
     
     var body: some View {
         ZStack {
-            // Blurred background
-            Color.black.opacity(0.3)
+            // Background color
+            AppColors.accent
                 .ignoresSafeArea()
             
             // Gate content
             VStack(spacing: 24) {
-                // Icon
-                Image(systemName: isCreator ? "lock.fill" : "info.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.orange)
-                
                 // Title
                 Text(isCreator ? "Trial Expired" : "Subscription Required")
                     .font(.radioCanadaBig(28, weight: .bold))
+                    .foregroundColor(AppColors.textPrimary)
                 
                 // Message
                 Text(getMessage())
                     .font(.radioCanadaBig(16))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 20)
                 
                 // Action button
                 if isCreator {
                     Button(action: onUpgrade) {
-                        Text("Upgrade to Continue")
+                        Text("Choose Subscription")
                             .font(.radioCanadaBig(18, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.orange)
-                            .cornerRadius(28)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(AppColors.primary)
+                            .cornerRadius(25)
                     }
-                    .padding(.horizontal, 40)
                 } else {
                     VStack(spacing: 12) {
                         Text("Contact \(creatorName) to renew")
                             .font(.radioCanadaBig(14))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textPrimary)
                             .italic()
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
                     }
                 }
             }
@@ -165,7 +162,7 @@ struct SubscriptionGateView: View {
                     .fill(Color.white)
                     .shadow(radius: 20)
             )
-            .padding(.horizontal, 30)
+            .padding(.horizontal, 20)
         }
     }
     

@@ -73,3 +73,4 @@ struct InvitationCodePanel: View {
     )
     .padding()
 }
+
