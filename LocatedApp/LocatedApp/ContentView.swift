@@ -4036,12 +4036,12 @@ class ParentMapViewModel: ObservableObject {
         
         // Set a reasonable span for viewing a single child with larger pins
         let span = MKCoordinateSpan(
-            latitudeDelta: 0.015, // Increased span for larger pins
-            longitudeDelta: 0.015
+            latitudeDelta: 0.003, // Very close zoom when child is selected
+            longitudeDelta: 0.003
         )
         
-        // Center the map on the child with minimal southward shift to account for larger 60px pins
-        let centerLat = coordinate.latitude - 0.004 // Minimal southward shift for larger pins
+        // Center the map on the child with minimal southward shift to account for panel and pin
+        let centerLat = coordinate.latitude - 0.0008 // Small shift adjusted for close zoom
         let center = CLLocationCoordinate2D(
             latitude: centerLat,
             longitude: coordinate.longitude
@@ -4180,6 +4180,13 @@ struct MapViewRepresentable: UIViewRepresentable {
         return mapView
     }
     
+    // Helper function to calculate distance between two coordinates in meters
+    private func calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) -> Double {
+        let coordinate1 = CLLocation(latitude: lat1, longitude: lon1)
+        let coordinate2 = CLLocation(latitude: lat2, longitude: lon2)
+        return coordinate1.distance(from: coordinate2)
+    }
+    
     func updateUIView(_ mapView: MKMapView, context: Context) {
         // Update region
         mapView.setRegion(region, animated: true)
@@ -4190,23 +4197,84 @@ struct MapViewRepresentable: UIViewRepresentable {
         // Remove old overlays (trail polylines)
         mapView.removeOverlays(mapView.overlays)
         
-        for childLocation in childrenLocations {
-            // Get the child's image data from family service
-            let familyMembers = familyService.getFamilyMembers()
-            let childImageBase64 = familyMembers.first { $0.0 == childLocation.childId }?.1.imageBase64
+        // Group children by location to detect overlaps
+        var locationGroups: [[ChildLocationData]] = []
+        var processedIndices: Set<Int> = []
+        
+        for (i, childLocation) in childrenLocations.enumerated() {
+            if processedIndices.contains(i) { continue }
             
-            let annotation = ChildLocationAnnotation(
-                coordinate: CLLocationCoordinate2D(
-                    latitude: childLocation.location.lat,
-                    longitude: childLocation.location.lng
-                ),
-                childId: childLocation.childId,
-                childName: childLocation.childName,
-                lastSeen: childLocation.lastSeen,
-                pinColor: mapViewModel.getColorForChild(childId: childLocation.childId),
-                imageBase64: childImageBase64
-            )
-            mapView.addAnnotation(annotation)
+            var group = [childLocation]
+            processedIndices.insert(i)
+            
+            // Find all other children at the same location (within ~10 meters)
+            for (j, otherChild) in childrenLocations.enumerated() {
+                if i != j && !processedIndices.contains(j) {
+                    let distance = calculateDistance(
+                        lat1: childLocation.location.lat,
+                        lon1: childLocation.location.lng,
+                        lat2: otherChild.location.lat,
+                        lon2: otherChild.location.lng
+                    )
+                    if distance < 10 { // Within 10 meters
+                        group.append(otherChild)
+                        processedIndices.insert(j)
+                    }
+                }
+            }
+            
+            locationGroups.append(group)
+        }
+        
+        // Create annotations with offsets for overlapping locations
+        for group in locationGroups {
+            if group.count == 1 {
+                // Single child - no offset needed
+                let childLocation = group[0]
+                let familyMembers = familyService.getFamilyMembers()
+                let childImageBase64 = familyMembers.first { $0.0 == childLocation.childId }?.1.imageBase64
+                
+                let annotation = ChildLocationAnnotation(
+                    coordinate: CLLocationCoordinate2D(
+                        latitude: childLocation.location.lat,
+                        longitude: childLocation.location.lng
+                    ),
+                    childId: childLocation.childId,
+                    childName: childLocation.childName,
+                    lastSeen: childLocation.lastSeen,
+                    pinColor: mapViewModel.getColorForChild(childId: childLocation.childId),
+                    imageBase64: childImageBase64
+                )
+                mapView.addAnnotation(annotation)
+            } else {
+                // Multiple children - offset pins in a circle
+                let centerLat = group[0].location.lat
+                let centerLng = group[0].location.lng
+                let offsetDistance: Double = 0.00008 // ~9 meters offset
+                
+                for (index, childLocation) in group.enumerated() {
+                    let familyMembers = familyService.getFamilyMembers()
+                    let childImageBase64 = familyMembers.first { $0.0 == childLocation.childId }?.1.imageBase64
+                    
+                    // Calculate offset angle (evenly distributed around circle)
+                    let angle = (Double(index) / Double(group.count)) * 2 * .pi
+                    let offsetLat = centerLat + (offsetDistance * cos(angle))
+                    let offsetLng = centerLng + (offsetDistance * sin(angle))
+                    
+                    let annotation = ChildLocationAnnotation(
+                        coordinate: CLLocationCoordinate2D(
+                            latitude: offsetLat,
+                            longitude: offsetLng
+                        ),
+                        childId: childLocation.childId,
+                        childName: childLocation.childName,
+                        lastSeen: childLocation.lastSeen,
+                        pinColor: mapViewModel.getColorForChild(childId: childLocation.childId),
+                        imageBase64: childImageBase64
+                    )
+                    mapView.addAnnotation(annotation)
+                }
+            }
         }
         
         // Draw history trails for each child
