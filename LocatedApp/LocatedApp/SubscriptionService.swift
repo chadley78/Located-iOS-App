@@ -49,7 +49,7 @@ class SubscriptionService: ObservableObject {
         print("🔐 Configuring RevenueCat SDK")
         
         // Configure RevenueCat
-        Purchases.logLevel = .debug // Set to .info in production
+        Purchases.logLevel = .info // Production setting
         Purchases.configure(withAPIKey: revenueCatAPIKey)
         
         print("✅ RevenueCat SDK configured")
