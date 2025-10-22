@@ -427,11 +427,15 @@ class GeofenceService: NSObject, ObservableObject {
                 return
             }
             
+            // Get user's actual name from Firestore
+            let userDoc = try await db.collection("users").document(currentUserId).getDocument()
+            let userName = userDoc.data()?["name"] as? String ?? "Unknown"
+            
             let event = GeofenceEvent(
                 id: UUID().uuidString,
                 familyId: geofence.familyId,
                 childId: currentUserId,
-                childName: "Current User", // This should be updated to get actual name
+                childName: userName, // Use actual name instead of "Current User"
                 geofenceId: geofence.id,
                 geofenceName: geofence.name,
                 eventType: eventType,
@@ -442,7 +446,7 @@ class GeofenceService: NSObject, ObservableObject {
                     lng: location.coordinate.longitude,
                     accuracy: location.horizontalAccuracy,
                     timestamp: Date(),
-                    address: nil,
+                    address: nil, // Will be geocoded in LocationService instead
                     batteryLevel: nil,
                     isMoving: location.speed > 1.0
                 )
@@ -509,14 +513,19 @@ extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
                 return
             }
             
-            await logGeofenceEvent(
-                geofence: geofence,
-                eventType: .enter,
-                location: CLLocation(
-                    latitude: circularRegion.center.latitude,
-                    longitude: circularRegion.center.longitude
-                )
-            )
+            // Note: Geofence events are now handled by LocationService.checkGeofenceContainment()
+            // which provides better reliability and includes actual child names and addresses
+            print("📍 iOS detected geofence enter: \(geofence.name) - handled by LocationService")
+            
+            // Disabled to prevent duplicate events - LocationService handles this better
+            // await logGeofenceEvent(
+            //     geofence: geofence,
+            //     eventType: .enter,
+            //     location: CLLocation(
+            //         latitude: circularRegion.center.latitude,
+            //         longitude: circularRegion.center.longitude
+            //     )
+            // )
         }
     }
     
@@ -528,14 +537,19 @@ extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
                 return
             }
             
-            await logGeofenceEvent(
-                geofence: geofence,
-                eventType: .exit,
-                location: CLLocation(
-                    latitude: circularRegion.center.latitude,
-                    longitude: circularRegion.center.longitude
-                )
-            )
+            // Note: Geofence events are now handled by LocationService.checkGeofenceContainment()
+            // which provides better reliability and includes actual child names and addresses
+            print("📍 iOS detected geofence exit: \(geofence.name) - handled by LocationService")
+            
+            // Disabled to prevent duplicate events - LocationService handles this better
+            // await logGeofenceEvent(
+            //     geofence: geofence,
+            //     eventType: .exit,
+            //     location: CLLocation(
+            //         latitude: circularRegion.center.latitude,
+            //         longitude: circularRegion.center.longitude
+            //     )
+            // )
         }
     }
     

@@ -689,6 +689,37 @@ class LocationService: NSObject, ObservableObject {
             let userDoc = try await Firestore.firestore().collection("users").document(userId).getDocument()
             let userName = userDoc.data()?["name"] as? String ?? "Unknown"
             
+            // Geocode the location to get a readable address
+            let geocoder = CLGeocoder()
+            var addressString = "Unknown location"
+            
+            do {
+                let placemarks = try await geocoder.reverseGeocodeLocation(location)
+                if let placemark = placemarks.first {
+                    var addressComponents: [String] = []
+                    
+                    if let streetNumber = placemark.subThoroughfare {
+                        addressComponents.append(streetNumber)
+                    }
+                    if let streetName = placemark.thoroughfare {
+                        addressComponents.append(streetName)
+                    }
+                    if let city = placemark.locality {
+                        addressComponents.append(city)
+                    }
+                    if let country = placemark.country {
+                        addressComponents.append(country)
+                    }
+                    
+                    if !addressComponents.isEmpty {
+                        addressString = addressComponents.joined(separator: " ")
+                    }
+                }
+            } catch {
+                print("📍 Geocoding failed: \(error.localizedDescription)")
+                // Keep default "Unknown location" if geocoding fails
+            }
+            
             let event: [String: Any] = [
                 "id": UUID().uuidString,
                 "familyId": geofence.familyId,
@@ -703,6 +734,7 @@ class LocationService: NSObject, ObservableObject {
                     "lng": location.coordinate.longitude,
                     "timestamp": Timestamp(date: location.timestamp),
                     "accuracy": location.horizontalAccuracy,
+                    "address": addressString, // Now includes geocoded address
                     "batteryLevel": getCurrentBatteryLevel(),
                     "isMoving": location.speed > 1.0,
                     "lastUpdated": Timestamp(date: Date()),
