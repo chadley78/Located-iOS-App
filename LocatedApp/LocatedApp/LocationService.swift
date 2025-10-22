@@ -187,10 +187,8 @@ class LocationService: NSObject, ObservableObject {
         // Start periodic location timer for regular updates
         setupPeriodicLocationTimer()
         
-        // Set up real-time geofence listener
-        Task {
-            await setupGeofenceListener()
-        }
+        // Note: Geofence listener will be set up when user becomes authenticated
+        // This prevents "No authenticated user" errors during startup
         
         isLocationSharingEnabled = true
         print("📍 Location updates started successfully")
@@ -533,6 +531,16 @@ class LocationService: NSObject, ObservableObject {
         // Ensure timer continues in background
         if let timer = periodicLocationTimer {
             RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+    
+    // MARK: - Authentication Integration
+    
+    /// Set up geofence listener when user becomes authenticated
+    func setupGeofenceListenerForAuthenticatedUser() {
+        print("📍 Setting up geofence listener for authenticated user")
+        Task {
+            await setupGeofenceListener()
         }
     }
     

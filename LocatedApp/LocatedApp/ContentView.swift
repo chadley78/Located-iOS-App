@@ -97,6 +97,9 @@ struct ContentView: View {
             // Handle authentication state changes
             if isAuthenticated {
                 locationService.requestLocationPermission()
+                // Set up geofence listener now that user is authenticated
+                locationService.setupGeofenceListenerForAuthenticatedUser()
+                
                 // Restart family listener when user becomes authenticated
                 if let userId = authService.currentUser?.id {
                     print("🔄 ContentView: User authenticated, restarting family listener for: \(userId)")
