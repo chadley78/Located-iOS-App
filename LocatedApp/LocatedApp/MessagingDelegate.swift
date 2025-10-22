@@ -82,7 +82,7 @@ extension FirebaseMessagingDelegate {
     
     /// Register for remote notifications
     func registerForRemoteNotifications() {
-        UNUserNotificationCenter.current().delegate = self
+        // Don't set delegate here - let AppDelegate handle it
         
         // Request notification permissions
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in

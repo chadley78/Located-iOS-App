@@ -71,6 +71,9 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         print("📱 AppDelegate - Notification tapped: \(response.notification.request.content.userInfo)")
         
+        // Handle the notification tap through our notification handler
+        NotificationHandler.shared.handleNotificationTap(userInfo: response.notification.request.content.userInfo)
+        
         completionHandler()
     }
 }

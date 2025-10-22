@@ -22,7 +22,7 @@ class NotificationService: NSObject, ObservableObject {
     }
     
     private func setupNotificationCenter() {
-        UNUserNotificationCenter.current().delegate = self
+        // Don't set delegate here - let AppDelegate handle it
     }
     
     // MARK: - Notification Permission
@@ -494,29 +494,6 @@ class NotificationService: NSObject, ObservableObject {
         #else
         return 100
         #endif
-    }
-}
-
-// MARK: - UNUserNotificationCenterDelegate
-extension NotificationService: UNUserNotificationCenterDelegate {
-    nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-    ) {
-        // Show notification even when app is in foreground
-        completionHandler([.alert, .badge, .sound])
-    }
-    
-    nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        // Handle notification tap
-        let userInfo = response.notification.request.content.userInfo
-        print("📱 Notification tapped: \(userInfo)")
-        completionHandler()
     }
 }
 

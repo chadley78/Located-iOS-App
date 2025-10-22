@@ -1153,6 +1153,7 @@ struct ParentHomeView: View {
     @EnvironmentObject var notificationService: NotificationService
     @StateObject private var geofenceService = GeofenceService()
     @StateObject private var mapViewModel = ParentMapViewModel()
+    @StateObject private var notificationHandler = NotificationHandler.shared
     
     @State private var showingFamilySetup = false
     @State private var showingFamilyManagement = false
@@ -1166,6 +1167,17 @@ struct ParentHomeView: View {
     @State private var selectedChildForProfile: ChildDisplayItem?
     
     var body: some View {
+        mainContent
+            .background(notificationHandling)
+            .background(familyHandling)
+            .background(locationHandling)
+            .onDisappear {
+                // Stop listening to geofence events when view disappears
+                geofenceStatusService.stopListening()
+            }
+    }
+    
+    private var mainContent: some View {
         ZStack {
             // Map Section (Full Screen)
             ZStack {
@@ -1356,21 +1368,8 @@ struct ParentHomeView: View {
                                                 lastSeen: lastSeen,
                                                 onTap: {
                                                     if !child.isPending {
-                                                        // Collapse the panel
-                                                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
-                                                            isPanelExpanded = false
-                                                            panelHeight = 0.25
-                                                            buttonPosition = 0
-                                                        }
-                                                        
-                                                        // Center on the child's location
-                                                        mapViewModel.centerOnChild(childId: child.id)
-                                                        
-                                                        // Focus mode: clear all trails, then show only this child's trail
-                                                        Task {
-                                                            mapViewModel.clearAllTrails()
-                                                            await mapViewModel.toggleTrailForChild(childId: child.id, childName: child.name)
-                                                        }
+                                                        // Use shared function for consistent UX
+                                                        selectChild(childId: child.id)
                                                     }
                                                     // For pending children, we don't do anything on tap in the home view
                                                 },
@@ -1657,6 +1656,24 @@ struct ParentHomeView: View {
                     buttonPosition = 1 // Button should be on left when panel is expanded
                 }
             }
+            .onChange(of: notificationHandler.pendingChildId) { childId in
+                guard let childId = childId else { return }
+                
+                print("📱 ParentHomeView - Navigating to child from notification: \(childId)")
+                
+                // Find the child in the current locations
+                if let childLocation = mapViewModel.childrenLocations.first(where: { $0.childId == childId }) {
+                    // Center map on the child's location
+                    mapViewModel.centerOnChild(childId: childId)
+                    
+                    // Clear the pending notification
+                    notificationHandler.clearPendingNotification()
+                } else {
+                    print("📱 ParentHomeView - Child not found in current locations: \(childId)")
+                    // Still clear the notification to avoid repeated attempts
+                    notificationHandler.clearPendingNotification()
+                }
+            }
             .onChange(of: familyService.currentFamily?.id) { familyId in
                 // Start geofence status listening when family becomes available
                 if let familyId = familyId {
@@ -1680,15 +1697,92 @@ struct ParentHomeView: View {
                     buttonPosition = 1 // Button on left when expanded
                 }
             }
+    }
+    
+    // MARK: - Shared Functions
+    private func selectChild(childId: String) {
+        print("📱 selectChild called with childId: \(childId)")
+        print("📱 Current children locations: \(mapViewModel.childrenLocations.map { "\($0.childId): \($0.childName)" })")
+        
+        guard let childLocation = mapViewModel.childrenLocations.first(where: { $0.childId == childId }) else {
+            print("📱 ParentHomeView - Child not found in current locations: \(childId)")
+            return
+        }
+        
+        print("📱 Found child location: \(childLocation.childName) at \(childLocation.location.lat), \(childLocation.location.lng)")
+        
+        // Collapse the panel to give more map space
+        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1.0, duration: 0.36)) {
+            isPanelExpanded = false
+            panelHeight = 0.25
+            buttonPosition = 0
+        }
+        
+        // Center on the child's location
+        print("📱 Calling centerOnChild with childId: \(childId)")
+        mapViewModel.centerOnChild(childId: childId)
+        
+        // Focus mode: clear all trails, then show only this child's trail
+        Task {
+            mapViewModel.clearAllTrails()
+            await mapViewModel.toggleTrailForChild(childId: childId, childName: childLocation.childName)
+        }
+    }
+    
+    // MARK: - Modifier Groups
+    private var notificationHandling: some View {
+        EmptyView()
+            .onChange(of: notificationHandler.pendingChildId) { childId in
+                guard let childId = childId else { return }
+                
+                print("📱 ParentHomeView - Navigating to child from notification: \(childId)")
+                print("📱 ParentHomeView - Current children locations count: \(mapViewModel.childrenLocations.count)")
+                
+                // Add a small delay to ensure map is ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    // Use the same function as list tap for consistent UX
+                    selectChild(childId: childId)
+                }
+                
+                // Clear the pending notification
+                notificationHandler.clearPendingNotification()
+            }
+    }
+    
+    private var familyHandling: some View {
+        EmptyView()
+            .onChange(of: familyService.currentFamily?.id) { familyId in
+                // Start geofence status listening when family becomes available
+                if let familyId = familyId {
+                    geofenceStatusService.listenToGeofenceEvents(familyId: familyId)
+                    // Keep panel expanded if no children, collapse if children exist
+                    let allChildren = familyService.getAllChildren()
+                    if allChildren.isEmpty {
+                        isPanelExpanded = true
+                        panelHeight = 0.7
+                        buttonPosition = 1 // Button on left when expanded
+                    } else {
+                        isPanelExpanded = false
+                        panelHeight = 0.25
+                        buttonPosition = 0 // Button on right when collapsed
+                    }
+                } else {
+                    geofenceStatusService.stopListening()
+                    // Expand panel when family is removed (user becomes new again)
+                    isPanelExpanded = true
+                    panelHeight = 0.7
+                    buttonPosition = 1 // Button should be on left when panel is expanded
+                }
+            }
+    }
+    
+    private var locationHandling: some View {
+        EmptyView()
             .onChange(of: locationService.currentLocation) { newLocation in
                 // Center map on parent's location when it updates and no children are present
                 if mapViewModel.childrenLocations.isEmpty, let location = newLocation {
                     mapViewModel.centerOnLocation(location.coordinate)
                 }
-            }
-            .onDisappear {
-                // Stop listening to geofence events when view disappears
-                geofenceStatusService.stopListening()
             }
     }
 }
@@ -2254,7 +2348,6 @@ struct LocationPermissionInstructionView: View {
                     }
                 }
             }
-        }
         }
     }
     
@@ -4146,10 +4239,15 @@ class ParentMapViewModel: ObservableObject {
     }
     
     func centerOnChild(childId: String) {
+        print("🗺️ centerOnChild called with childId: \(childId)")
+        print("🗺️ Current childrenLocations count: \(childrenLocations.count)")
+        
         guard let childLocation = childrenLocations.first(where: { $0.childId == childId }) else {
+            print("🗺️ Child not found in childrenLocations")
             return
         }
         
+        print("🗺️ Found child: \(childLocation.childName) at \(childLocation.location.lat), \(childLocation.location.lng)")
         
         let coordinate = CLLocationCoordinate2D(
             latitude: childLocation.location.lat,
@@ -4169,6 +4267,7 @@ class ParentMapViewModel: ObservableObject {
             longitude: coordinate.longitude
         )
         
+        print("🗺️ Setting region to center: \(centerLat), \(coordinate.longitude) with span: \(span.latitudeDelta)")
         region = MKCoordinateRegion(center: center, span: span)
         
         // Force a small delay to ensure map renders properly even when re-centering on same child
