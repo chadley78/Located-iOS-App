@@ -383,7 +383,16 @@ class LocationService: NSObject, ObservableObject {
     }
     
     func getLocationPermissionStatusString() -> String {
-        switch locationPermissionStatus {
+        // Always get the current status from CLLocationManager to ensure accuracy
+        let currentStatus = CLLocationManager.authorizationStatus()
+        
+        // Update our stored status if it's different
+        if currentStatus != locationPermissionStatus {
+            print("📍 Permission status mismatch - updating from \(locationPermissionStatus.rawValue) to \(currentStatus.rawValue)")
+            locationPermissionStatus = currentStatus
+        }
+        
+        switch currentStatus {
         case .notDetermined:
             return "Not Determined"
         case .denied:

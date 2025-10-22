@@ -1936,6 +1936,7 @@ struct ChildHomeView: View {
     @EnvironmentObject var familyService: FamilyService
     @StateObject private var geofenceService = GeofenceService()
     @State private var showingLocationPermissionAlert = false
+    @State private var showingLocationPermissionInstructions = false
     @State private var showingSettings = false
     
     private var permissionStatusText: String {
@@ -2044,7 +2045,7 @@ struct ChildHomeView: View {
                 VStack(spacing: 12) {
                     Button(action: {
                         if locationService.locationPermissionStatus != .authorizedAlways {
-                            showingLocationPermissionAlert = true
+                            showingLocationPermissionInstructions = true
                         } else {
                             locationService.toggleLocationSharing()
                         }
@@ -2054,10 +2055,10 @@ struct ChildHomeView: View {
                             Text(locationService.isLocationSharingEnabled ? "Stop Sharing Location" : "Start Sharing Location")
                         }
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(locationService.isLocationSharingEnabled ? AppColors.textPrimary : .white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(locationService.isLocationSharingEnabled ? AppColors.accent : AppColors.systemBlue)
+                        .background(locationService.isLocationSharingEnabled ? AppColors.accent : AppColors.primary)
                         .cornerRadius(25)
                     }
                     
@@ -2103,15 +2104,16 @@ struct ChildHomeView: View {
                     .environmentObject(subscriptionService)
                     .environmentObject(familyService)
             }
+            .sheet(isPresented: $showingLocationPermissionInstructions) {
+                LocationPermissionInstructionView()
+            }
             .alert("Location Permission Required", isPresented: $showingLocationPermissionAlert) {
-                Button("Settings") {
-                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(settingsUrl)
-                    }
+                Button("Open Settings") {
+                    openAppSettings()
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
-                Text("Always location permission is required for background tracking. Please enable it in Settings.")
+                Text("Always location permission is required for background tracking.\n\n1. Tap 'Open Settings'\n2. Find 'Located' in the app list\n3. Tap 'Location'\n4. Select 'Always'")
             }
             .onAppear {
                 // Request location permission when view appears
@@ -2140,6 +2142,126 @@ struct ChildHomeView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+    
+    private func openAppSettings() {
+        // UIApplication.openSettingsURLString should open app-specific settings
+        // but it may fallback to general settings if the app hasn't been opened before
+        if let appSettingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(appSettingsUrl)
+        }
+    }
+}
+
+// MARK: - Location Permission Instruction View
+struct LocationPermissionInstructionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentStep = 0
+    
+    private let steps = [
+        ("1", "Open Settings", "Tap the Settings app on your home screen"),
+        ("2", "Find Located", "Scroll down and tap on 'Located' in the app list"),
+        ("3", "Tap Location", "In the Located settings, tap on 'Location'"),
+        ("4", "Select Always", "Choose 'Always' to enable background tracking")
+    ]
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 30) {
+                // Header
+                VStack(spacing: 16) {
+                    Image(systemName: "location.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(AppColors.primary)
+                    
+                    Text("Enable Background Tracking")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Text("To keep your family safe, Located needs 'Always' location permission for background tracking.")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                
+                // Steps
+                VStack(spacing: 20) {
+                    ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                        HStack(spacing: 16) {
+                            // Step number
+                            Text(step.0)
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(AppColors.primary)
+                                .clipShape(Circle())
+                            
+                            // Step content
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(step.1)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(AppColors.textPrimary)
+                                
+                                Text(step.2)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+                
+                Spacer()
+                
+                // Action buttons
+                VStack(spacing: 12) {
+                    Button(action: {
+                        openAppSettings()
+                    }) {
+                        HStack {
+                            Image(systemName: "gear")
+                            Text("Open Settings")
+                        }
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(AppColors.primary)
+                        .cornerRadius(25)
+                    }
+                    
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("I'll do this later")
+                            .font(.system(size: 16))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .padding()
+            .background(AppColors.background)
+            .navigationTitle("Location Permission")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        }
+    }
+    
+    private func openAppSettings() {
+        if let appSettingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(appSettingsUrl)
+        }
     }
 }
 

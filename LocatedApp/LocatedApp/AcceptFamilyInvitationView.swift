@@ -328,8 +328,8 @@ struct ChildWelcomeView: View {
         // Mark that we're opening Settings so we can detect when user returns
         hasOpenedSettings = true
         
-        // Open Settings app to Location permissions
-        // This will background the app and take user directly to where they need to go
+        // Open Settings app to app settings page
+        // User will need to tap "Location" → "Always" in the app settings
         if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(settingsUrl) { success in
                 if success {
