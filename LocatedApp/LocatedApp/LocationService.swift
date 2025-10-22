@@ -451,9 +451,27 @@ class LocationService: NSObject, ObservableObject {
         return timeSinceLastUpdate < 120
     }
     
+    /// Restart timer with new interval if movement state has changed significantly
+    private func restartTimerIfNeeded() {
+        let currentInterval = getCurrentMovementState()
+        
+        // Only restart if interval has changed significantly (more than 30 seconds difference)
+        if let existingTimer = periodicLocationTimer {
+            let existingInterval = existingTimer.timeInterval
+            if abs(existingInterval - currentInterval) > 30 {
+                print("⏰ Movement state changed significantly - restarting timer")
+                print("⏰ Old interval: \(Int(existingInterval))s, New interval: \(Int(currentInterval))s")
+                setupPeriodicLocationTimer()
+            }
+        }
+    }
+    
     /// Requests a periodic location update and saves to Firestore
     private func requestPeriodicLocationUpdate() {
         print("⏰ Periodic location update triggered")
+        
+        // Check if timer needs restarting based on current movement state
+        restartTimerIfNeeded()
         
         // Check if enough time has passed since last Firestore update
         // Allow 30 second tolerance to account for timer precision and race conditions
@@ -498,8 +516,8 @@ class LocationService: NSObject, ObservableObject {
         periodicLocationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.requestPeriodicLocationUpdate()
-                // Restart timer with potentially new interval (adaptive behavior)
-                self?.setupPeriodicLocationTimer()
+                // FIXED: Don't recreate timer every time - let it run stable
+                // Timer will continue with its current interval until manually restarted
             }
         }
         
