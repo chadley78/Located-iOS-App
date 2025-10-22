@@ -599,9 +599,24 @@ class LocationService: NSObject, ObservableObject {
             return
         }
         
+        print("📍 Setting up geofence listener for user: \(userId)")
+        
         do {
             // Get user's familyId
             let userDoc = try await Firestore.firestore().collection("users").document(userId).getDocument()
+            print("📍 User document exists: \(userDoc.exists)")
+            
+            if let userData = userDoc.data() {
+                print("📍 User document data: \(userData)")
+                if let familyId = userData["familyId"] as? String {
+                    print("📍 Found familyId: \(familyId)")
+                } else {
+                    print("❌ No familyId field in user document")
+                }
+            } else {
+                print("❌ User document has no data")
+            }
+            
             guard let familyId = userDoc.data()?["familyId"] as? String else {
                 print("📍 No family ID for user - skipping geofence listener setup")
                 return
@@ -625,6 +640,8 @@ class LocationService: NSObject, ObservableObject {
                         print("❌ No snapshot in geofence listener")
                         return
                     }
+                    
+                    print("📍 Geofence listener received snapshot with \(snapshot.documents.count) documents")
                     
                     // Parse geofences from snapshot
                     let geofences = snapshot.documents.compactMap { doc -> Geofence? in
@@ -672,6 +689,7 @@ class LocationService: NSObject, ObservableObject {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
         print("📍 Checking containment - Last known geofence: \(lastKnownGeofenceId ?? "none")")
+        print("📍 Cached geofences count: \(cachedGeofences.count)")
         
         // Find which geofence (if any) the child is currently in
         var currentGeofenceId: String? = nil
@@ -681,12 +699,16 @@ class LocationService: NSObject, ObservableObject {
             let geofenceCenter = CLLocation(latitude: geofence.latitude, longitude: geofence.longitude)
             let distance = location.distance(from: geofenceCenter)
             
+            print("📍 Checking geofence '\(geofence.name)': distance=\(Int(distance))m, radius=\(Int(geofence.radius))m")
+            
             if distance <= geofence.radius {
                 // Child is inside this geofence
                 currentGeofenceId = geofence.id
                 currentGeofence = geofence
-                print("📍 Child is inside geofence: \(geofence.name) (distance: \(Int(distance))m, radius: \(Int(geofence.radius))m)")
+                print("📍 ✅ Child is inside geofence: \(geofence.name) (distance: \(Int(distance))m, radius: \(Int(geofence.radius))m)")
                 break // Only track one geofence at a time
+            } else {
+                print("📍 ❌ Child is outside geofence: \(geofence.name) (distance: \(Int(distance))m, radius: \(Int(geofence.radius))m)")
             }
         }
         
