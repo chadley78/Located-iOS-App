@@ -55,17 +55,17 @@ class LocationService: NSObject, ObservableObject {
     // Flag to force save next location (used after accepting invitation)
     private var shouldSaveNextLocation = false
     
-    // Location update settings
-    private let locationUpdateInterval: TimeInterval = 30 // 30 seconds
-    private let significantLocationChangeThreshold: CLLocationDistance = 100 // 100 meters
+    // Location update settings - Optimized for high-fidelity tracking
+    private let locationUpdateInterval: TimeInterval = 10 // 10 seconds (was 30s)
+    private let significantLocationChangeThreshold: CLLocationDistance = 25 // 25 meters (was 100m)
     private var lastSignificantLocation: CLLocation?
     private var lastFirestoreUpdateTime: Date?
     
-    // Periodic update intervals for different scenarios
-    private let periodicUpdateIntervalMoving: TimeInterval = 120 // 2 minutes when moving
-    private let periodicUpdateIntervalStationary: TimeInterval = 300 // 5 minutes when stationary
-    private let periodicUpdateIntervalLowBattery: TimeInterval = 600 // 10 minutes when battery < 20%
-    private let periodicUpdateIntervalVeryLowBattery: TimeInterval = 900 // 15 minutes when battery < 10%
+    // Periodic update intervals for different scenarios - Much more frequent
+    private let periodicUpdateIntervalMoving: TimeInterval = 30 // 30 seconds when moving (was 2min)
+    private let periodicUpdateIntervalStationary: TimeInterval = 120 // 2 minutes when stationary (was 5min)
+    private let periodicUpdateIntervalLowBattery: TimeInterval = 300 // 5 minutes when battery < 20% (was 10min)
+    private let periodicUpdateIntervalVeryLowBattery: TimeInterval = 600 // 10 minutes when battery < 10% (was 15min)
     private let lowBatteryThreshold: Int = 20 // Battery percentage threshold
     private let veryLowBatteryThreshold: Int = 10 // Critical battery threshold
     
@@ -83,8 +83,9 @@ class LocationService: NSObject, ObservableObject {
     // MARK: - Setup
     private func setupLocationManager() {
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = significantLocationChangeThreshold
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation // Highest accuracy for tracking
+        locationManager.distanceFilter = 0 // No distance filter - we handle filtering ourselves
+        locationManager.pausesLocationUpdatesAutomatically = false // Keep updating even when stationary
         
         // Request appropriate permissions based on current status
         requestLocationPermission()
@@ -423,14 +424,31 @@ class LocationService: NSObject, ObservableObject {
             return periodicUpdateIntervalLowBattery
         }
         
-        // Check if moving (based on last known location speed)
-        if let location = currentLocation, location.speed > 1.0 {
-            print("🚶 Child moving - using \(periodicUpdateIntervalMoving)s interval")
-            return periodicUpdateIntervalMoving
+        // Check if moving (based on last known location speed and recent movement)
+        if let location = currentLocation {
+            let isMoving = location.speed > 0.5 // Lower threshold for movement detection (was 1.0)
+            let isRecentlyMoving = isRecentlyInMotion()
+            
+            if isMoving || isRecentlyMoving {
+                print("🚶 Child moving (speed: \(location.speed)m/s, recent: \(isRecentlyMoving)) - using \(periodicUpdateIntervalMoving)s interval")
+                return periodicUpdateIntervalMoving
+            } else {
+                print("🛑 Child stationary (speed: \(location.speed)m/s) - using \(periodicUpdateIntervalStationary)s interval")
+                return periodicUpdateIntervalStationary
+            }
         } else {
-            print("🛑 Child stationary - using \(periodicUpdateIntervalStationary)s interval")
+            print("🛑 No location data - using \(periodicUpdateIntervalStationary)s interval")
             return periodicUpdateIntervalStationary
         }
+    }
+    
+    /// Check if child has been in motion recently (within last 2 minutes)
+    private func isRecentlyInMotion() -> Bool {
+        guard let lastUpdate = lastFirestoreUpdateTime else { return false }
+        let timeSinceLastUpdate = Date().timeIntervalSince(lastUpdate)
+        
+        // If we've been updating frequently (within 2 minutes), consider it recent motion
+        return timeSinceLastUpdate < 120
     }
     
     /// Requests a periodic location update and saves to Firestore

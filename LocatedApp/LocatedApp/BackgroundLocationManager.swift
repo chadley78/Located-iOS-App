@@ -21,8 +21,8 @@ class BackgroundLocationManager: NSObject, ObservableObject {
     
     private func setupLocationManager() {
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 100 // 100 meters
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation // Highest accuracy for tracking
+        locationManager.distanceFilter = 0 // No distance filter - we handle filtering ourselves
         locationManager.pausesLocationUpdatesAutomatically = false
         // Note: allowsBackgroundLocationUpdates will be set only after authorization
     }
