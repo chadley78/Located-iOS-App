@@ -11,6 +11,7 @@ class BackgroundLocationManager: NSObject, ObservableObject {
     private let locationManager = CLLocationManager()
     #if canImport(UIKit)
     private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+    private var backgroundTaskTimer: Timer?
     #endif
     
     override init() {
@@ -59,15 +60,42 @@ class BackgroundLocationManager: NSObject, ObservableObject {
         endBackgroundTask() // End any existing background task
         
         backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: "LocationTracking") {
+            print("⚠️ Background task expiration handler called - ending task")
             self.endBackgroundTask()
         }
+        
+        // Start a timer to refresh the background task every 25 seconds
+        // iOS gives us 30 seconds, so we refresh at 25 seconds to be safe
+        backgroundTaskTimer = Timer.scheduledTimer(withTimeInterval: 25.0, repeats: true) { [weak self] _ in
+            self?.refreshBackgroundTask()
+        }
+        
+        print("📍 Background task started: \(backgroundTaskIdentifier.rawValue)")
+    }
+    
+    private func refreshBackgroundTask() {
+        guard backgroundTaskIdentifier != .invalid else { return }
+        
+        // End current task and start a new one
+        let oldTaskId = backgroundTaskIdentifier
+        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: "LocationTracking") {
+            print("⚠️ Background task expiration handler called - ending task")
+            self.endBackgroundTask()
+        }
+        
+        UIApplication.shared.endBackgroundTask(oldTaskId)
+        print("📍 Background task refreshed: \(oldTaskId.rawValue) → \(backgroundTaskIdentifier.rawValue)")
     }
     
     private func endBackgroundTask() {
         if backgroundTaskIdentifier != .invalid {
             UIApplication.shared.endBackgroundTask(backgroundTaskIdentifier)
             backgroundTaskIdentifier = .invalid
+            print("📍 Background task ended")
         }
+        
+        backgroundTaskTimer?.invalidate()
+        backgroundTaskTimer = nil
     }
     #endif
     

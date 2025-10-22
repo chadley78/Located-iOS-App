@@ -363,7 +363,16 @@ class LocationService: NSObject, ObservableObject {
     private func getCurrentBatteryLevel() -> Int {
         #if canImport(UIKit)
         let batteryLevel = UIDevice.current.batteryLevel
-        return Int(batteryLevel * 100)
+        let percentage = Int(batteryLevel * 100)
+        
+        // Fix for simulator: simulator reports -100% battery which is invalid
+        // Use 50% as default for simulator or invalid battery readings
+        if percentage < 0 || percentage > 100 {
+            print("🔋 Invalid battery level (\(percentage)%) - using 50% for simulator")
+            return 50
+        }
+        
+        return percentage
         #else
         return 100 // Mock battery level for macOS
         #endif
