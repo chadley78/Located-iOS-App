@@ -188,7 +188,7 @@ struct PaywallView: View {
         let pricePerMonth = price / 12
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.locale = package.storeProduct.priceLocale
+        formatter.locale = Locale.current
         return formatter.string(from: NSNumber(value: pricePerMonth)) ?? "N/A"
     }
     
