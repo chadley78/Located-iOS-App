@@ -189,7 +189,7 @@ struct PaywallView: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale.current
-        return formatter.string(from: NSNumber(value: pricePerMonth)) ?? "N/A"
+        return formatter.string(from: NSNumber(floatLiteral: pricePerMonth)) ?? "N/A"
     }
     
     private func subscribeTapped() {
