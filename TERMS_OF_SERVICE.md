@@ -62,8 +62,8 @@ We may update these Terms at any time. Continued use of the App constitutes acce
 ## 9. Contact Information
 
 For questions about these Terms, contact us at:
-- Email: support@locatedapp.com
-- Website: https://locatedapp.com
+- Email: support@locatedapp.info
+- Website: https://locatedapp.info
 
 ## 10. Governing Law
 

@@ -133,9 +133,9 @@ struct PaywallView: View {
                         
                         // Terms and privacy
                         HStack(spacing: 4) {
-                            Link("Terms of Service", destination: URL(string: "https://locatedapp.com/terms")!)
+                            Link("Terms of Service", destination: URL(string: "https://locatedapp.info/terms")!)
                             Text("•")
-                            Link("Privacy Policy", destination: URL(string: "https://locatedapp.com/privacy")!)
+                            Link("Privacy Policy", destination: URL(string: "https://locatedapp.info/privacy")!)
                         }
                         .font(.radioCanadaBig(12))
                         .foregroundColor(AppColors.textPrimary)

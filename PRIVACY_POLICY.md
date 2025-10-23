@@ -92,8 +92,8 @@ We may update this Privacy Policy to reflect changes in our practices. We will n
 ## 9. Contact Us
 
 For privacy questions or concerns:
-- **Email**: privacy@locatedapp.com
-- **Website**: https://locatedapp.com/privacy
+- **Email**: privacy@locatedapp.info
+- **Website**: https://locatedapp.info/privacy
 - **Address**: Located App, Dublin, Ireland
 
 ## 10. Legal Basis (EU Users)
