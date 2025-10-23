@@ -355,8 +355,11 @@ class AuthenticationService: ObservableObject {
             }
             
             guard let nonce = currentNonce else {
+                print("🍎 Apple Sign In - ERROR: No nonce found in currentNonce")
                 throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid state: A login callback was received, but no login request was sent."])
             }
+            
+            print("🍎 Apple Sign In - Using stored nonce: \(nonce)")
             
             guard let appleIDToken = appleIDCredential.identityToken else {
                 throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to fetch identity token"])
@@ -400,6 +403,9 @@ class AuthenticationService: ObservableObject {
             }
         }
         
+        // Clear nonce after use to prevent conflicts
+        currentNonce = nil
+        
         await MainActor.run {
             self.isLoading = false
         }
@@ -409,10 +415,15 @@ class AuthenticationService: ObservableObject {
     func startSignInWithAppleFlow() -> ASAuthorizationAppleIDRequest {
         let nonce = randomNonceString()
         currentNonce = nonce
+        let hashedNonce = sha256(nonce)
+        
+        print("🍎 Apple Sign In - Generated nonce: \(nonce)")
+        print("🍎 Apple Sign In - Hashed nonce: \(hashedNonce)")
+        
         let appleIDProvider = ASAuthorizationAppleIDProvider()
         let request = appleIDProvider.createRequest()
         request.requestedScopes = [.fullName, .email]
-        request.nonce = sha256(nonce)
+        request.nonce = hashedNonce
         
         return request
     }
