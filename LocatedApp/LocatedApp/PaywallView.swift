@@ -185,11 +185,11 @@ struct PaywallView: View {
     private func getPricePerMonth(_ package: Package) -> String {
         // Calculate price per month for annual subscription
         let price = package.storeProduct.price
-        let pricePerMonth = price / 12
+        let pricePerMonth = price / Decimal(12)
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale.current
-        return formatter.string(from: NSNumber(floatLiteral: pricePerMonth)) ?? "N/A"
+        return formatter.string(from: pricePerMonth) ?? "N/A"
     }
     
     private func subscribeTapped() {
