@@ -1,118 +1,108 @@
-# Privacy Policy for Located App
+# Privacy Policy
 
-**Effective Date: [INSERT DATE]**
+**Last updated: October 22, 2025**
 
-## Introduction
+## 1. Information We Collect
 
-Located ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application Located (the "App"). Please read this Privacy Policy carefully.
+### Location Data
+- **Real-time location**: GPS coordinates, timestamps, and accuracy information
+- **Location history**: Historical location data for trail visualization
+- **Geofence data**: Custom locations you create for alerts
 
-## Information We Collect
+### Account Information
+- **User profile**: Name, email address, user type (parent/child)
+- **Family data**: Family name, member relationships, invitation codes
+- **Device information**: Device identifiers, push notification tokens
 
-### Location Information
-- **Real-time Location**: We collect your current location to provide family safety features, including live location sharing and geofence monitoring
-- **Location History**: We temporarily store location data to enable features like arrival/departure notifications and location-based alerts
-- **Geofence Data**: We store information about designated safe zones and boundaries you create for family members
+### Usage Data
+- **App usage**: Features used, session duration, error logs
+- **Performance data**: App crashes, performance metrics
 
-### Personal Information
-- **Account Information**: Email address, name, and family relationship information
-- **Family Connections**: Information about family members you invite to use the app
-- **Device Information**: Device type, operating system, and unique device identifiers
+## 2. How We Use Your Information
 
-### Usage Information
-- **App Activity**: Features used, frequency of use, and interaction with family members
-- **Technical Data**: Crash reports, performance data, and app usage analytics
-
-## How We Use Your Information
-
-We use the information we collect to:
-
-### Core Safety Features
-- **Location Sharing**: Enable real-time location sharing between family members
-- **Geofence Alerts**: Send notifications when family members enter or leave designated areas
-- **Safety Monitoring**: Provide peace of mind through continuous location tracking when enabled
-
-### App Functionality
-- **Authentication**: Verify your identity and manage your account
-- **Family Management**: Facilitate family member invitations and connections
-- **Notifications**: Send relevant alerts and updates about family member locations
+### Core Functionality
+- **Location sharing**: Display real-time locations to authorized family members
+- **Geofence alerts**: Send notifications when family members enter/exit designated areas
+- **Location history**: Provide trail visualization and historical data
 
 ### Service Improvement
-- **App Performance**: Monitor and improve app stability and performance
-- **Feature Development**: Enhance existing features and develop new safety tools
+- **App functionality**: Maintain and improve app features
+- **Support**: Provide customer support and troubleshoot issues
+- **Analytics**: Understand usage patterns to improve the service
 
-## Information Sharing and Disclosure
+## 3. Information Sharing
 
-We do not sell, trade, or rent your personal information to third parties. We may share information only in the following circumstances:
+### Family Members
+- Location data is shared only with authorized family members
+- Parents can see children's locations
+- Children can see parents' locations (if enabled)
 
-### Within Your Family Group
-- Location data and status updates are shared only with approved family members within your designated family group
+### Third Parties
+- **Firebase**: We use Google Firebase for data storage and push notifications
+- **Apple**: Subscription data is processed through Apple's App Store
+- **No selling**: We do not sell your personal information to third parties
 
-### Service Providers
-- **Firebase/Google**: We use Firebase services for data storage, authentication, and push notifications
-- **Cloud Storage**: Your data is securely stored using industry-standard cloud services
+## 4. Data Security
 
-### Legal Requirements
-- We may disclose information if required by law or to protect the rights, property, or safety of our users
+### Protection Measures
+- **Encryption**: Data is encrypted in transit and at rest
+- **Access controls**: Strict access controls limit who can view your data
+- **Secure storage**: Data is stored on secure Firebase servers
 
-## Data Security
+### Data Retention
+- **Location data**: Retained for 6 months for trail visualization
+- **Account data**: Retained while your account is active
+- **Deletion**: Data is deleted when you delete your account
 
-We implement appropriate security measures to protect your information:
-- **Encryption**: All data is encrypted in transit and at rest
-- **Access Controls**: Strict access controls limit who can view your data
-- **Regular Audits**: We regularly review and update our security practices
+## 5. Your Rights
 
-## Data Retention
+### Access and Control
+- **View data**: You can view your location data in the app
+- **Delete data**: You can delete your account and associated data
+- **Opt-out**: You can disable location sharing at any time
 
-- **Location Data**: Stored only as long as necessary to provide services (typically 30 days unless you request longer retention)
-- **Account Information**: Retained until you delete your account
-- **Family Connections**: Maintained until you remove family members or delete your account
+### Children's Privacy
+- **Parental consent**: Location tracking requires parental consent
+- **Child accounts**: Children's data is protected under parental control
+- **COPPA compliance**: We comply with children's privacy laws
 
-## Your Rights and Choices
+## 6. Location Permissions
 
-You have the right to:
-- **Access**: Request access to your personal information
-- **Correction**: Correct inaccurate information
-- **Deletion**: Request deletion of your account and associated data
-- **Location Controls**: Enable/disable location sharing at any time
-- **Family Management**: Add or remove family members from your group
+### Required Permissions
+- **Always**: Required for background location tracking
+- **Notifications**: Required for geofence alerts
+- **Background App Refresh**: Required for continuous location updates
 
-## Children's Privacy
+### Permission Management
+- You can change permissions in iOS Settings
+- Disabling permissions will limit app functionality
+- We explain why each permission is needed
 
-Located is designed for family safety. If you are under 13, you must have parental consent to use this app. We do not knowingly collect personal information from children under 13 without parental consent.
+## 7. International Users
 
-## Third-Party Services
+### Data Transfers
+- Data may be transferred to servers outside your country
+- We ensure adequate protection for international transfers
+- EU users have additional rights under GDPR
 
-Our app uses the following third-party services:
-- **Firebase**: For data storage, authentication, and push notifications
-- **Google Maps**: For location services and mapping features
+## 8. Changes to Privacy Policy
 
-These services have their own privacy policies, and we encourage you to review them.
+We may update this Privacy Policy to reflect changes in our practices. We will notify you of significant changes.
 
-## International Users
+## 9. Contact Us
 
-If you are using our app from outside the United States, please note that your information may be transferred to, stored, and processed in the United States where our servers are located.
+For privacy questions or concerns:
+- **Email**: privacy@locatedapp.com
+- **Website**: https://locatedapp.com/privacy
+- **Address**: Located App, Dublin, Ireland
 
-## Changes to This Privacy Policy
+## 10. Legal Basis (EU Users)
 
-We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy in the app and updating the "Effective Date" at the top of this policy.
-
-## Contact Us
-
-If you have any questions about this Privacy Policy or our privacy practices, please contact us at:
-
-**Email**: chadley78@gmail.com
-**Address**: 1 Butterfield Grove, Rathfarnham, Dublin, D14NY16, Ireland
-
-## Compliance
-
-This Privacy Policy complies with applicable privacy laws including:
-- General Data Protection Regulation (GDPR)
-- California Consumer Privacy Act (CCPA)
-- Children's Online Privacy Protection Act (COPPA)
+For EU users, we process your data based on:
+- **Consent**: For location tracking and notifications
+- **Contract**: To provide the subscription service
+- **Legitimate interest**: For app improvement and security
 
 ---
 
-**Last Updated**: [INSERT DATE]
-
-
-
+**Apple Privacy**: This App also follows Apple's App Store Review Guidelines regarding privacy.

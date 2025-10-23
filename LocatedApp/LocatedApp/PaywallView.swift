@@ -79,6 +79,25 @@ struct PaywallView: View {
                             .padding(.horizontal, 30)
                         }
                         
+                        // Subscription Information (Required by Apple)
+                        if let package = selectedPackage {
+                            VStack(spacing: 8) {
+                                Text("Subscription Details")
+                                    .font(.radioCanadaBig(16, weight: .semibold))
+                                    .foregroundColor(AppColors.textPrimary)
+                                
+                                VStack(spacing: 4) {
+                                    Text("• Auto-renewing subscription")
+                                    Text("• Length: 1 Year")
+                                    Text("• Price: \(package.localizedPriceString)")
+                                    Text("• Price per month: \(getPricePerMonth(package))")
+                                }
+                                .font(.radioCanadaBig(14))
+                                .foregroundColor(AppColors.textPrimary)
+                            }
+                            .padding(.horizontal, 30)
+                        }
+                        
                         // Subscribe button
                         Button(action: subscribeTapped) {
                             if isPurchasing {
@@ -114,9 +133,9 @@ struct PaywallView: View {
                         
                         // Terms and privacy
                         HStack(spacing: 4) {
-                            Link("Terms of Service", destination: URL(string: "https://yourapp.com/terms")!)
+                            Link("Terms of Service", destination: URL(string: "https://locatedapp.com/terms")!)
                             Text("•")
-                            Link("Privacy Policy", destination: URL(string: "https://yourapp.com/privacy")!)
+                            Link("Privacy Policy", destination: URL(string: "https://locatedapp.com/privacy")!)
                         }
                         .font(.radioCanadaBig(12))
                         .foregroundColor(AppColors.textPrimary)
@@ -161,6 +180,16 @@ struct PaywallView: View {
         } else {
             return "Subscribe Now"
         }
+    }
+    
+    private func getPricePerMonth(_ package: Package) -> String {
+        // Calculate price per month for annual subscription
+        let price = package.storeProduct.price
+        let pricePerMonth = price / 12
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = package.storeProduct.priceLocale
+        return formatter.string(from: NSNumber(value: pricePerMonth)) ?? "N/A"
     }
     
     private func subscribeTapped() {
