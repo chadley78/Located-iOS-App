@@ -546,7 +546,10 @@ struct SignInView: View {
                 
                 // Apple Sign In Button
                 SignInWithAppleButton { request in
-                    let appleRequest = authService.startSignInWithAppleFlow()
+                    guard let appleRequest = authService.startSignInWithAppleFlow() else {
+                        // Request already in progress, ignore this tap
+                        return
+                    }
                     request.requestedScopes = appleRequest.requestedScopes
                     request.nonce = appleRequest.nonce
                 } onCompletion: { result in
@@ -874,7 +877,10 @@ struct SignUpView: View {
             
             // Apple Sign Up Button
             SignInWithAppleButton { request in
-                let appleRequest = authService.startSignInWithAppleFlow()
+                guard let appleRequest = authService.startSignInWithAppleFlow() else {
+                    // Request already in progress, ignore this tap
+                    return
+                }
                 request.requestedScopes = appleRequest.requestedScopes
                 request.nonce = appleRequest.nonce
             } onCompletion: { result in

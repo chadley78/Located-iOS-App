@@ -412,7 +412,13 @@ class AuthenticationService: ObservableObject {
     }
     
     // Generate nonce for Apple Sign In
-    func startSignInWithAppleFlow() -> ASAuthorizationAppleIDRequest {
+    func startSignInWithAppleFlow() -> ASAuthorizationAppleIDRequest? {
+        // Prevent multiple simultaneous requests
+        guard currentNonce == nil else {
+            print("🍎 Apple Sign In - Request already in progress, ignoring duplicate tap")
+            return nil
+        }
+        
         let nonce = randomNonceString()
         currentNonce = nonce
         let hashedNonce = sha256(nonce)
