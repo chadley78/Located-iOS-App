@@ -18,7 +18,6 @@ import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.located.app.MainActivity
-import com.located.app.R
 import com.located.app.data.model.LocationData
 import com.located.app.data.repository.LocationRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,8 +41,8 @@ class LocationService : Service() {
     private var locationUpdateJob: Job? = null
     
     // Location update settings - matching iOS implementation
-    private val locationUpdateInterval: Long = 10000 // 10 seconds
-    private val significantLocationChangeThreshold = 25.0 // 25 meters
+    private val locationUpdateInterval: Long = 2000 // 2 seconds (for testing)
+    private val significantLocationChangeThreshold = 1.0 // 1 meter (for testing)
     private var lastSignificantLocation: Location? = null
     private var lastFirestoreUpdateTime: Long = 0
     
@@ -108,7 +107,7 @@ class LocationService : Service() {
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Located is tracking your location")
             .setContentText("Keeping your family connected and safe")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -117,12 +116,10 @@ class LocationService : Service() {
     }
     
     private fun startLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            println("❌ Location permission not granted")
+        val hasFine = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!hasFine && !hasCoarse) {
+            println("❌ Location permission not granted (fine/coarse missing)")
             return
         }
         
@@ -136,12 +133,17 @@ class LocationService : Service() {
             setMinUpdateIntervalMillis(locationUpdateInterval)
             setMaxUpdateDelayMillis(locationUpdateInterval * 2)
             setWaitForAccurateLocation(false)
+            // Request updates even for small movements
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                setMinUpdateDistanceMeters(1f)
+            }
         }.build()
         
         // Create location callback
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
+                println("📍 onLocationResult: ${'$'}{locationResult.lastLocation}")
                 locationResult.lastLocation?.let { location ->
                     processLocationUpdate(location)
                 }
@@ -152,23 +154,43 @@ class LocationService : Service() {
         fusedLocationClient?.requestLocationUpdates(
             locationRequest,
             locationCallback!!,
-            null
+            android.os.Looper.getMainLooper()
         )
         
         // Start significant location change monitoring
         val significantLocationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-            60000 // 1 minute
+            Priority.PRIORITY_HIGH_ACCURACY,
+            10000 // 10 seconds
         ).apply {
-            setMinUpdateIntervalMillis(60000)
-            setMaxUpdateDelayMillis(120000)
+            setMinUpdateIntervalMillis(10000)
+            setMaxUpdateDelayMillis(20000)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                setMinUpdateDistanceMeters(5f)
+            }
         }.build()
         
         fusedLocationClient?.requestLocationUpdates(
             significantLocationRequest,
             locationCallback!!,
-            null
+            android.os.Looper.getMainLooper()
         )
+
+        // Kickstart with a one-shot current location
+        try {
+            val token = com.google.android.gms.tasks.CancellationTokenSource()
+            fusedLocationClient?.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token)
+                ?.addOnSuccessListener { loc ->
+                    if (loc != null) {
+                        println("📍 One-shot current location: lat=${'$'}{loc.latitude}, lng=${'$'}{loc.longitude}")
+                        processLocationUpdate(loc)
+                    } else {
+                        println("⚠️ One-shot current location returned null")
+                    }
+                }
+                ?.addOnFailureListener { e -> println("❌ One-shot current location failed: ${'$'}{e.message}") }
+        } catch (e: Exception) {
+            println("❌ One-shot current location exception: ${'$'}{e.message}")
+        }
     }
     
     private fun stopLocationUpdates() {
@@ -183,7 +205,7 @@ class LocationService : Service() {
     }
     
     private fun processLocationUpdate(location: Location) {
-        println("📍 Location update received: lat=${location.latitude}, lng=${location.longitude}, accuracy=${location.accuracy}")
+        println("📍 Location update received: lat=${location.latitude}, lng=${location.longitude}, acc=${location.accuracy}, provider=${location.provider}, time=${location.time}")
         
         // Check if this is a significant location change
         val isSignificantChange = lastSignificantLocation?.let { lastLocation ->
@@ -197,7 +219,7 @@ class LocationService : Service() {
         val shouldUpdateFirestore = timeSinceLastUpdate >= locationUpdateInterval
         
         if (isSignificantChange || shouldUpdateFirestore) {
-            println("📍 Significant location change or time threshold reached - updating Firestore")
+            println("📍 Writing location to Firestore: lat=${location.latitude}, lng=${location.longitude}")
             
             lastSignificantLocation = location
             lastFirestoreUpdateTime = currentTime
@@ -211,8 +233,7 @@ class LocationService : Service() {
         locationUpdateJob?.cancel()
         locationUpdateJob = serviceScope.launch {
             try {
-                // TODO: Get current user ID from authentication service
-                val userId = "temp_user_id" // This should come from AuthViewModel
+                val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
                 
                 val locationData = LocationData.create(
                     id = UUID.randomUUID().toString(),

@@ -27,7 +27,8 @@ class LocationRepository @Inject constructor(
                 "isBackgroundUpdate" to locationData.isBackgroundUpdate
             )
             
-            firestore.collection("locations").document(locationData.id).set(locationMap).await()
+            // Firestore rules require locations to be stored at /locations/{uid}
+            firestore.collection("locations").document(locationData.userId).set(locationMap).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -45,16 +46,16 @@ class LocationRepository @Inject constructor(
             
             val locations = snapshot.documents.mapNotNull { document ->
                 try {
-                    val data = document.data
+                    val data = document.data ?: return@mapNotNull null
                     LocationData(
                         id = document.id,
                         userId = data["userId"] as? String ?: "",
-                        latitude = (data["latitude"] as? Double) ?: 0.0,
-                        longitude = (data["longitude"] as? Double) ?: 0.0,
-                        accuracy = (data["accuracy"] as? Float) ?: 0f,
-                        altitude = (data["altitude"] as? Double) ?: 0.0,
-                        speed = (data["speed"] as? Float) ?: 0f,
-                        bearing = (data["bearing"] as? Float) ?: 0f,
+                        latitude = (data["latitude"] as? Number)?.toDouble() ?: 0.0,
+                        longitude = (data["longitude"] as? Number)?.toDouble() ?: 0.0,
+                        accuracy = (data["accuracy"] as? Number)?.toFloat() ?: 0f,
+                        altitude = (data["altitude"] as? Number)?.toDouble() ?: 0.0,
+                        speed = (data["speed"] as? Number)?.toFloat() ?: 0f,
+                        bearing = (data["bearing"] as? Number)?.toFloat() ?: 0f,
                         timestamp = (data["timestamp"] as? com.google.firebase.Timestamp)?.toDate() ?: java.util.Date(),
                         address = data["address"] as? String,
                         isBackgroundUpdate = data["isBackgroundUpdate"] as? Boolean ?: false
@@ -93,16 +94,16 @@ class LocationRepository @Inject constructor(
             
             val locations = snapshot.documents.mapNotNull { document ->
                 try {
-                    val data = document.data
+                    val data = document.data ?: return@mapNotNull null
                     LocationData(
                         id = document.id,
                         userId = data["userId"] as? String ?: "",
-                        latitude = (data["latitude"] as? Double) ?: 0.0,
-                        longitude = (data["longitude"] as? Double) ?: 0.0,
-                        accuracy = (data["accuracy"] as? Float) ?: 0f,
-                        altitude = (data["altitude"] as? Double) ?: 0.0,
-                        speed = (data["speed"] as? Float) ?: 0f,
-                        bearing = (data["bearing"] as? Float) ?: 0f,
+                        latitude = (data["latitude"] as? Number)?.toDouble() ?: 0.0,
+                        longitude = (data["longitude"] as? Number)?.toDouble() ?: 0.0,
+                        accuracy = (data["accuracy"] as? Number)?.toFloat() ?: 0f,
+                        altitude = (data["altitude"] as? Number)?.toDouble() ?: 0.0,
+                        speed = (data["speed"] as? Number)?.toFloat() ?: 0f,
+                        bearing = (data["bearing"] as? Number)?.toFloat() ?: 0f,
                         timestamp = (data["timestamp"] as? com.google.firebase.Timestamp)?.toDate() ?: java.util.Date(),
                         address = data["address"] as? String,
                         isBackgroundUpdate = data["isBackgroundUpdate"] as? Boolean ?: false
