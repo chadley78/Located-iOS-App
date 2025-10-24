@@ -1,11 +1,13 @@
 package com.located.app.presentation.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -15,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.located.app.data.model.UserType
+import com.located.app.presentation.home.HomeScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,8 +27,7 @@ fun WelcomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     if (uiState.isAuthenticated) {
-        // TODO: Navigate to main app
-        Text("Welcome! You are authenticated.")
+        HomeScreen()
     } else {
         AuthScreen(viewModel = viewModel)
     }
@@ -137,6 +139,28 @@ fun AuthScreen(
                 CircularProgressIndicator(modifier = Modifier.size(16.dp))
             } else {
                 Text(if (isSignUp) "Sign Up" else "Sign In")
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Google Sign-In Button
+        OutlinedButton(
+            onClick = {
+                // TODO: Implement Google Sign-In
+                // This will need to be handled in the Activity
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isLoading
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                // Google logo placeholder - you can add a proper Google logo icon
+                Text("G", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Continue with Google")
             }
         }
         

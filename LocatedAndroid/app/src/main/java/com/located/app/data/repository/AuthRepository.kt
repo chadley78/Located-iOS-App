@@ -1,6 +1,8 @@
 package com.located.app.data.repository
 
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.located.app.data.model.User
 import com.located.app.data.model.UserType
@@ -11,7 +13,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val googleSignInClient: GoogleSignInClient
 ) {
     
     suspend fun signUp(
@@ -51,6 +54,32 @@ class AuthRepository @Inject constructor(
         return try {
             auth.signOut()
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun signInWithGoogle(idToken: String): Result<User> {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = auth.signInWithCredential(credential).await()
+            
+            val user = if (authResult.additionalUserInfo?.isNewUser == true) {
+                // New user - create profile
+                val newUser = User(
+                    id = authResult.user?.uid,
+                    name = authResult.user?.displayName ?: "User",
+                    email = authResult.user?.email ?: "",
+                    userType = UserType.PARENT // Default to parent for Google Sign-In
+                )
+                saveUserProfile(newUser)
+                newUser
+            } else {
+                // Existing user - fetch profile
+                fetchUserProfile(authResult.user?.uid ?: "")
+            }
+            
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
