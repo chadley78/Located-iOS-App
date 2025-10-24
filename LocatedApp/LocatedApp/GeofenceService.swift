@@ -513,19 +513,30 @@ extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
                 return
             }
             
-            // Note: Geofence events are now handled by LocationService.checkGeofenceContainment()
-            // which provides better reliability and includes actual child names and addresses
-            print("📍 iOS detected geofence enter: \(geofence.name) - handled by LocationService")
+            // Only child accounts should log geofence events
+            if let userId = Auth.auth().currentUser?.uid {
+                do {
+                    let userDoc = try await db.collection("users").document(userId).getDocument()
+                    let userType = (userDoc.data()? ["userType"] as? String ?? "child").lowercased()
+                    guard userType == "child" else {
+                        print("🚫 Skipping iOS geofence enter log for non-child user")
+                        return
+                    }
+                } catch {
+                    print("❌ Error checking user type for geofence enter: \(error)")
+                    return
+                }
+            }
             
-            // Disabled to prevent duplicate events - LocationService handles this better
-            // await logGeofenceEvent(
-            //     geofence: geofence,
-            //     eventType: .enter,
-            //     location: CLLocation(
-            //         latitude: circularRegion.center.latitude,
-            //         longitude: circularRegion.center.longitude
-            //     )
-            // )
+            print("📍 iOS detected geofence enter: \(geofence.name) - logging fallback event")
+            await logGeofenceEvent(
+                geofence: geofence,
+                eventType: .enter,
+                location: CLLocation(
+                    latitude: circularRegion.center.latitude,
+                    longitude: circularRegion.center.longitude
+                )
+            )
         }
     }
     
@@ -537,19 +548,30 @@ extension GeofenceService: @preconcurrency CLLocationManagerDelegate {
                 return
             }
             
-            // Note: Geofence events are now handled by LocationService.checkGeofenceContainment()
-            // which provides better reliability and includes actual child names and addresses
-            print("📍 iOS detected geofence exit: \(geofence.name) - handled by LocationService")
+            // Only child accounts should log geofence events
+            if let userId = Auth.auth().currentUser?.uid {
+                do {
+                    let userDoc = try await db.collection("users").document(userId).getDocument()
+                    let userType = (userDoc.data()? ["userType"] as? String ?? "child").lowercased()
+                    guard userType == "child" else {
+                        print("🚫 Skipping iOS geofence exit log for non-child user")
+                        return
+                    }
+                } catch {
+                    print("❌ Error checking user type for geofence exit: \(error)")
+                    return
+                }
+            }
             
-            // Disabled to prevent duplicate events - LocationService handles this better
-            // await logGeofenceEvent(
-            //     geofence: geofence,
-            //     eventType: .exit,
-            //     location: CLLocation(
-            //         latitude: circularRegion.center.latitude,
-            //         longitude: circularRegion.center.longitude
-            //     )
-            // )
+            print("📍 iOS detected geofence exit: \(geofence.name) - logging fallback event")
+            await logGeofenceEvent(
+                geofence: geofence,
+                eventType: .exit,
+                location: CLLocation(
+                    latitude: circularRegion.center.latitude,
+                    longitude: circularRegion.center.longitude
+                )
+            )
         }
     }
     

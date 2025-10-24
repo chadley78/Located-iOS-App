@@ -25,6 +25,12 @@ class BackgroundLocationManager: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation // Highest accuracy for tracking
         locationManager.distanceFilter = 0 // No distance filter - we handle filtering ourselves
         locationManager.pausesLocationUpdatesAutomatically = false
+        locationManager.activityType = .fitness
+        #if canImport(UIKit)
+        if #available(iOS 11.0, *) {
+            locationManager.showsBackgroundLocationIndicator = true
+        }
+        #endif
         // Note: allowsBackgroundLocationUpdates will be set only after authorization
     }
     
