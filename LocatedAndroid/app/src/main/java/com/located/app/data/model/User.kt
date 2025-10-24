@@ -11,10 +11,33 @@ data class User(
     val createdAt: Date = Date(),
     val lastActive: Date = Date(),
     val isActive: Boolean = true,
-    val fcmTokens: List<String> = emptyList()
-)
+    val fcmTokens: List<String> = emptyList(),
+    val isExistingChild: Boolean? = null // For tracking existing children during invitation flow
+) {
+    companion object {
+        fun create(
+            id: String? = null,
+            name: String,
+            email: String,
+            userType: UserType,
+            familyId: String? = null
+        ): User {
+            return User(
+                id = id,
+                name = name,
+                email = email,
+                userType = userType,
+                familyId = familyId,
+                createdAt = Date(),
+                lastActive = Date(),
+                isActive = true,
+                fcmTokens = emptyList()
+            )
+        }
+    }
+}
 
-enum class UserType {
-    PARENT,
-    CHILD
+enum class UserType(val value: String) {
+    PARENT("parent"),
+    CHILD("child")
 }

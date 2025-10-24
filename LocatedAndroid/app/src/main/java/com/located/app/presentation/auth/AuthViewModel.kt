@@ -27,24 +27,36 @@ class AuthViewModel @Inject constructor(
         auth.addAuthStateListener { firebaseUser ->
             viewModelScope.launch {
                 println("DEBUG: Auth state changed - user: ${firebaseUser?.uid}")
-                println("DEBUG: firebaseUser is null: ${firebaseUser == null}")
-                println("DEBUG: firebaseUser.uid is null: ${firebaseUser?.uid == null}")
                 if (firebaseUser?.uid != null) {
                     println("DEBUG: Going to authenticated branch")
                     val user = authRepository.getCurrentUser()
                     println("DEBUG: User authenticated: ${user?.name}")
-                    _uiState.value = _uiState.value.copy(
-                        isAuthenticated = true,
-                        currentUser = user,
-                        isLoading = false
-                    )
+                    
+                    // Only set authenticated if we're not in welcome flow
+                    if (!_uiState.value.shouldShowWelcome) {
+                        _uiState.value = _uiState.value.copy(
+                            isAuthenticated = true,
+                            currentUser = user,
+                            isLoading = false,
+                            isInitializing = false
+                        )
+                    } else {
+                        // Just update the user, keep shouldShowWelcome = true
+                        _uiState.value = _uiState.value.copy(
+                            currentUser = user,
+                            isLoading = false,
+                            isInitializing = false
+                        )
+                    }
                 } else {
                     println("DEBUG: Going to signed out branch")
                     println("DEBUG: User signed out - setting isAuthenticated = false")
                     _uiState.value = _uiState.value.copy(
                         isAuthenticated = false,
                         currentUser = null,
-                        isLoading = false
+                        isLoading = false,
+                        isInitializing = false,
+                        shouldShowWelcome = false
                     )
                 }
             }
@@ -155,6 +167,38 @@ class AuthViewModel @Inject constructor(
         }
     }
     
+    fun signUpChildWithInvitation(inviteCode: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            
+            // Set welcome screen state BEFORE creating user account (prevents auth bypass)
+            _uiState.value = _uiState.value.copy(shouldShowWelcome = true)
+            
+            authRepository.signUpChildWithInvitation(inviteCode)
+                .onSuccess { user ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        currentUser = user,
+                        shouldShowWelcome = true // Keep welcome screen showing
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        shouldShowWelcome = false,
+                        errorMessage = error.message
+                    )
+                }
+        }
+    }
+    
+    fun completeWelcomeFlow() {
+        _uiState.value = _uiState.value.copy(
+            shouldShowWelcome = false,
+            isAuthenticated = true
+        )
+    }
+    
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
@@ -164,5 +208,7 @@ data class AuthUiState(
     val isAuthenticated: Boolean = false,
     val currentUser: User? = null,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isInitializing: Boolean = true,
+    val shouldShowWelcome: Boolean = false
 )

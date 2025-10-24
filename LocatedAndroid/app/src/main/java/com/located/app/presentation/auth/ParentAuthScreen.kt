@@ -1,13 +1,11 @@
 package com.located.app.presentation.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -17,48 +15,16 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.located.app.data.model.UserType
-import com.located.app.presentation.home.HomeScreen
 
 @Composable
-fun WelcomeScreen(
-    viewModel: AuthViewModel = hiltViewModel()
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
-    when {
-        uiState.isInitializing -> {
-            // Show loading screen while checking auth state
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        uiState.isAuthenticated -> {
-            HomeScreen()
-        }
-        uiState.shouldShowWelcome -> {
-            // Show welcome screens for children
-            ChildWelcomeScreen(viewModel = viewModel)
-        }
-        else -> {
-            // Show role selection screen
-            RoleSelectionScreen(viewModel = viewModel)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AuthScreen(
-    viewModel: AuthViewModel
+fun ParentAuthScreen(
+    viewModel: AuthViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit = {}
 ) {
     var isSignUp by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var userType by remember { mutableStateOf(UserType.PARENT) }
     
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -69,6 +35,17 @@ fun AuthScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onNavigateBack) {
+                Text("← Back")
+            }
+            Spacer(modifier = Modifier.weight(1f))
+        }
+        
         Text(
             text = "Located",
             fontSize = 32.sp,
@@ -79,9 +56,17 @@ fun AuthScreen(
         Spacer(modifier = Modifier.height(32.dp))
         
         Text(
-            text = if (isSignUp) "Create Account" else "Welcome Back",
+            text = if (isSignUp) "Create Parent Account" else "Parent Login",
             fontSize = 24.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center
+        )
+        
+        Text(
+            text = if (isSignUp) "Set up your account to manage your family" else "Sign in to manage your family",
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -90,28 +75,10 @@ fun AuthScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name") },
+                label = { Text("Full Name") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                FilterChip(
-                    onClick = { userType = UserType.PARENT },
-                    label = { Text("Parent") },
-                    selected = userType == UserType.PARENT
-                )
-                FilterChip(
-                    onClick = { userType = UserType.CHILD },
-                    label = { Text("Child") },
-                    selected = userType == UserType.CHILD
-                )
-            }
             
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -119,7 +86,7 @@ fun AuthScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text("Email Address") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
@@ -142,7 +109,7 @@ fun AuthScreen(
         Button(
             onClick = {
                 if (isSignUp) {
-                    viewModel.signUp(email, password, name, userType)
+                    viewModel.signUp(email, password, name, UserType.PARENT)
                 } else {
                     viewModel.signIn(email, password)
                 }
@@ -154,7 +121,7 @@ fun AuthScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(16.dp))
             } else {
-                Text(if (isSignUp) "Sign Up" else "Sign In")
+                Text(if (isSignUp) "Create Account" else "Sign In")
             }
         }
         
@@ -164,7 +131,6 @@ fun AuthScreen(
         OutlinedButton(
             onClick = {
                 // TODO: Implement Google Sign-In
-                // This will need to be handled in the Activity
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = !uiState.isLoading
@@ -173,7 +139,6 @@ fun AuthScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                // Google logo placeholder - you can add a proper Google logo icon
                 Text("G", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Continue with Google")
@@ -220,4 +185,3 @@ fun AuthScreen(
         }
     }
 }
-
