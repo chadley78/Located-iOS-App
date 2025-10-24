@@ -97,6 +97,12 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.hilt:hilt-work:1.1.0")
     
+    // Google Play Services Location
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+    
+    // Permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+    
     // Coil (Image loading)
     implementation("io.coil-kt:coil-compose:2.5.0")
     

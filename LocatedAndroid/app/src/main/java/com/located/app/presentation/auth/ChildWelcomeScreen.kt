@@ -51,7 +51,6 @@ fun ChildWelcomeScreen(
         Button(
             onClick = { 
                 // Complete welcome flow and start location tracking
-                // TODO: Request location permissions
                 viewModel.completeWelcomeFlow()
             },
             modifier = Modifier.fillMaxWidth()
