@@ -41,6 +41,12 @@
 		<string>location</string>
 		<string>remote-notification</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Located uses your location to keep your family informed and safe.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Located needs Always access to update your location in the background for safety.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Located needs background location access to provide continuous safety tracking.</string>
 	<key>UILaunchScreen_Generation</key>
 	<false/>
 </dict>

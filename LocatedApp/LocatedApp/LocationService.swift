@@ -314,9 +314,17 @@ class LocationService: NSObject, ObservableObject {
             return
         }
         
-        // Get user's familyId
+        // Get user's profile and restrict writes to child accounts only
         let userDoc = try? await Firestore.firestore().collection("users").document(userId).getDocument()
-        let familyId = userDoc?.data()?["familyId"] as? String ?? "unknown"
+        let userData = userDoc?.data()
+        let familyId = userData?["familyId"] as? String ?? "unknown"
+        let userType = (userData?["userType"] as? String ?? "child").lowercased()
+        
+        // Only CHILD accounts should write realtime location and generate geofence events
+        guard userType == "child" else {
+            print("🚫 Skipping Firestore location save for non-child user (userType=\(userType))")
+            return
+        }
         
         let locationData = LocationData(
             familyId: familyId,
@@ -540,6 +548,19 @@ class LocationService: NSObject, ObservableObject {
     func setupGeofenceListenerForAuthenticatedUser() {
         print("📍 Setting up geofence listener for authenticated user")
         Task {
+            // Ensure only child devices set up geofence containment checks
+            guard let userId = Auth.auth().currentUser?.uid else { return }
+            do {
+                let userDoc = try await Firestore.firestore().collection("users").document(userId).getDocument()
+                let userType = (userDoc.data()? ["userType"] as? String ?? "child").lowercased()
+                guard userType == "child" else {
+                    print("🚫 Skipping geofence listener setup for non-child user (userType=\(userType))")
+                    return
+                }
+            } catch {
+                print("❌ Error checking user type for geofence listener: \(error)")
+                return
+            }
             await setupGeofenceListener()
         }
     }
