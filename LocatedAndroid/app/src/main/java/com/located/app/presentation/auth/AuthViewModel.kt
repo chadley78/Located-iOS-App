@@ -27,7 +27,9 @@ class AuthViewModel @Inject constructor(
         auth.addAuthStateListener { firebaseUser ->
             viewModelScope.launch {
                 println("DEBUG: Auth state changed - user: ${firebaseUser?.uid}")
+                println("DEBUG: firebaseUser is null: ${firebaseUser == null}")
                 if (firebaseUser != null) {
+                    println("DEBUG: Going to authenticated branch")
                     val user = authRepository.getCurrentUser()
                     println("DEBUG: User authenticated: ${user?.name}")
                     _uiState.value = _uiState.value.copy(
@@ -36,6 +38,7 @@ class AuthViewModel @Inject constructor(
                         isLoading = false
                     )
                 } else {
+                    println("DEBUG: Going to signed out branch")
                     println("DEBUG: User signed out - setting isAuthenticated = false")
                     _uiState.value = _uiState.value.copy(
                         isAuthenticated = false,
