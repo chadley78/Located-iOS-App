@@ -26,14 +26,17 @@ class AuthViewModel @Inject constructor(
         // Listen for auth state changes
         auth.addAuthStateListener { firebaseUser ->
             viewModelScope.launch {
+                println("DEBUG: Auth state changed - user: ${firebaseUser?.uid}")
                 if (firebaseUser != null) {
                     val user = authRepository.getCurrentUser()
+                    println("DEBUG: User authenticated: ${user?.name}")
                     _uiState.value = _uiState.value.copy(
                         isAuthenticated = true,
                         currentUser = user,
                         isLoading = false
                     )
                 } else {
+                    println("DEBUG: User signed out")
                     _uiState.value = _uiState.value.copy(
                         isAuthenticated = false,
                         currentUser = null,
@@ -88,8 +91,10 @@ class AuthViewModel @Inject constructor(
     
     fun signOut() {
         viewModelScope.launch {
+            println("DEBUG: Starting sign out...")
             authRepository.signOut()
                 .onSuccess {
+                    println("DEBUG: Sign out successful")
                     _uiState.value = _uiState.value.copy(
                         isAuthenticated = false,
                         currentUser = null,
@@ -97,6 +102,7 @@ class AuthViewModel @Inject constructor(
                     )
                 }
                 .onFailure { error ->
+                    println("DEBUG: Sign out failed: ${error.message}")
                     _uiState.value = _uiState.value.copy(
                         errorMessage = error.message
                     )
