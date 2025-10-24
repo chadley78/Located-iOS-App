@@ -11,7 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.located.app.presentation.auth.AuthViewModel
-import com.located.app.presentation.home.HomeScreen
+import com.located.app.presentation.navigation.MainTabScreen
 import com.located.app.presentation.navigation.AuthNavigation
 import com.located.app.presentation.theme.LocatedTheme
 import com.located.app.util.DeepLinkHandler
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
                     }
                     
                     if (showHome) {
-                        HomeScreen()
+                        MainTabScreen()
                     } else {
                         AuthNavigation(
                             onNavigateToHome = { showHome = true },

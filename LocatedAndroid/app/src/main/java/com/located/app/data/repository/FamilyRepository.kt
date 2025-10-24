@@ -30,6 +30,10 @@ class FamilyRepository @Inject constructor(
     suspend fun createFamily(name: String, createdBy: String): Result<Family> {
         return try {
             val familyId = firestore.collection("families").document().id
+
+            // Try to read the creator's name from the user profile for member entry
+            val creatorDoc = firestore.collection("users").document(createdBy).get().await()
+            val creatorName = (creatorDoc.data?.get("name") as? String) ?: ""
             val family = Family(
                 id = familyId,
                 name = name,
@@ -38,7 +42,7 @@ class FamilyRepository @Inject constructor(
                 members = mapOf(
                     createdBy to FamilyMember(
                         role = FamilyRole.PARENT,
-                        name = "", // Will be updated from user data
+                        name = creatorName,
                         joinedAt = java.util.Date(),
                         status = InvitationStatus.ACCEPTED
                     )
@@ -52,15 +56,19 @@ class FamilyRepository @Inject constructor(
                 "createdAt" to family.createdAt,
                 "members" to family.members.mapValues { (_, member) ->
                     mapOf(
-                        "role" to member.role.name,
+                        "role" to member.role.name.lowercase(),
                         "name" to member.name,
                         "joinedAt" to member.joinedAt,
-                        "status" to member.status.name
+                        "status" to member.status.name.lowercase()
                     )
                 }
             )
             
             firestore.collection("families").document(familyId).set(familyData).await()
+            // Link the user to the newly created family
+            firestore.collection("users").document(createdBy)
+                .update("familyId", familyId)
+                .await()
             Result.success(family)
         } catch (e: Exception) {
             Result.failure(e)
@@ -70,10 +78,10 @@ class FamilyRepository @Inject constructor(
     suspend fun updateFamilyMember(familyId: String, userId: String, member: FamilyMember): Result<Unit> {
         return try {
             val memberData = mapOf(
-                "role" to member.role.name,
+                "role" to member.role.name.lowercase(),
                 "name" to member.name,
                 "joinedAt" to member.joinedAt,
-                "status" to member.status.name,
+                "status" to member.status.name.lowercase(),
                 "imageURL" to member.imageURL,
                 "imageBase64" to member.imageBase64,
                 "hasImage" to member.hasImage

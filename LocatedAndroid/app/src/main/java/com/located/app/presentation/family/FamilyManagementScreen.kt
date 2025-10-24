@@ -26,6 +26,7 @@ fun FamilyManagementScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showingInviteChild by remember { mutableStateOf(false) }
     var showingCreateFamily by remember { mutableStateOf(false) }
+    var lastGeneratedCode by remember { mutableStateOf<String?>(null) }
     
     Column(
         modifier = Modifier
@@ -62,8 +63,30 @@ fun FamilyManagementScreen(
         InviteChildDialog(
             onDismiss = { showingInviteChild = false },
             onInviteChild = { childName ->
-                // TODO: Implement invite child functionality
-                showingInviteChild = false
+                viewModel.inviteChild(childName)
+            }
+        )
+    }
+
+    // Observe invitation code and show a simple dialog when available
+    uiState.invitationCode?.let { code ->
+        lastGeneratedCode = code
+        AlertDialog(
+            onDismissRequest = { viewModel.clearInvitation() },
+            title = { Text("Invitation Code") },
+            text = {
+                Column {
+                    Text("Share this code with the child:")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(code, style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Deep link: located://invite/$code")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearInvitation() }) {
+                    Text("Close")
+                }
             }
         )
     }
@@ -210,7 +233,7 @@ fun FamilyMemberCard(
             // Member Avatar
             Surface(
                 modifier = Modifier.size(48.dp),
-                shape = MaterialTheme.shapes.circle,
+                shape = androidx.compose.foundation.shape.CircleShape,
                 color = if (member.role == FamilyRole.PARENT) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -329,20 +352,9 @@ fun InviteChildDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { 
-                    if (childName.isNotBlank()) {
-                        onInviteChild(childName.trim())
-                    }
-                }
-            ) {
-                Text("Send Invitation")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = { if (childName.isNotBlank()) onInviteChild(childName.trim()) }) { Text("Generate Code") }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+        dismissButton = {}
     )
 }

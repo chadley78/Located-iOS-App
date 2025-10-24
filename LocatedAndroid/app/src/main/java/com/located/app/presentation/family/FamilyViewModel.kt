@@ -9,6 +9,7 @@ import com.located.app.data.model.Family
 import com.located.app.data.model.FamilyMember
 import com.located.app.data.model.FamilyRole
 import com.located.app.data.repository.FamilyRepository
+import com.located.app.data.repository.InvitationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class FamilyViewModel @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val familyRepository: FamilyRepository
+    private val familyRepository: FamilyRepository,
+    private val invitationRepository: InvitationRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(FamilyUiState())
@@ -33,6 +35,34 @@ class FamilyViewModel @Inject constructor(
         println("🔍 FamilyViewModel initialized")
     }
     
+    fun inviteChild(childName: String) {
+        val familyId = _uiState.value.currentFamily?.id
+        if (familyId == null) {
+            _uiState.value = _uiState.value.copy(inviteError = "No family found")
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isInviting = true, inviteError = null, invitationCode = null)
+            invitationRepository.createInvitation(familyId, childName)
+                .onSuccess { invitation ->
+                    _uiState.value = _uiState.value.copy(
+                        isInviting = false,
+                        invitationCode = invitation.id
+                    )
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isInviting = false,
+                        inviteError = e.message ?: "Failed to create invitation"
+                    )
+                }
+        }
+    }
+
+    fun clearInvitation() {
+        _uiState.value = _uiState.value.copy(invitationCode = null, inviteError = null, isInviting = false)
+    }
+
     fun handleAuthStateChange(isAuthenticated: Boolean, userId: String?) {
         if (isAuthenticated && userId != null) {
             println("🔍 User authenticated, starting family listener for: $userId")
@@ -166,7 +196,7 @@ class FamilyViewModel @Inject constructor(
     }
     
     fun getChildren(): List<Pair<String, FamilyMember>> {
-        return _uiState.value.familyMembers.filter { it.value.role == FamilyRole.CHILD }
+        return _uiState.value.familyMembers.filter { it.value.role == FamilyRole.CHILD }.toList()
     }
     
     fun createFamily(name: String) {
@@ -200,5 +230,8 @@ data class FamilyUiState(
     val currentFamily: Family? = null,
     val familyMembers: Map<String, FamilyMember> = emptyMap(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isInviting: Boolean = false,
+    val invitationCode: String? = null,
+    val inviteError: String? = null
 )
