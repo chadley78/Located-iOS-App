@@ -36,7 +36,7 @@ class AuthViewModel @Inject constructor(
                         isLoading = false
                     )
                 } else {
-                    println("DEBUG: User signed out")
+                    println("DEBUG: User signed out - setting isAuthenticated = false")
                     _uiState.value = _uiState.value.copy(
                         isAuthenticated = false,
                         currentUser = null,
