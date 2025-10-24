@@ -7,7 +7,8 @@ import com.located.app.presentation.auth.*
 
 @Composable
 fun AuthNavigation(
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    invitationCode: String? = null
 ) {
     var currentScreen by remember { mutableStateOf(AuthScreen.ROLE_SELECTION) }
     val viewModel: AuthViewModel = hiltViewModel()
@@ -37,7 +38,8 @@ fun AuthNavigation(
         AuthScreen.CHILD_INVITATION -> {
             ChildInvitationScreen(
                 viewModel = viewModel,
-                onNavigateBack = { currentScreen = AuthScreen.ROLE_SELECTION }
+                onNavigateBack = { currentScreen = AuthScreen.ROLE_SELECTION },
+                initialInvitationCode = invitationCode
             )
         }
     }

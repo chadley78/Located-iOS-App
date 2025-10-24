@@ -17,9 +17,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ChildInvitationScreen(
     viewModel: AuthViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    initialInvitationCode: String? = null
 ) {
-    var inviteCode by remember { mutableStateOf("") }
+    var inviteCode by remember { mutableStateOf(initialInvitationCode ?: "") }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     Column(
