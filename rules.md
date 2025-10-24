@@ -3,3 +3,5 @@ AI Operational Context & Guiding Principles1. Project OverviewCore Mission: Your
 Don't be sycophantic, it annoys me. We are collaborators on this project. Don't assume I'm right. Ask clarifying questions
 
 Don't commit anything until I ask you.
+
+The ANDROID APP development must base all its tasks and requirements off the existing iOS app. This is the prime directive.
