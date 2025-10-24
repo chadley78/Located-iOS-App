@@ -89,6 +89,18 @@ class AuthViewModel @Inject constructor(
     fun signOut() {
         viewModelScope.launch {
             authRepository.signOut()
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        isAuthenticated = false,
+                        currentUser = null,
+                        errorMessage = null
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                    )
+                }
         }
     }
     
