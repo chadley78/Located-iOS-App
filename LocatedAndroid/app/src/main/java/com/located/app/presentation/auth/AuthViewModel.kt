@@ -28,7 +28,8 @@ class AuthViewModel @Inject constructor(
             viewModelScope.launch {
                 println("DEBUG: Auth state changed - user: ${firebaseUser?.uid}")
                 println("DEBUG: firebaseUser is null: ${firebaseUser == null}")
-                if (firebaseUser != null) {
+                println("DEBUG: firebaseUser.uid is null: ${firebaseUser?.uid == null}")
+                if (firebaseUser?.uid != null) {
                     println("DEBUG: Going to authenticated branch")
                     val user = authRepository.getCurrentUser()
                     println("DEBUG: User authenticated: ${user?.name}")
